@@ -37,6 +37,7 @@ import SystemHealth from './SystemHealth';
 import ProjectManagement from './ProjectManagement';
 import TagManagement from './TagManagement';
 import SceneManagement from './SceneManagement';
+import DataManagementPanel from '../Settings/DataManagementPanel';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -185,14 +186,7 @@ const AdminDashboard: React.FC = memo(() => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={5}>
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              データ管理機能
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 2 }}>
-              データのエクスポート・インポート、バックアップ機能を実装予定
-            </Typography>
-          </Box>
+          <DataManagementPanel />
         </TabPanel>
         </Paper>
       </Box>

@@ -9,6 +9,7 @@ import { userVariableApi } from './api/userVariableApi'
 import { projectVariableApi } from './api/projectVariableApi'
 import { userPreferenceApi } from './api/userPreferenceApi'
 import { adminApi } from './api/adminApi'
+import { dataExportImportApi } from './api/dataExportImportApi'
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     [projectVariableApi.reducerPath]: projectVariableApi.reducer,
     [userPreferenceApi.reducerPath]: userPreferenceApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
+    [dataExportImportApi.reducerPath]: dataExportImportApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -37,7 +39,8 @@ export const store = configureStore({
     .concat(userVariableApi.middleware)
     .concat(projectVariableApi.middleware)
     .concat(userPreferenceApi.middleware)
-    .concat(adminApi.middleware),
+    .concat(adminApi.middleware)
+    .concat(dataExportImportApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

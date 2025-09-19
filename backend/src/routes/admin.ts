@@ -12,6 +12,12 @@ import {
   updateUser,
   deleteUser,
 } from '../controllers/adminController';
+import {
+  exportAllData,
+  importAllData,
+  getExportStats,
+  validateImportData,
+} from '../controllers/dataExportImportController';
 
 const router = express.Router();
 
@@ -33,7 +39,13 @@ router.delete('/users/:id', deleteUser);
 // Activity monitoring
 router.get('/activity', getRecentActivity);
 
-// Data export
+// Data export (existing)
 router.get('/export', exportSystemData);
+
+// Data export/import (new comprehensive functionality)
+router.get('/data/export', exportAllData);
+router.post('/data/import', importAllData);
+router.get('/data/stats', getExportStats);
+router.post('/data/validate', validateImportData);
 
 export default router;
