@@ -3,6 +3,8 @@ import authRoutes from './auth';
 import templateRoutes from './templates';
 import sceneRoutes from './scenes';
 import tagRoutes from './tags';
+import projectRoutes from './projects';
+import documentRoutes from './documents';
 
 const router = express.Router();
 
@@ -11,6 +13,8 @@ router.use('/auth', authRoutes);
 router.use('/templates', templateRoutes);
 router.use('/scenes', sceneRoutes);
 router.use('/tags', tagRoutes);
+router.use('/projects', projectRoutes);
+router.use('/documents', documentRoutes);
 
 // API information
 router.get('/', (req, res) => {
@@ -23,8 +27,8 @@ router.get('/', (req, res) => {
       templates: '/api/templates',
       scenes: '/api/scenes',
       tags: '/api/tags',
-      projects: '/api/projects (coming in Phase 2)',
-      documents: '/api/documents (coming in Phase 3)',
+      projects: '/api/projects',
+      documents: '/api/documents',
     },
   });
 });

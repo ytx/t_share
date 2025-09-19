@@ -179,7 +179,7 @@ export interface EditorPreferences {
   fontSize: number;
 }
 
-// Project types (for future use)
+// Project types
 export interface Project {
   id: number;
   name: string;
@@ -191,5 +191,31 @@ export interface Project {
     id: number;
     displayName?: string;
     username?: string;
+  };
+  _count?: {
+    documents: number;
+    projectVariables?: number;
+  };
+}
+
+// Document types
+export interface Document {
+  id: number;
+  projectId?: number;
+  title?: string;
+  content: string;
+  contentMarkdown: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  creator: {
+    id: number;
+    displayName?: string;
+    username?: string;
+  };
+  project?: {
+    id: number;
+    name: string;
+    description?: string;
   };
 }

@@ -3,6 +3,8 @@ import authReducer from './slices/authSlice'
 import { templateApi } from './api/templateApi'
 import { sceneApi } from './api/sceneApi'
 import { tagApi } from './api/tagApi'
+import { projectApi } from './api/projectApi'
+import { documentApi } from './api/documentApi'
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +12,8 @@ export const store = configureStore({
     [templateApi.reducerPath]: templateApi.reducer,
     [sceneApi.reducerPath]: sceneApi.reducer,
     [tagApi.reducerPath]: tagApi.reducer,
+    [projectApi.reducerPath]: projectApi.reducer,
+    [documentApi.reducerPath]: documentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -19,7 +23,9 @@ export const store = configureStore({
     })
     .concat(templateApi.middleware)
     .concat(sceneApi.middleware)
-    .concat(tagApi.middleware),
+    .concat(tagApi.middleware)
+    .concat(projectApi.middleware)
+    .concat(documentApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>
