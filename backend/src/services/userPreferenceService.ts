@@ -7,7 +7,8 @@ export interface UserPreferenceData {
   theme?: 'light' | 'dark' | 'auto';
   language?: 'ja' | 'en';
   editorSettings?: {
-    theme?: 'light' | 'dark';
+    lightTheme?: string;
+    darkTheme?: string;
     showLineNumbers?: boolean;
     wordWrap?: boolean;
     fontSize?: number;
@@ -18,6 +19,7 @@ export interface UserPreferenceData {
     sidebarOpen?: boolean;
     compactMode?: boolean;
     showMinimap?: boolean;
+    panelSplitRatio?: number;
   };
   notifications?: {
     emailNotifications?: boolean;
@@ -38,14 +40,25 @@ class UserPreferenceService {
         return this.getDefaultPreferences();
       }
 
-      // Parse JSON fields
+      // Parse JSON fields and map individual fields to structured objects
       const parsedPreferences = {
         id: preferences.id,
         userId: preferences.userId,
         theme: preferences.theme as 'light' | 'dark' | 'auto',
         language: preferences.language as 'ja' | 'en',
-        editorSettings: preferences.editorSettings ? JSON.parse(preferences.editorSettings) : this.getDefaultPreferences().editorSettings,
-        uiSettings: preferences.uiSettings ? JSON.parse(preferences.uiSettings) : this.getDefaultPreferences().uiSettings,
+        editorSettings: {
+          lightTheme: preferences.editorLightTheme,
+          darkTheme: preferences.editorDarkTheme,
+          showLineNumbers: preferences.editorShowLineNumbers,
+          wordWrap: preferences.editorWordWrap,
+          fontSize: preferences.editorFontSize,
+          keybinding: preferences.editorKeybinding as 'default' | 'vim' | 'emacs',
+          showWhitespace: preferences.editorShowWhitespace,
+        },
+        uiSettings: {
+          panelSplitRatio: preferences.panelSplitRatio,
+          ...this.getDefaultPreferences().uiSettings,
+        },
         notifications: preferences.notifications ? JSON.parse(preferences.notifications) : this.getDefaultPreferences().notifications,
         createdAt: preferences.createdAt,
         updatedAt: preferences.updatedAt,
@@ -67,10 +80,14 @@ class UserPreferenceService {
 
       const updateData = {
         theme: data.theme,
-        language: data.language,
-        editorSettings: data.editorSettings ? JSON.stringify(data.editorSettings) : undefined,
-        uiSettings: data.uiSettings ? JSON.stringify(data.uiSettings) : undefined,
-        notifications: data.notifications ? JSON.stringify(data.notifications) : undefined,
+        editorLightTheme: data.editorSettings?.lightTheme,
+        editorDarkTheme: data.editorSettings?.darkTheme,
+        editorKeybinding: data.editorSettings?.keybinding,
+        editorShowLineNumbers: data.editorSettings?.showLineNumbers,
+        editorWordWrap: data.editorSettings?.wordWrap,
+        editorShowWhitespace: data.editorSettings?.showWhitespace,
+        editorFontSize: data.editorSettings?.fontSize,
+        panelSplitRatio: data.uiSettings?.panelSplitRatio,
       };
 
       // Remove undefined values
@@ -130,16 +147,24 @@ class UserPreferenceService {
 
   async updateEditorSettings(userId: number, editorSettings: UserPreferenceData['editorSettings']) {
     try {
+      logger.info('updateEditorSettings called with:', { userId, editorSettings });
+
       const currentPreferences = await this.getUserPreferences(userId);
+      logger.info('Current preferences:', currentPreferences.editorSettings);
 
       const updatedEditorSettings = {
         ...currentPreferences.editorSettings,
         ...editorSettings,
       };
 
-      return this.updateUserPreferences(userId, {
+      logger.info('Updated editor settings:', updatedEditorSettings);
+
+      const result = await this.updateUserPreferences(userId, {
         editorSettings: updatedEditorSettings,
       });
+
+      logger.info('Update result:', result.editorSettings);
+      return result;
     } catch (error) {
       logger.error('Update editor settings failed:', error);
       throw error;
@@ -187,7 +212,8 @@ class UserPreferenceService {
       theme: 'auto' as const,
       language: 'ja' as const,
       editorSettings: {
-        theme: 'light' as const,
+        lightTheme: 'github',
+        darkTheme: 'monokai',
         showLineNumbers: true,
         wordWrap: true,
         fontSize: 14,
@@ -198,6 +224,7 @@ class UserPreferenceService {
         sidebarOpen: true,
         compactMode: false,
         showMinimap: true,
+        panelSplitRatio: 0.5,
       },
       notifications: {
         emailNotifications: true,

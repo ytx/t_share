@@ -19,13 +19,12 @@ import {
   AccountCircle,
   Settings,
   Logout,
-  DarkMode,
-  LightMode,
   AdminPanelSettings,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import SettingsModal from '../Settings/SettingsModal';
+import ThemeToggleButton from '../Common/ThemeToggleButton';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -36,7 +35,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, headerExtras }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -60,11 +58,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, headerExtras }) => {
   const handleSettings = () => {
     setSettingsOpen(true);
     handleClose();
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // Theme switching will be implemented later
   };
 
   return (
@@ -108,9 +101,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, headerExtras }) => {
           )}
 
           {/* Theme toggle */}
-          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
-            {isDarkMode ? <LightMode /> : <DarkMode />}
-          </IconButton>
+          <Box sx={{ mr: 1 }}>
+            <ThemeToggleButton size="medium" />
+          </Box>
 
           {isAuthenticated ? (
             <div>

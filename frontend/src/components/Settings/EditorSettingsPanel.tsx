@@ -12,6 +12,9 @@ import {
   Paper,
   Divider,
   Alert,
+  Select,
+  MenuItem,
+  InputLabel,
 } from '@mui/material';
 import {
   useGetUserPreferencesQuery,
@@ -22,8 +25,40 @@ const EditorSettingsPanel: React.FC = () => {
   const { data: preferences, isLoading } = useGetUserPreferencesQuery();
   const [updateEditorSettings] = useUpdateEditorSettingsMutation();
 
+  // ACE Editor theme options
+  const aceThemes = {
+    light: [
+      { value: 'github', label: 'GitHub' },
+      { value: 'chrome', label: 'Chrome' },
+      { value: 'eclipse', label: 'Eclipse' },
+      { value: 'textmate', label: 'TextMate' },
+      { value: 'xcode', label: 'Xcode' },
+      { value: 'katzenmilch', label: 'Katzenmilch' },
+      { value: 'kuroir', label: 'Kuroir' },
+    ],
+    dark: [
+      { value: 'monokai', label: 'Monokai' },
+      { value: 'twilight', label: 'Twilight' },
+      { value: 'vibrant_ink', label: 'Vibrant Ink' },
+      { value: 'cobalt', label: 'Cobalt' },
+      { value: 'tomorrow_night', label: 'Tomorrow Night' },
+      { value: 'tomorrow_night_blue', label: 'Tomorrow Night Blue' },
+      { value: 'tomorrow_night_bright', label: 'Tomorrow Night Bright' },
+      { value: 'tomorrow_night_eighties', label: 'Tomorrow Night 80s' },
+      { value: 'idle_fingers', label: 'Idle Fingers' },
+      { value: 'kr_theme', label: 'krTheme' },
+      { value: 'merbivore', label: 'Merbivore' },
+      { value: 'merbivore_soft', label: 'Merbivore Soft' },
+      { value: 'mono_industrial', label: 'Mono Industrial' },
+      { value: 'pastel_on_dark', label: 'Pastel on Dark' },
+      { value: 'solarized_dark', label: 'Solarized Dark' },
+      { value: 'terminal', label: 'Terminal' },
+    ],
+  };
+
   const editorSettings = preferences?.editorSettings || {
-    theme: 'light',
+    lightTheme: 'github',
+    darkTheme: 'monokai',
     showLineNumbers: true,
     wordWrap: true,
     fontSize: 14,
@@ -31,12 +66,21 @@ const EditorSettingsPanel: React.FC = () => {
     showWhitespace: false,
   };
 
+  // Ensure theme values are never undefined
+  const lightTheme = editorSettings.lightTheme || 'github';
+  const darkTheme = editorSettings.darkTheme || 'monokai';
+
   const handleSettingChange = async (setting: string, value: any) => {
     try {
-      await updateEditorSettings({
+      const newSettings = {
         ...editorSettings,
         [setting]: value,
-      }).unwrap();
+      };
+      console.log('EditorSettingsPanel: Updating setting:', setting, 'to:', value);
+      console.log('EditorSettingsPanel: New settings object:', newSettings);
+
+      const result = await updateEditorSettings(newSettings).unwrap();
+      console.log('EditorSettingsPanel: Update result:', result);
     } catch (error) {
       console.error('エディタ設定の更新に失敗しました:', error);
     }
@@ -53,27 +97,43 @@ const EditorSettingsPanel: React.FC = () => {
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* テーマ設定 */}
+        {/* ACE エディタテーマ設定 */}
         <Paper variant="outlined" sx={{ p: 3 }}>
-          <FormControl component="fieldset">
-            <FormLabel component="legend">エディタテーマ</FormLabel>
-            <RadioGroup
-              value={editorSettings.theme}
-              onChange={(e) => handleSettingChange('theme', e.target.value)}
-              row
-            >
-              <FormControlLabel
-                value="light"
-                control={<Radio />}
-                label="ライト"
-              />
-              <FormControlLabel
-                value="dark"
-                control={<Radio />}
-                label="ダーク"
-              />
-            </RadioGroup>
-          </FormControl>
+          <Typography variant="subtitle1" gutterBottom>
+            エディタテーマ
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>ライトモードテーマ</InputLabel>
+              <Select
+                value={lightTheme}
+                onChange={(e) => handleSettingChange('lightTheme', e.target.value)}
+                label="ライトモードテーマ"
+              >
+                {aceThemes.light.map((theme) => (
+                  <MenuItem key={theme.value} value={theme.value}>
+                    {theme.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>ダークモードテーマ</InputLabel>
+              <Select
+                value={darkTheme}
+                onChange={(e) => handleSettingChange('darkTheme', e.target.value)}
+                label="ダークモードテーマ"
+              >
+                {aceThemes.dark.map((theme) => (
+                  <MenuItem key={theme.value} value={theme.value}>
+                    {theme.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Paper>
 
         {/* キーバインディング */}

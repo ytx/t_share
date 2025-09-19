@@ -6,19 +6,50 @@ import ReactMarkdown from 'react-markdown';
 
 // Import Ace Editor modes and themes
 import 'ace-builds/src-noconflict/mode-markdown';
-import 'ace-builds/src-noconflict/theme-github';
-import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/ext-language_tools';
+
+// Import keybindings
+import 'ace-builds/src-noconflict/keybinding-vim';
+import 'ace-builds/src-noconflict/keybinding-emacs';
+
+// Import light themes
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-chrome';
+import 'ace-builds/src-noconflict/theme-eclipse';
+import 'ace-builds/src-noconflict/theme-textmate';
+import 'ace-builds/src-noconflict/theme-xcode';
+import 'ace-builds/src-noconflict/theme-katzenmilch';
+import 'ace-builds/src-noconflict/theme-kuroir';
+
+// Import dark themes
+import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/theme-twilight';
+import 'ace-builds/src-noconflict/theme-vibrant_ink';
+import 'ace-builds/src-noconflict/theme-cobalt';
+import 'ace-builds/src-noconflict/theme-tomorrow_night';
+import 'ace-builds/src-noconflict/theme-tomorrow_night_blue';
+import 'ace-builds/src-noconflict/theme-tomorrow_night_bright';
+import 'ace-builds/src-noconflict/theme-tomorrow_night_eighties';
+import 'ace-builds/src-noconflict/theme-idle_fingers';
+import 'ace-builds/src-noconflict/theme-kr_theme';
+import 'ace-builds/src-noconflict/theme-merbivore';
+import 'ace-builds/src-noconflict/theme-merbivore_soft';
+import 'ace-builds/src-noconflict/theme-mono_industrial';
+import 'ace-builds/src-noconflict/theme-pastel_on_dark';
+import 'ace-builds/src-noconflict/theme-solarized_dark';
+import 'ace-builds/src-noconflict/theme-terminal';
 
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   height?: string | number;
-  theme?: 'light' | 'dark';
+  aceTheme?: string;
   showLineNumbers?: boolean;
   wordWrap?: boolean;
   fontSize?: number;
+  keybinding?: 'default' | 'vim' | 'emacs';
+  showWhitespace?: boolean;
   readOnly?: boolean;
   onCreateTemplate?: (selectedText: string) => void;
 }
@@ -34,10 +65,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   onChange,
   placeholder = 'マークダウンで入力してください...',
   height = '400px',
-  theme = 'light',
+  aceTheme = 'github',
   showLineNumbers = true,
   wordWrap = true,
   fontSize = 14,
+  keybinding = 'default',
+  showWhitespace = false,
   readOnly = false,
   onCreateTemplate,
 }, ref) => {
@@ -141,8 +174,6 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
     handleContextMenuClose();
   }, [contextMenu.selectedText, onCreateTemplate, handleContextMenuClose]);
 
-  const aceTheme = theme === 'dark' ? 'monokai' : 'github';
-
   const editorOptions = {
     enableBasicAutocompletion: true,
     enableLiveAutocompletion: true,
@@ -151,10 +182,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
     tabSize: 2,
     wrap: wordWrap,
     fontSize,
+    showInvisibles: showWhitespace,
     scrollPastEnd: 0.5,
     vScrollBarAlwaysVisible: true,
     hScrollBarAlwaysVisible: false,
   };
+
+  // デバッグ用: ACEテーマを監視
+  React.useEffect(() => {
+    console.log('MarkdownEditor: ACE theme changed to:', aceTheme);
+  }, [aceTheme]);
 
   const renderEditor = () => (
     <Box onContextMenu={handleContextMenu}>
@@ -173,6 +210,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
         style={{
           fontFamily: 'Monaco, "Courier New", monospace',
         }}
+        keyboardHandler={keybinding !== 'default' ? keybinding : undefined}
       />
     </Box>
   );

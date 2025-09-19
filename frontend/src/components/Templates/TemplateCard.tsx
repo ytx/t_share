@@ -223,11 +223,20 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             sx={{
               whiteSpace: 'pre-wrap',
               fontFamily: 'monospace',
-              bgcolor: !template.isPublic ? 'rgba(255, 0, 0, 0.05)' : 'grey.50',
+              bgcolor: !template.isPublic
+                ? (theme) => theme.palette.mode === 'dark'
+                  ? 'rgba(255, 99, 71, 0.1)'
+                  : 'rgba(255, 99, 71, 0.05)'
+                : (theme) => theme.palette.mode === 'dark'
+                  ? 'background.default'
+                  : 'grey.50',
+              color: 'text.primary',
               p: '2px 5px 2px 2px',
               borderRadius: 0.5,
               border: 1,
-              borderColor: 'grey.200',
+              borderColor: (theme) => theme.palette.mode === 'dark'
+                ? 'divider'
+                : 'grey.200',
               mb: 0,
               '& p': {
                 m: 0,

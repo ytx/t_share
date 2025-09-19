@@ -17,6 +17,7 @@ import TemplateCreateModal from '../Templates/TemplateCreateModal';
 import { Template } from '../../types';
 import { useCreateDocumentMutation } from '../../store/api/documentApi';
 import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface DocumentEditorProps {
   selectedTemplate?: Template | null;
@@ -45,9 +46,10 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const markdownEditorRef = useRef<any>(null);
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
 
-  // User preferences
+  // User preferences and theme
   const { data: userPreferences } = useGetUserPreferencesQuery();
   const [updateEditorSettings] = useUpdateEditorSettingsMutation();
+  const { mode: themeMode } = useTheme();
 
   // モーダル状態
   const [showTemplateSelection, setShowTemplateSelection] = useState(false);
@@ -57,21 +59,29 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   // エディタ設定（ユーザ設定から取得）
   const [editorSettings, setEditorSettings] = useState({
-    theme: 'light' as 'light' | 'dark',
+    lightTheme: 'github',
+    darkTheme: 'monokai',
     showLineNumbers: true,
     wordWrap: true,
     fontSize: 14,
+    keybinding: 'default' as 'default' | 'vim' | 'emacs',
+    showWhitespace: false,
   });
 
   // ユーザ設定からエディタ設定を初期化
   React.useEffect(() => {
     if (userPreferences?.editorSettings) {
-      setEditorSettings(prev => ({
-        ...prev,
-        ...userPreferences.editorSettings,
-      }));
+      console.log('DocumentEditor: Updating editor settings:', userPreferences.editorSettings);
+      setEditorSettings(userPreferences.editorSettings);
     }
   }, [userPreferences]);
+
+  // デバッグ用: エディタ設定とテーマモードをログ出力
+  React.useEffect(() => {
+    console.log('DocumentEditor: Current editor settings:', editorSettings);
+    console.log('DocumentEditor: Current theme mode:', themeMode);
+    console.log('DocumentEditor: Selected ACE theme:', themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme);
+  }, [editorSettings, themeMode]);
 
   // エディタ設定変更時にAPIに保存
   const handleEditorSettingChange = useCallback((newSettings: Partial<typeof editorSettings>) => {
@@ -262,10 +272,12 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
             value={content}
             onChange={setContent}
             height="calc(100vh - 120px)"
-            theme={editorSettings.theme}
+            aceTheme={themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme}
             showLineNumbers={editorSettings.showLineNumbers}
             wordWrap={editorSettings.wordWrap}
             fontSize={editorSettings.fontSize}
+            keybinding={editorSettings.keybinding}
+            showWhitespace={editorSettings.showWhitespace}
             onCreateTemplate={(selectedText) => {
               setSelectedText(selectedText);
               setShowTemplateCreate(true);

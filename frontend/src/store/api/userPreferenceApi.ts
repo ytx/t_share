@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export interface EditorSettings {
-  theme?: 'light' | 'dark';
+  lightTheme?: string;
+  darkTheme?: string;
   showLineNumbers?: boolean;
   wordWrap?: boolean;
   fontSize?: number;
@@ -13,6 +14,7 @@ export interface UISettings {
   sidebarOpen?: boolean;
   compactMode?: boolean;
   showMinimap?: boolean;
+  panelSplitRatio?: number;
 }
 
 export interface NotificationSettings {

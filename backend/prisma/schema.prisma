@@ -215,6 +215,9 @@ model UserPreference {
   editorShowLineNumbers   Boolean @default(true) @map("editor_show_line_numbers")
   editorWordWrap          Boolean @default(true) @map("editor_word_wrap")
   editorShowWhitespace    Boolean @default(false) @map("editor_show_whitespace")
+  editorLightTheme        String  @default("github") @map("editor_light_theme") // ACE editor light theme
+  editorDarkTheme         String  @default("monokai") @map("editor_dark_theme") // ACE editor dark theme
+  editorFontSize          Int     @default(14) @map("editor_font_size")
   panelSplitRatio         Float   @default(0.5) @map("panel_split_ratio") // left panel ratio
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")

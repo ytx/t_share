@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Box, AppBar, Toolbar, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
-import { Settings, DarkMode, LightMode, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount } from '@mui/icons-material';
+import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount } from '@mui/icons-material';
+import ThemeToggleButton from '../components/Common/ThemeToggleButton';
 import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
 import TemplateSearch from '../components/Templates/TemplateSearch';
@@ -25,7 +26,6 @@ const Dashboard: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
 
@@ -83,10 +83,6 @@ const Dashboard: React.FC = () => {
   const handleSettings = () => {
     setSettingsOpen(true);
     handleClose();
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
   };
 
   const toggleAdminMode = () => {
@@ -178,9 +174,7 @@ const Dashboard: React.FC = () => {
             <Settings />
           </IconButton>
 
-          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
-            {isDarkMode ? <LightMode /> : <DarkMode />}
-          </IconButton>
+          <ThemeToggleButton size="medium" />
 
           {user?.isAdmin && (
             <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>

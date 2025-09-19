@@ -4,7 +4,8 @@ import userPreferenceService from '../services/userPreferenceService';
 import logger from '../utils/logger';
 
 const editorSettingsSchema = z.object({
-  theme: z.enum(['light', 'dark']).optional(),
+  lightTheme: z.string().optional(),
+  darkTheme: z.string().optional(),
   showLineNumbers: z.boolean().optional(),
   wordWrap: z.boolean().optional(),
   fontSize: z.number().min(8).max(24).optional(),
