@@ -43,7 +43,15 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{
+          p: 3,
+          height: '100%',
+          overflow: 'auto'
+        }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -145,7 +153,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </Tabs>
         </Box>
 
-        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+        <DialogContent sx={{ p: 0, overflow: 'auto', maxHeight: 'calc(80vh - 120px)' }}>
           <TabPanel value={tabValue} index={0}>
             <GeneralSettingsPanel />
           </TabPanel>

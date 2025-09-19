@@ -32,9 +32,9 @@ const updatePreferencesSchema = z.object({
   notifications: notificationSettingsSchema,
 });
 
-const updateEditorSettingsSchema = editorSettingsSchema.required();
-const updateUISettingsSchema = uiSettingsSchema.required();
-const updateNotificationSettingsSchema = notificationSettingsSchema.required();
+const updateEditorSettingsSchema = editorSettingsSchema;
+const updateUISettingsSchema = uiSettingsSchema;
+const updateNotificationSettingsSchema = notificationSettingsSchema;
 
 export const getUserPreferences = async (req: Request, res: Response) => {
   try {

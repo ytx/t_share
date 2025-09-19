@@ -18,7 +18,12 @@
     "db:migrate": "cd backend && npm run db:migrate",
     "db:seed": "cd backend && npm run db:seed"
   },
-  "keywords": ["template", "markdown", "sharing", "collaboration"],
+  "keywords": [
+    "template",
+    "markdown",
+    "sharing",
+    "collaboration"
+  ],
   "author": "Template Share Team",
   "license": "MIT",
   "devDependencies": {

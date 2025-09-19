@@ -18,8 +18,11 @@ import {
   Logout,
   DarkMode,
   LightMode,
+  AdminPanelSettings,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import SettingsModal from '../Settings/SettingsModal';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -27,8 +30,10 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -40,6 +45,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const handleLogout = () => {
     logout();
+    handleClose();
+  };
+
+  const handleAdminDashboard = () => {
+    navigate('/admin');
+    handleClose();
+  };
+
+  const handleSettings = () => {
+    setSettingsOpen(true);
     handleClose();
   };
 
@@ -110,10 +125,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   </Typography>
                 </MenuItem>
                 <Divider />
-                <MenuItem onClick={handleClose}>
+                <MenuItem onClick={handleSettings}>
                   <Settings sx={{ mr: 1 }} />
                   設定
                 </MenuItem>
+                {user?.isAdmin && (
+                  <MenuItem onClick={handleAdminDashboard}>
+                    <AdminPanelSettings sx={{ mr: 1 }} />
+                    管理者ダッシュボード
+                  </MenuItem>
+                )}
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 1 }} />
                   ログアウト
@@ -136,6 +157,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <Box component="main" sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
         {children}
       </Box>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </Box>
   );
 };

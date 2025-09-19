@@ -2,10 +2,9 @@ import { Response } from 'express';
 import tagService from '../services/tagService';
 import { tagValidation } from '../utils/validation';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 class TagController {
-  async createTag(req: AuthenticatedRequest, res: Response) {
+  async createTag(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -23,7 +22,7 @@ class TagController {
         });
       }
 
-      const tag = await tagService.createTag(req.user.id, value);
+      const tag = await tagService.createTag((req.user as any).id, value);
 
       res.status(201).json({
         message: 'Tag created successfully',
@@ -46,7 +45,7 @@ class TagController {
     }
   }
 
-  async updateTag(req: AuthenticatedRequest, res: Response) {
+  async updateTag(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -72,7 +71,7 @@ class TagController {
         });
       }
 
-      const tag = await tagService.updateTag(tagId, req.user.id, value);
+      const tag = await tagService.updateTag(tagId, (req.user as any).id, value);
 
       res.status(200).json({
         message: 'Tag updated successfully',
@@ -109,7 +108,7 @@ class TagController {
     }
   }
 
-  async deleteTag(req: AuthenticatedRequest, res: Response) {
+  async deleteTag(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -126,7 +125,7 @@ class TagController {
         });
       }
 
-      await tagService.deleteTag(tagId, req.user.id);
+      await tagService.deleteTag(tagId, (req.user as any).id);
 
       res.status(200).json({
         message: 'Tag deleted successfully',
@@ -162,7 +161,7 @@ class TagController {
     }
   }
 
-  async getTag(req: AuthenticatedRequest, res: Response) {
+  async getTag(req: Request, res: Response) {
     try {
       const tagId = parseInt(req.params.id);
       if (isNaN(tagId)) {
@@ -194,7 +193,7 @@ class TagController {
     }
   }
 
-  async getAllTags(req: AuthenticatedRequest, res: Response) {
+  async getAllTags(req: Request, res: Response) {
     try {
       const tags = await tagService.getAllTags();
 
@@ -210,7 +209,7 @@ class TagController {
     }
   }
 
-  async getPopularTags(req: AuthenticatedRequest, res: Response) {
+  async getPopularTags(req: Request, res: Response) {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const tags = await tagService.getPopularTags(limit);

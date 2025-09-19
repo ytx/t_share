@@ -18,7 +18,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
-import { Search, Template as TemplateIcon } from '@mui/icons-material';
+import { Search, Description as TemplateIcon } from '@mui/icons-material';
 import { useSearchTemplatesQuery } from '../../store/api/templateApi';
 import { Template, TemplateSearchFilters } from '../../types';
 

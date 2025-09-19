@@ -31,6 +31,7 @@ model User {
   projectVariables   ProjectVariable[]
   documents          Document[]
   preferences        UserPreference?
+  templateVersions   TemplateVersion[]
 
   @@map("users")
 }

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import authService from '../services/authService';
 import { userValidation } from '../utils/validation';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 class AuthController {
   async register(req: Request, res: Response) {
@@ -18,7 +17,7 @@ class AuthController {
 
       const result = await authService.register(value);
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'User registered successfully',
         user: result.user,
         token: result.token,
@@ -33,7 +32,7 @@ class AuthController {
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Registration failed',
       });
@@ -53,7 +52,7 @@ class AuthController {
 
       const result = await authService.login(value);
 
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Login successful',
         user: result.user,
         token: result.token,
@@ -68,7 +67,7 @@ class AuthController {
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Login failed',
       });
@@ -93,16 +92,16 @@ class AuthController {
       });
 
       // Redirect to frontend with token
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
+      return res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
     } catch (error: any) {
       logger.error('Google callback controller error:', error);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/auth/error`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
+      return res.redirect(`${frontendUrl}/auth/error`);
     }
   }
 
-  async me(req: AuthenticatedRequest, res: Response) {
+  async me(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -111,7 +110,7 @@ class AuthController {
         });
       }
 
-      const user = await authService.getUserById(req.user.id);
+      const user = await authService.getUserById((req.user as any).id);
 
       if (!user) {
         return res.status(404).json({
@@ -120,19 +119,19 @@ class AuthController {
         });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         user,
       });
     } catch (error: any) {
       logger.error('Me controller error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to get user information',
       });
     }
   }
 
-  async updateProfile(req: AuthenticatedRequest, res: Response) {
+  async updateProfile(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -150,9 +149,9 @@ class AuthController {
         });
       }
 
-      const user = await authService.updateUser(req.user.id, value);
+      const user = await authService.updateUser((req.user as any).id, value);
 
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Profile updated successfully',
         user,
       });
@@ -166,7 +165,7 @@ class AuthController {
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to update profile',
       });
@@ -177,19 +176,19 @@ class AuthController {
     try {
       // For JWT tokens, logout is handled on the client side
       // Server can optionally maintain a blacklist of revoked tokens
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Logout successful',
       });
     } catch (error: any) {
       logger.error('Logout controller error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Logout failed',
       });
     }
   }
 
-  async refreshToken(req: AuthenticatedRequest, res: Response) {
+  async refreshToken(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -207,15 +206,15 @@ class AuthController {
       }
 
       const jwt = require('jsonwebtoken');
-      const newToken = jwt.sign({ userId: req.user.id }, jwtSecret, { expiresIn: jwtExpiresIn });
+      const newToken = jwt.sign({ userId: (req.user as any).id }, jwtSecret, { expiresIn: jwtExpiresIn });
 
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Token refreshed successfully',
         token: newToken,
       });
     } catch (error: any) {
       logger.error('Refresh token controller error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Token refresh failed',
       });

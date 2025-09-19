@@ -5,18 +5,8 @@ import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    email: string;
-    username?: string;
-    displayName?: string;
-    isAdmin: boolean;
-  };
-}
-
 export const authenticateToken = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -69,7 +59,7 @@ export const authenticateToken = async (
 };
 
 export const requireAdmin = (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -80,7 +70,7 @@ export const requireAdmin = (
     });
   }
 
-  if (!req.user.isAdmin) {
+  if (!(req.user as any).isAdmin) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Admin privileges required',
@@ -91,7 +81,7 @@ export const requireAdmin = (
 };
 
 export const optionalAuth = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -133,4 +123,4 @@ export const optionalAuth = async (
   next();
 };
 
-export type { AuthenticatedRequest };
+// AuthenticatedRequest is now the standard Express Request with extended user property

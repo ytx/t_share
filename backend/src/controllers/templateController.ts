@@ -2,10 +2,9 @@ import { Response } from 'express';
 import templateService from '../services/templateService';
 import { templateValidation } from '../utils/validation';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 class TemplateController {
-  async createTemplate(req: AuthenticatedRequest, res: Response) {
+  async createTemplate(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -23,7 +22,7 @@ class TemplateController {
         });
       }
 
-      const template = await templateService.createTemplate(req.user.id, value);
+      const template = await templateService.createTemplate((req.user as any).id, value);
 
       res.status(201).json({
         message: 'Template created successfully',
@@ -38,7 +37,7 @@ class TemplateController {
     }
   }
 
-  async updateTemplate(req: AuthenticatedRequest, res: Response) {
+  async updateTemplate(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -64,7 +63,7 @@ class TemplateController {
         });
       }
 
-      const template = await templateService.updateTemplate(templateId, req.user.id, value);
+      const template = await templateService.updateTemplate(templateId, (req.user as any).id, value);
 
       res.status(200).json({
         message: 'Template updated successfully',
@@ -94,7 +93,7 @@ class TemplateController {
     }
   }
 
-  async deleteTemplate(req: AuthenticatedRequest, res: Response) {
+  async deleteTemplate(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -111,7 +110,7 @@ class TemplateController {
         });
       }
 
-      await templateService.deleteTemplate(templateId, req.user.id);
+      await templateService.deleteTemplate(templateId, (req.user as any).id);
 
       res.status(200).json({
         message: 'Template deleted successfully',
@@ -140,7 +139,7 @@ class TemplateController {
     }
   }
 
-  async getTemplate(req: AuthenticatedRequest, res: Response) {
+  async getTemplate(req: Request, res: Response) {
     try {
       const templateId = parseInt(req.params.id);
       if (isNaN(templateId)) {
@@ -179,7 +178,7 @@ class TemplateController {
     }
   }
 
-  async searchTemplates(req: AuthenticatedRequest, res: Response) {
+  async searchTemplates(req: Request, res: Response) {
     try {
       // Validate query parameters
       const { error, value } = templateValidation.search.validate(req.query);
@@ -192,7 +191,11 @@ class TemplateController {
 
       // Convert tagIds from string to array of numbers if provided
       if (value.tagIds && typeof value.tagIds === 'string') {
-        value.tagIds = value.tagIds.split(',').map((id: string) => parseInt(id)).filter((id: number) => !isNaN(id));
+        if (value.tagIds.trim() === '') {
+          value.tagIds = [];
+        } else {
+          value.tagIds = value.tagIds.split(',').map((id: string) => parseInt(id)).filter((id: number) => !isNaN(id));
+        }
       }
 
       const result = await templateService.searchTemplates({
@@ -210,7 +213,7 @@ class TemplateController {
     }
   }
 
-  async useTemplate(req: AuthenticatedRequest, res: Response) {
+  async useTemplate(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -227,7 +230,7 @@ class TemplateController {
         });
       }
 
-      await templateService.useTemplate(templateId, req.user.id);
+      await templateService.useTemplate(templateId, (req.user as any).id);
 
       res.status(200).json({
         message: 'Template usage recorded successfully',
@@ -241,7 +244,7 @@ class TemplateController {
     }
   }
 
-  async getTemplateVersions(req: AuthenticatedRequest, res: Response) {
+  async getTemplateVersions(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -258,7 +261,7 @@ class TemplateController {
         });
       }
 
-      const versions = await templateService.getTemplateVersions(templateId, req.user.id);
+      const versions = await templateService.getTemplateVersions(templateId, (req.user as any).id);
 
       res.status(200).json({
         versions,
@@ -287,7 +290,7 @@ class TemplateController {
     }
   }
 
-  async restoreTemplateVersion(req: AuthenticatedRequest, res: Response) {
+  async restoreTemplateVersion(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -307,7 +310,7 @@ class TemplateController {
       }
 
       // Get the version to restore
-      const version = await templateService.getTemplateVersions(templateId, req.user.id);
+      const version = await templateService.getTemplateVersions(templateId, (req.user as any).id);
       const targetVersion = version.find(v => v.versionNumber === versionNumber);
 
       if (!targetVersion) {
@@ -318,7 +321,7 @@ class TemplateController {
       }
 
       // Update template with version data
-      const template = await templateService.updateTemplate(templateId, req.user.id, {
+      const template = await templateService.updateTemplate(templateId, (req.user as any).id, {
         title: targetVersion.title,
         content: targetVersion.content,
         description: targetVersion.description,

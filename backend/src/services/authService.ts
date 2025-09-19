@@ -35,6 +35,16 @@ export interface GoogleUserData {
 }
 
 class AuthService {
+  private normalizeUser(user: any): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean } {
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username ?? undefined,
+      displayName: user.displayName ?? undefined,
+      isAdmin: user.isAdmin,
+    };
+  }
+
   private generateToken(userId: number): string {
     const jwtSecret = process.env.JWT_SECRET;
     const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
@@ -43,7 +53,7 @@ class AuthService {
       throw new Error('JWT_SECRET is not configured');
     }
 
-    return jwt.sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
+    return (jwt as any).sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
   }
 
   async register(data: RegisterData): Promise<AuthResult> {
@@ -107,7 +117,7 @@ class AuthService {
 
       logger.info(`User registered successfully: ${user.email}`);
 
-      return { user, token };
+      return { user: this.normalizeUser(user), token };
     } catch (error) {
       logger.error('Registration failed:', error);
       throw error;
@@ -148,7 +158,7 @@ class AuthService {
 
       logger.info(`User logged in successfully: ${user.email}`);
 
-      return { user: userWithoutPassword, token };
+      return { user: this.normalizeUser(userWithoutPassword), token };
     } catch (error) {
       logger.error('Login failed:', error);
       throw error;
@@ -225,7 +235,7 @@ class AuthService {
 
       logger.info(`Google auth successful: ${user.email}`);
 
-      return { user, token };
+      return { user: this.normalizeUser(user), token };
     } catch (error) {
       logger.error('Google auth failed:', error);
       throw error;

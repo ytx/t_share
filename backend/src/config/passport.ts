@@ -20,10 +20,10 @@ if (googleClientId && googleClientSecret) {
     try {
       // The actual user creation/linking is handled in the controller
       // Here we just pass the profile data
-      return done(null, profile);
+      return done(null, profile as any);
     } catch (error) {
       logger.error('Google strategy error:', error);
-      return done(error, null);
+      return done(error, false);
     }
   }));
 } else {
@@ -51,7 +51,7 @@ if (jwtSecret) {
       });
 
       if (user) {
-        return done(null, user);
+        return done(null, user as any);
       } else {
         return done(null, false);
       }

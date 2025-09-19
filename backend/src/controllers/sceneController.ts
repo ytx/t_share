@@ -2,10 +2,9 @@ import { Response } from 'express';
 import sceneService from '../services/sceneService';
 import { sceneValidation } from '../utils/validation';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 class SceneController {
-  async createScene(req: AuthenticatedRequest, res: Response) {
+  async createScene(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -23,7 +22,7 @@ class SceneController {
         });
       }
 
-      const scene = await sceneService.createScene(req.user.id, value);
+      const scene = await sceneService.createScene((req.user as any).id, value);
 
       res.status(201).json({
         message: 'Scene created successfully',
@@ -46,7 +45,7 @@ class SceneController {
     }
   }
 
-  async updateScene(req: AuthenticatedRequest, res: Response) {
+  async updateScene(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -72,7 +71,7 @@ class SceneController {
         });
       }
 
-      const scene = await sceneService.updateScene(sceneId, req.user.id, value);
+      const scene = await sceneService.updateScene(sceneId, (req.user as any).id, value);
 
       res.status(200).json({
         message: 'Scene updated successfully',
@@ -109,7 +108,7 @@ class SceneController {
     }
   }
 
-  async deleteScene(req: AuthenticatedRequest, res: Response) {
+  async deleteScene(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -126,7 +125,7 @@ class SceneController {
         });
       }
 
-      await sceneService.deleteScene(sceneId, req.user.id);
+      await sceneService.deleteScene(sceneId, (req.user as any).id);
 
       res.status(200).json({
         message: 'Scene deleted successfully',
@@ -162,7 +161,7 @@ class SceneController {
     }
   }
 
-  async getScene(req: AuthenticatedRequest, res: Response) {
+  async getScene(req: Request, res: Response) {
     try {
       const sceneId = parseInt(req.params.id);
       if (isNaN(sceneId)) {
@@ -194,7 +193,7 @@ class SceneController {
     }
   }
 
-  async getAllScenes(req: AuthenticatedRequest, res: Response) {
+  async getAllScenes(req: Request, res: Response) {
     try {
       const scenes = await sceneService.getAllScenes();
 
