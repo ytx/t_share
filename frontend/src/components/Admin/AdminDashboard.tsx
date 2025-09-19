@@ -10,6 +10,10 @@ import {
   Tab,
   Alert,
   CircularProgress,
+  IconButton,
+  Tooltip,
+  AppBar,
+  Toolbar,
 } from '@mui/material';
 import {
   Dashboard,
@@ -17,7 +21,9 @@ import {
   Assessment,
   Timeline,
   Download,
+  ArrowBack,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useGetSystemStatsQuery } from '../../store/api/adminApi';
 import SystemOverview from './SystemOverview';
 import UserManagement from './UserManagement';
@@ -55,12 +61,17 @@ function a11yProps(index: number) {
 
 const AdminDashboard: React.FC = memo(() => {
   const [tabValue, setTabValue] = useState(0);
+  const navigate = useNavigate();
 
   const { data: systemStats, isLoading, error } = useGetSystemStatsQuery();
 
   const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   }, []);
+
+  const handleBackToDashboard = useCallback(() => {
+    navigate('/dashboard');
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -79,15 +90,29 @@ const AdminDashboard: React.FC = memo(() => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Dashboard color="primary" />
-          <Typography variant="h4" component="h1">
-            管理者ダッシュボード
+      <AppBar position="static" elevation={1}>
+        <Toolbar>
+          <Tooltip title="メイン画面に戻る">
+            <IconButton
+              color="inherit"
+              onClick={handleBackToDashboard}
+              sx={{ mr: 2 }}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            T-Share - 管理者ダッシュボード
           </Typography>
-        </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Box sx={{ width: '100%', p: 3 }}>
+        {/* Stats Cards */}
+        <Paper sx={{ p: 3, mb: 3 }}>
 
         {systemStats && (
           <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -188,7 +213,8 @@ const AdminDashboard: React.FC = memo(() => {
         <TabPanel value={tabValue} index={3}>
           <SystemHealth />
         </TabPanel>
-      </Paper>
+        </Paper>
+      </Box>
     </Box>
   );
 });

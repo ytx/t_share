@@ -9,6 +9,9 @@ import {
   Menu,
   MenuItem,
   Avatar,
+  Tooltip,
+  ListItemIcon,
+  Divider,
 } from '@mui/material';
 import {
   MoreVert,
@@ -44,6 +47,10 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   showActions = false,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [contextMenu, setContextMenu] = React.useState<{
+    mouseX: number;
+    mouseY: number;
+  } | null>(null);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -52,6 +59,34 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleRightClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    if (onEdit) {
+      setContextMenu({
+        mouseX: event.clientX - 2,
+        mouseY: event.clientY - 4,
+      });
+    }
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null);
+  };
+
+  const handleEditFromContext = () => {
+    if (onEdit) {
+      onEdit();
+    }
+    handleContextMenuClose();
+  };
+
+  const handleDeleteFromContext = () => {
+    if (onDelete) {
+      onDelete();
+    }
+    handleContextMenuClose();
   };
 
   const handleMenuAction = (action: () => void) => {
@@ -85,182 +120,192 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
   const usageInfo = getUsageInfo();
 
+  const formatLastUsed = (date: string | Date | null | undefined) => {
+    if (!date) return '未使用';
+    return new Date(date).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatTooltipDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
-    <Card
-      sx={{
-        mb: 1,
-        cursor: onClick ? 'pointer' : 'default',
-        '&:hover': onClick ? {
-          bgcolor: 'action.hover',
-        } : {},
-        border: 1,
-        borderColor: 'divider',
-      }}
-      onClick={onClick}
-    >
-      <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="h6" component="h3" sx={{ mb: 0.5 }} noWrap>
-              {template.title}
+    <Tooltip
+      title={
+        <Box>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+            {template.title}
+          </Typography>
+          {template.scene && (
+            <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+              シーン: {template.scene.name}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Avatar sx={{ width: 20, height: 20, fontSize: '0.75rem' }}>
-                {template.creator?.displayName?.charAt(0) || template.creator?.username?.charAt(0) || 'U'}
-              </Avatar>
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {template.creator?.displayName || template.creator?.username || '不明'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                •
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatDate(template.updatedAt)}
+          )}
+          {template.description && (
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              {template.description}
+            </Typography>
+          )}
+          <Typography variant="caption" display="block">
+            作成者: {template.creator?.displayName || template.creator?.username || '不明'}
+          </Typography>
+          <Typography variant="caption" display="block">
+            更新時間: {formatTooltipDate(template.updatedAt)}
+          </Typography>
+          <Typography variant="caption" display="block">
+            状態: {template.status === 'published' ? '公開' : '下書き'}
+          </Typography>
+          <Typography variant="caption" display="block">
+            利用回数: {usageInfo?.count || 0}回
+          </Typography>
+          <Typography variant="caption" display="block">
+            最終利用: {formatLastUsed(usageInfo?.lastUsed)}
+          </Typography>
+          {template.templateTags && template.templateTags.length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="caption" display="block">
+                タグ: {template.templateTags.map(({ tag }) => tag.name).join(', ')}
               </Typography>
             </Box>
-          </Box>
-
-          {showActions && (
-            <IconButton
-              size="small"
-              onClick={handleMenuClick}
-              sx={{ ml: 1 }}
-            >
-              <MoreVert />
-            </IconButton>
           )}
         </Box>
+      }
+      placement="right"
+      arrow
+    >
+      <Card
+        id={`template-card-${template.id}`}
+        sx={{
+          mb: 1,
+          cursor: onClick ? 'pointer' : 'default',
+          bgcolor: 'background.paper',
+          '&:hover': onClick ? {
+            bgcolor: 'action.hover',
+            borderColor: 'primary.main',
+          } : {},
+          border: 1,
+          borderColor: 'divider',
+        }}
+        onClick={onClick}
+        onContextMenu={handleRightClick}
+      >
+        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+          {/* Header with actions only */}
+          {showActions && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+              <IconButton
+                size="small"
+                onClick={handleMenuClick}
+              >
+                <MoreVert />
+              </IconButton>
+            </Box>
+          )}
 
-        {/* Description */}
-        {template.description && (
+          {/* Full Content */}
           <Typography
+            id={`template-content-${template.id}`}
             variant="body2"
-            color="text.secondary"
-            sx={{ mb: 1 }}
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              bgcolor: !template.isPublic ? 'rgba(255, 0, 0, 0.05)' : 'grey.50',
+              p: '2px 5px 2px 2px',
+              borderRadius: 0.5,
+              border: 1,
+              borderColor: 'grey.200',
+              mb: 0,
+              '& p': {
+                m: 0,
+                p: 0,
+              },
             }}
           >
-            {template.description}
+            {template.content}
           </Typography>
-        )}
 
-        {/* Content Preview */}
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 2 }}
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            fontFamily: 'monospace',
-            fontSize: '0.75rem',
-            bgcolor: 'grey.50',
-            p: 1,
-            borderRadius: 1,
-          }}
-        >
-          {template.content}
-        </Typography>
 
-        {/* Footer */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {/* Scene Chip */}
-            {template.scene && (
-              <Chip
-                label={template.scene.name}
-                size="small"
-                variant="outlined"
-                color="primary"
-              />
+          {/* Action Menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {onView && (
+              <MenuItem onClick={handleMenuAction(onView)}>
+                <Visibility sx={{ mr: 1 }} />
+                表示
+              </MenuItem>
             )}
-
-            {/* Status Chip */}
-            <Chip
-              label={template.status === 'published' ? '公開' : '下書き'}
-              size="small"
-              color={template.status === 'published' ? 'success' : 'default'}
-              variant="outlined"
-            />
-
-            {/* Tag Chips */}
-            {template.templateTags?.slice(0, 3).map(({ tag }) => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                size="small"
-                sx={{
-                  bgcolor: tag.color + '20',
-                  color: tag.color,
-                  border: `1px solid ${tag.color}40`,
-                }}
-              />
-            ))}
-
-            {template.templateTags?.length > 3 && (
-              <Chip
-                label={`+${template.templateTags.length - 3}`}
-                size="small"
-                variant="outlined"
-              />
+            {onCopy && (
+              <MenuItem onClick={handleMenuAction(onCopy)}>
+                <ContentCopy sx={{ mr: 1 }} />
+                コピー
+              </MenuItem>
             )}
-          </Box>
+            {onEdit && (
+              <MenuItem onClick={handleMenuAction(onEdit)}>
+                <Edit sx={{ mr: 1 }} />
+                編集
+              </MenuItem>
+            )}
+            {onShowHistory && (
+              <MenuItem onClick={handleMenuAction(onShowHistory)}>
+                <History sx={{ mr: 1 }} />
+                履歴
+              </MenuItem>
+            )}
+            {onDelete && (
+              <MenuItem onClick={handleMenuAction(onDelete)} sx={{ color: 'error.main' }}>
+                <Delete sx={{ mr: 1 }} />
+                削除
+              </MenuItem>
+            )}
+          </Menu>
 
-          {/* Usage Info */}
-          {usageInfo && (
-            <Typography variant="caption" color="text.secondary">
-              {usageInfo.count}回利用 • {usageInfo.lastUsed}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Action Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {onView && (
-            <MenuItem onClick={handleMenuAction(onView)}>
-              <Visibility sx={{ mr: 1 }} />
-              表示
+          {/* Right-click Context Menu */}
+          <Menu
+            open={contextMenu !== null}
+            onClose={handleContextMenuClose}
+            anchorReference="anchorPosition"
+            anchorPosition={
+              contextMenu !== null
+                ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                : undefined
+            }
+          >
+            <MenuItem onClick={handleEditFromContext}>
+              <ListItemIcon>
+                <Edit fontSize="small" />
+              </ListItemIcon>
+              <Typography>編集</Typography>
             </MenuItem>
-          )}
-          {onCopy && (
-            <MenuItem onClick={handleMenuAction(onCopy)}>
-              <ContentCopy sx={{ mr: 1 }} />
-              コピー
+            <Divider />
+            <MenuItem onClick={handleDeleteFromContext} sx={{ color: 'error.main' }}>
+              <ListItemIcon>
+                <Delete fontSize="small" color="error" />
+              </ListItemIcon>
+              <Typography>削除</Typography>
             </MenuItem>
-          )}
-          {onEdit && (
-            <MenuItem onClick={handleMenuAction(onEdit)}>
-              <Edit sx={{ mr: 1 }} />
-              編集
-            </MenuItem>
-          )}
-          {onShowHistory && (
-            <MenuItem onClick={handleMenuAction(onShowHistory)}>
-              <History sx={{ mr: 1 }} />
-              履歴
-            </MenuItem>
-          )}
-          {onDelete && (
-            <MenuItem onClick={handleMenuAction(onDelete)} sx={{ color: 'error.main' }}>
-              <Delete sx={{ mr: 1 }} />
-              削除
-            </MenuItem>
-          )}
-        </Menu>
-      </CardContent>
-    </Card>
+          </Menu>
+        </CardContent>
+      </Card>
+    </Tooltip>
   );
 };
 

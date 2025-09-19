@@ -23,7 +23,34 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3100',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost
+    if (origin.includes('localhost:3100')) return callback(null, true);
+
+    // Allow any IP address on port 3100
+    if (origin.match(/^https?:\/\/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:3100$/)) {
+      return callback(null, true);
+    }
+
+    // Allow specific development URLs
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3100'
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // For development, allow all origins (remove in production)
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(morgan('combined'));
@@ -76,10 +103,11 @@ process.on('SIGTERM', async () => {
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${port}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
+  console.log(`🔗 Network access: http://0.0.0.0:${port}/api/health`);
 });
 
 export default app;

@@ -23,19 +23,19 @@ export const userValidation = {
 // Template validation schemas
 export const templateValidation = {
   create: Joi.object({
-    title: Joi.string().min(1).max(200).required(),
+    title: Joi.string().min(1).max(200).allow(''),
     content: Joi.string().required(),
-    description: Joi.string().max(1000),
-    sceneId: Joi.number().integer().positive(),
+    description: Joi.string().max(1000).allow(''),
+    sceneId: Joi.number().integer().positive().allow(null),
     status: Joi.string().valid('draft', 'published').default('draft'),
     isPublic: Joi.boolean().default(true),
-    tagIds: Joi.array().items(Joi.number().integer().positive()),
+    tagIds: Joi.array().items(Joi.number().integer().positive()).default([]),
   }),
 
   update: Joi.object({
-    title: Joi.string().min(1).max(200),
-    content: Joi.string(),
-    description: Joi.string().max(1000),
+    title: Joi.string().min(1).max(200).allow(''),
+    content: Joi.string().required(),
+    description: Joi.string().max(1000).allow(''),
     sceneId: Joi.number().integer().positive().allow(null),
     status: Joi.string().valid('draft', 'published'),
     isPublic: Joi.boolean(),

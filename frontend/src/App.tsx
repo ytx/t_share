@@ -21,25 +21,32 @@ function App() {
   }
 
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        {user?.isAdmin && (
-          <Route path="/admin" element={<AdminDashboard />} />
-        )}
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      {user?.isAdmin && (
         <Route
-          path="*"
+          path="/admin"
           element={
+            <MainLayout>
+              <AdminDashboard />
+            </MainLayout>
+          }
+        />
+      )}
+      <Route
+        path="*"
+        element={
+          <MainLayout>
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <h2>404 - Page Not Found</h2>
               <p>このページは存在しません</p>
             </div>
-          }
-        />
-      </Routes>
-    </MainLayout>
+          </MainLayout>
+        }
+      />
+    </Routes>
   )
 }
 

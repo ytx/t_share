@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { Box, Paper, ToggleButton, ToggleButtonGroup, IconButton, Toolbar } from '@mui/material';
-import { Edit, Visibility, VerticalSplit } from '@mui/icons-material';
+import React, { useState, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Box, Paper, IconButton } from '@mui/material';
+import ContextMenu from '../Common/ContextMenu';
 import AceEditor from 'react-ace';
 import ReactMarkdown from 'react-markdown';
 
@@ -20,11 +20,16 @@ interface MarkdownEditorProps {
   wordWrap?: boolean;
   fontSize?: number;
   readOnly?: boolean;
+  onCreateTemplate?: (selectedText: string) => void;
 }
 
-type ViewMode = 'edit' | 'preview' | 'split';
+interface MarkdownEditorRef {
+  getSelectedText: () => string;
+  insertText: (text: string) => void;
+}
 
-const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+
+const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   value,
   onChange,
   placeholder = 'マークダウンで入力してください...',
@@ -34,17 +39,107 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   wordWrap = true,
   fontSize = 14,
   readOnly = false,
-}) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('edit');
+  onCreateTemplate,
+}, ref) => {
+  const [contextMenu, setContextMenu] = useState<{
+    position: { top: number; left: number } | null;
+    selectedText: string;
+  }>({
+    position: null,
+    selectedText: '',
+  });
 
-  const handleViewModeChange = useCallback(
-    (event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
-      if (newMode !== null) {
-        setViewMode(newMode);
+  const aceEditorRef = useRef<any>(null);
+
+  // 選択テキストを取得する関数
+  const getSelectedText = useCallback(() => {
+    let selectedText = '';
+
+    // Ace Editorのセッション経由で選択テキストを取得
+    if (aceEditorRef.current && aceEditorRef.current.editor) {
+      const editor = aceEditorRef.current.editor;
+      const session = editor.getSession();
+      const selection = editor.getSelection();
+
+      if (!selection.isEmpty()) {
+        selectedText = session.getTextRange(selection.getRange());
       }
-    },
-    []
-  );
+    }
+
+    // フォールバック: 通常のwindow.getSelection()
+    if (!selectedText.trim()) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        selectedText = selection.toString();
+      }
+    }
+
+    return selectedText;
+  }, []);
+
+  // テキストを挿入する関数
+  const insertText = useCallback((text: string) => {
+    if (aceEditorRef.current && aceEditorRef.current.editor) {
+      const editor = aceEditorRef.current.editor;
+      const session = editor.getSession();
+      const selection = editor.getSelection();
+
+      if (!selection.isEmpty()) {
+        // 選択部分がある場合は置き換え
+        session.replace(selection.getRange(), text);
+      } else {
+        // 選択部分がない場合はカーソル位置に挿入
+        const cursor = editor.getCursorPosition();
+        session.insert(cursor, text);
+      }
+
+      // フォーカスを戻す
+      editor.focus();
+    }
+  }, []);
+
+  // 外部からアクセス可能な関数を公開
+  useImperativeHandle(ref, () => ({
+    getSelectedText,
+    insertText,
+  }), [getSelectedText, insertText]);
+
+
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+
+    const selectedText = getSelectedText();
+
+    console.log('Context menu - Selected text:', {
+      length: selectedText.length,
+      lines: selectedText.split('\n').length,
+      text: selectedText
+    });
+
+    if (selectedText.trim()) {
+      setContextMenu({
+        position: {
+          top: event.clientY,
+          left: event.clientX,
+        },
+        selectedText: selectedText.trim(),
+      });
+    }
+  }, [getSelectedText]);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu({
+      position: null,
+      selectedText: '',
+    });
+  }, []);
+
+  const handleCreateTemplateFromContext = useCallback(() => {
+    if (contextMenu.selectedText && onCreateTemplate) {
+      onCreateTemplate(contextMenu.selectedText);
+    }
+    handleContextMenuClose();
+  }, [contextMenu.selectedText, onCreateTemplate, handleContextMenuClose]);
 
   const aceTheme = theme === 'dark' ? 'monokai' : 'github';
 
@@ -56,155 +151,51 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     tabSize: 2,
     wrap: wordWrap,
     fontSize,
+    scrollPastEnd: 0.5,
+    vScrollBarAlwaysVisible: true,
+    hScrollBarAlwaysVisible: false,
   };
 
   const renderEditor = () => (
-    <AceEditor
-      mode="markdown"
-      theme={aceTheme}
-      value={value}
-      onChange={onChange}
-      name="markdown-editor"
-      width="100%"
-      height={typeof height === 'number' ? `${height}px` : height}
-      placeholder={placeholder}
-      setOptions={editorOptions}
-      readOnly={readOnly}
-      style={{
-        fontFamily: 'Monaco, "Courier New", monospace',
-      }}
-    />
-  );
-
-  const renderPreview = () => (
-    <Box
-      sx={{
-        height: typeof height === 'number' ? `${height}px` : height,
-        overflow: 'auto',
-        p: 2,
-        bgcolor: 'background.paper',
-        border: 1,
-        borderColor: 'divider',
-        borderRadius: 1,
-        '& h1, & h2, & h3, & h4, & h5, & h6': {
-          mt: 2,
-          mb: 1,
-        },
-        '& p': {
-          mb: 1,
-        },
-        '& ul, & ol': {
-          pl: 3,
-          mb: 1,
-        },
-        '& blockquote': {
-          borderLeft: 4,
-          borderColor: 'primary.main',
-          pl: 2,
-          ml: 0,
-          fontStyle: 'italic',
-          bgcolor: 'grey.50',
-          py: 1,
-        },
-        '& code': {
-          bgcolor: 'grey.100',
-          p: 0.5,
-          borderRadius: 0.5,
+    <Box onContextMenu={handleContextMenu}>
+      <AceEditor
+        ref={aceEditorRef}
+        mode="markdown"
+        theme={aceTheme}
+        value={value}
+        onChange={onChange}
+        name="markdown-editor"
+        width="100%"
+        height={typeof height === 'number' ? `${height}px` : height}
+        placeholder={placeholder}
+        setOptions={editorOptions}
+        readOnly={readOnly}
+        style={{
           fontFamily: 'Monaco, "Courier New", monospace',
-        },
-        '& pre': {
-          bgcolor: 'grey.100',
-          p: 2,
-          borderRadius: 1,
-          overflow: 'auto',
-          '& code': {
-            bgcolor: 'transparent',
-            p: 0,
-          },
-        },
-        '& table': {
-          borderCollapse: 'collapse',
-          width: '100%',
-          mb: 2,
-        },
-        '& th, & td': {
-          border: 1,
-          borderColor: 'divider',
-          p: 1,
-          textAlign: 'left',
-        },
-        '& th': {
-          bgcolor: 'grey.100',
-          fontWeight: 'bold',
-        },
-      }}
-    >
-      {value ? (
-        <ReactMarkdown>{value}</ReactMarkdown>
-      ) : (
-        <Box
-          sx={{
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'text.secondary',
-            fontStyle: 'italic',
-          }}
-        >
-          プレビューを表示するにはマークダウンを入力してください
-        </Box>
-      )}
+        }}
+      />
     </Box>
   );
 
+
   return (
-    <Paper sx={{ height: 'fit-content' }}>
-      {/* Toolbar */}
-      <Toolbar variant="dense" sx={{ justifyContent: 'space-between', px: 2 }}>
-        <Box>
-          {/* View Mode Toggle */}
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            size="small"
-          >
-            <ToggleButton value="edit" aria-label="編集">
-              <Edit sx={{ mr: 0.5 }} />
-              編集
-            </ToggleButton>
-            <ToggleButton value="split" aria-label="分割">
-              <VerticalSplit sx={{ mr: 0.5 }} />
-              分割
-            </ToggleButton>
-            <ToggleButton value="preview" aria-label="プレビュー">
-              <Visibility sx={{ mr: 0.5 }} />
-              プレビュー
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-      </Toolbar>
-
+    <Paper sx={{ height: typeof height === 'number' ? `${height + 32}px` : `calc(${height} + 32px)`, overflow: 'hidden' }}>
       {/* Editor Content */}
-      <Box sx={{ p: 2 }}>
-        {viewMode === 'edit' && renderEditor()}
-
-        {viewMode === 'preview' && renderPreview()}
-
-        {viewMode === 'split' && (
-          <Box sx={{ display: 'flex', gap: 2, height }}>
-            <Box sx={{ flex: 1 }}>
-              {renderEditor()}
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              {renderPreview()}
-            </Box>
-          </Box>
-        )}
+      <Box sx={{ p: 2, height: '100%', overflow: 'hidden' }}>
+        {renderEditor()}
       </Box>
+
+      {/* Context Menu */}
+      <ContextMenu
+        anchorPosition={contextMenu.position}
+        onClose={handleContextMenuClose}
+        onCreateTemplate={handleCreateTemplateFromContext}
+        selectedText={contextMenu.selectedText}
+      />
     </Paper>
   );
-};
+});
+
+MarkdownEditor.displayName = 'MarkdownEditor';
 
 export default MarkdownEditor;

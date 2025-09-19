@@ -37,13 +37,25 @@ export interface TemplateSearchOptions {
 }
 
 class TemplateService {
+  // Helper method to generate title from content
+  private generateTitleFromContent(content: string): string {
+    const lines = content.split('\n');
+    const firstNonEmptyLine = lines.find(line => line.trim() !== '');
+    return firstNonEmptyLine ? firstNonEmptyLine.trim() : '無題の定型文';
+  }
+
   async createTemplate(userId: number, data: TemplateCreateData) {
     try {
+      // Generate title if not provided
+      const title = data.title && data.title.trim()
+        ? data.title.trim()
+        : this.generateTitleFromContent(data.content);
+
       const result = await prisma.$transaction(async (tx) => {
         // Create template
         const template = await tx.template.create({
           data: {
-            title: data.title,
+            title,
             content: data.content,
             description: data.description,
             sceneId: data.sceneId,

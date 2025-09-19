@@ -10,6 +10,9 @@ import {
   MenuItem,
   Avatar,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -26,9 +29,10 @@ import SettingsModal from '../Settings/SettingsModal';
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  headerExtras?: React.ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, headerExtras }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -64,7 +68,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <AppBar position="static" elevation={1}>
         <Toolbar>
           <IconButton
@@ -77,9 +81,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
 
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Template Share
+          <Typography variant="h6" component="div">
+            T-Share
           </Typography>
+
+          {/* Header extras (project/scene selection) */}
+          {headerExtras && (
+            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {headerExtras}
+            </Box>
+          )}
+
+          {!headerExtras && (
+            <Box sx={{ flexGrow: 1 }} />
+          )}
+
+          {/* Navigation buttons */}
+          <IconButton color="inherit" onClick={() => setSettingsOpen(true)} sx={{ mr: 1 }}>
+            <Settings />
+          </IconButton>
+
+          {user?.isAdmin && (
+            <IconButton color="inherit" onClick={handleAdminDashboard} sx={{ mr: 1 }}>
+              <AdminPanelSettings />
+            </IconButton>
+          )}
 
           {/* Theme toggle */}
           <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
@@ -154,7 +180,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </Toolbar>
       </AppBar>
 
-      <Box component="main" sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
+      <Box component="main" sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {children}
       </Box>
 

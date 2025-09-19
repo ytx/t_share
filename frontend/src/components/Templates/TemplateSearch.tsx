@@ -14,33 +14,48 @@ import {
   CircularProgress,
   Alert,
   Pagination,
+  IconButton,
 } from '@mui/material';
-import { Search, Clear, Add } from '@mui/icons-material';
-import { useSearchTemplatesQuery } from '../../store/api/templateApi';
+import { Search, Clear, Add, ExpandMore, ExpandLess, Label, Tune } from '@mui/icons-material';
+import { useSearchTemplatesQuery, useDeleteTemplateMutation } from '../../store/api/templateApi';
 import { useGetAllScenesQuery } from '../../store/api/sceneApi';
 import { useGetAllTagsQuery } from '../../store/api/tagApi';
 import { TemplateSearchFilters, Template } from '../../types';
 import TemplateCard from './TemplateCard';
+import TemplateEditModal from './TemplateEditModal';
 
 interface TemplateSearchProps {
   onTemplateSelect?: (template: Template) => void;
   onCreateTemplate?: () => void;
+  initialSceneId?: number;
 }
 
 const TemplateSearch: React.FC<TemplateSearchProps> = ({
   onTemplateSelect,
   onCreateTemplate,
+  initialSceneId,
 }) => {
   const [filters, setFilters] = useState<TemplateSearchFilters>({
     keyword: '',
-    sceneId: undefined,
-    status: 'active',
+    sceneId: initialSceneId,
     tagIds: [],
     sortBy: 'updated',
     sortOrder: 'desc',
     page: 1,
     limit: 20,
   });
+
+  // Update filters when initialSceneId changes
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, sceneId: initialSceneId, page: 1 }));
+  }, [initialSceneId]);
+
+  // 編集モーダルの状態
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
+
+  // 展開状態の管理
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const {
     data: templatesResponse,
@@ -50,6 +65,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
 
   const { data: scenesResponse } = useGetAllScenesQuery();
   const { data: tagsResponse } = useGetAllTagsQuery();
+  const [deleteTemplate] = useDeleteTemplateMutation();
 
   const handleFilterChange = useCallback((newFilters: Partial<TemplateSearchFilters>) => {
     setFilters(prev => ({
@@ -67,7 +83,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     setFilters({
       keyword: '',
       sceneId: undefined,
-      status: 'active',
       tagIds: [],
       sortBy: 'updated',
       sortOrder: 'desc',
@@ -85,43 +100,47 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     handleFilterChange({ tagIds: newTagIds });
   };
 
+  const handleEditTemplate = (template: Template) => {
+    setTemplateToEdit(template);
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
+    setTemplateToEdit(null);
+  };
+
+  const handleEditSuccess = () => {
+    // テンプレートリストを再取得するため、filtersを更新
+    setFilters(prev => ({ ...prev }));
+  };
+
+  const handleDeleteTemplate = async (template: Template) => {
+    if (window.confirm(`「${template.title}」を削除しますか？この操作は取り消せません。`)) {
+      try {
+        await deleteTemplate(template.id).unwrap();
+        // テンプレートリストを再取得
+        setFilters(prev => ({ ...prev }));
+      } catch (error) {
+        console.error('Template deletion failed:', error);
+        alert('定型文の削除に失敗しました。');
+      }
+    }
+  };
+
   const scenes = scenesResponse?.scenes || [];
   const tags = tagsResponse?.tags || [];
   const templates = templatesResponse?.data || [];
   const pagination = templatesResponse?.pagination;
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box id="template-search-container" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Search Header */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">定型文検索</Typography>
-          {onCreateTemplate && (
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={onCreateTemplate}
-              size="small"
-            >
-              新規作成
-            </Button>
-          )}
-        </Box>
+      <Paper id="search-filters-header" sx={{ p: 0, mb: 2, boxShadow: 'none' }}>
 
-        {/* Search Input */}
-        <TextField
-          fullWidth
-          placeholder="キーワードで検索..."
-          value={filters.keyword || ''}
-          onChange={(e) => handleFilterChange({ keyword: e.target.value })}
-          InputProps={{
-            startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-          }}
-          sx={{ mb: 2 }}
-        />
 
         {/* Filters Row */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 0, flexWrap: 'wrap' }}>
           {/* Scene Filter */}
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>シーン</InputLabel>
@@ -139,18 +158,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
             </Select>
           </FormControl>
 
-          {/* Status Filter */}
-          <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>状態</InputLabel>
-            <Select
-              value={filters.status || 'active'}
-              label="状態"
-              onChange={(e) => handleFilterChange({ status: e.target.value as 'active' | 'all' })}
-            >
-              <MenuItem value="active">アクティブ</MenuItem>
-              <MenuItem value="all">全て</MenuItem>
-            </Select>
-          </FormControl>
 
           {/* Sort Filter */}
           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -166,42 +173,75 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
             </Select>
           </FormControl>
 
-          <Button
-            variant="outlined"
+          <IconButton
             size="small"
-            startIcon={<Clear />}
-            onClick={handleClearFilters}
+            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+            title="検索・フィルター"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
           >
-            クリア
-          </Button>
+            <Tune />
+          </IconButton>
+
+          <IconButton
+            size="small"
+            onClick={handleClearFilters}
+            title="フィルタークリア"
+          >
+            <Clear />
+          </IconButton>
         </Box>
 
-        {/* Tag Filter */}
-        {tags.length > 0 && (
-          <Box>
-            <Typography variant="body2" sx={{ mb: 1 }}>タグフィルター:</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {tags.slice(0, 10).map(tag => (
-                <Chip
-                  key={tag.id}
-                  label={tag.name}
-                  size="small"
-                  clickable
-                  color={filters.tagIds?.includes(tag.id) ? 'primary' : 'default'}
-                  onClick={() => handleTagToggle(tag.id)}
-                  sx={{
-                    bgcolor: filters.tagIds?.includes(tag.id) ? undefined : tag.color + '20',
-                    borderColor: tag.color,
-                  }}
-                />
-              ))}
+        {/* Combined Search and Filter Section */}
+        <Box sx={{ mb: 1 }}>
+
+          {isFiltersExpanded && (
+            <Box sx={{ mt: 0.5, pl: 0 }}>
+              {/* Keyword Search */}
+              <TextField
+                fullWidth
+                placeholder="キーワードで検索..."
+                value={filters.keyword || ''}
+                onChange={(e) => handleFilterChange({ keyword: e.target.value })}
+                size="small"
+                sx={{ mb: 1.5, mt: 2 }}
+              />
+
+              {/* Tag Filter */}
+              {tags.length > 0 && (
+                <Box>
+                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                    タグフィルター
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {tags.slice(0, 10).map(tag => (
+                      <Chip
+                        key={tag.id}
+                        label={tag.name}
+                        size="small"
+                        clickable
+                        color={filters.tagIds?.includes(tag.id) ? 'primary' : 'default'}
+                        onClick={() => handleTagToggle(tag.id)}
+                        sx={{
+                          bgcolor: filters.tagIds?.includes(tag.id) ? undefined : tag.color + '20',
+                          borderColor: tag.color,
+                          fontSize: '0.7rem',
+                          height: 24,
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
-          </Box>
-        )}
+          )}
+        </Box>
       </Paper>
 
       {/* Results */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+      <Box id="search-results-container" sx={{ flexGrow: 1, overflow: 'auto', minHeight: 0 }}>
         {templatesLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
@@ -218,12 +258,14 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           </Paper>
         ) : (
           <>
-            <Box sx={{ mb: 2 }}>
+            <Box id="template-cards-list" sx={{ mb: 2 }}>
               {templates.map(template => (
                 <TemplateCard
                   key={template.id}
                   template={template}
                   onClick={() => onTemplateSelect?.(template)}
+                  onEdit={() => handleEditTemplate(template)}
+                  onDelete={() => handleDeleteTemplate(template)}
                 />
               ))}
             </Box>
@@ -242,6 +284,14 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           </>
         )}
       </Box>
+
+      {/* Template Edit Modal */}
+      <TemplateEditModal
+        open={showEditModal}
+        onClose={handleEditModalClose}
+        onSuccess={handleEditSuccess}
+        template={templateToEdit}
+      />
     </Box>
   );
 };

@@ -1,32 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Box,
-  Paper,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
   Button,
-  Divider,
-  IconButton,
-  Tooltip,
   Snackbar,
   Alert,
 } from '@mui/material';
 import {
   Save,
   ContentCopy,
-  Clear,
-  Settings,
-  FolderOpen,
 } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateSelectionModal from '../Templates/TemplateSelectionModal';
 import VariableSubstitutionModal from '../Templates/VariableSubstitutionModal';
-import { Template, Project } from '../../types';
-import { useGetAllProjectsQuery } from '../../store/api/projectApi';
+import TemplateCreateModal from '../Templates/TemplateCreateModal';
+import { Template } from '../../types';
 import { useCreateDocumentMutation } from '../../store/api/documentApi';
 import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
 
@@ -39,19 +27,22 @@ interface DocumentEditorProps {
     projectId?: number;
   }) => void;
   onUseTemplate?: (templateId: number) => void;
+  selectedProjectId?: number;
+  selectedSceneId?: number;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
   selectedTemplate,
   onSaveDocument,
   onUseTemplate,
+  selectedProjectId,
+  selectedSceneId,
 }) => {
-  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedProject, setSelectedProject] = useState<number | ''>('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
 
-  const { data: projectsResponse } = useGetAllProjectsQuery();
+  const markdownEditorRef = useRef<any>(null);
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
 
   // User preferences
@@ -62,6 +53,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [showTemplateSelection, setShowTemplateSelection] = useState(false);
   const [showVariableSubstitution, setShowVariableSubstitution] = useState(false);
   const [templateForSubstitution, setTemplateForSubstitution] = useState<Template | null>(null);
+  const [showTemplateCreate, setShowTemplateCreate] = useState(false);
 
   // エディタ設定（ユーザ設定から取得）
   const [editorSettings, setEditorSettings] = useState({
@@ -93,11 +85,13 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }, [editorSettings, updateEditorSettings]);
 
 
-  // テンプレートが選択された時の処理
+  // テンプレートが選択された時の処理（挿入モードに変更）
   React.useEffect(() => {
     if (selectedTemplate) {
-      setContent(selectedTemplate.content);
-      setTitle(selectedTemplate.title + ' - コピー');
+      // テキストを挿入（全体置換ではなく）
+      if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
+        markdownEditorRef.current.insertText(selectedTemplate.content);
+      }
 
       // 使用状況を記録
       if (onUseTemplate) {
@@ -108,25 +102,26 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const handleSave = useCallback(async () => {
     try {
+      const generatedTitle = generateTitle();
       await createDocument({
-        title: title || undefined,
+        title: generatedTitle,
         content,
         contentMarkdown: content,
-        projectId: selectedProject || undefined,
+        projectId: selectedProjectId || undefined,
       }).unwrap();
 
       if (onSaveDocument) {
         onSaveDocument({
-          title: title || undefined,
+          title: generatedTitle,
           content,
           contentMarkdown: content,
-          projectId: selectedProject || undefined,
+          projectId: selectedProjectId || undefined,
         });
       }
     } catch (error) {
       console.error('文書の保存に失敗しました:', error);
     }
-  }, [title, content, selectedProject, createDocument, onSaveDocument]);
+  }, [content, selectedProjectId, createDocument, onSaveDocument]);
 
   const handleCopyToClipboard = useCallback(async () => {
     try {
@@ -137,17 +132,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [content]);
 
-  const handleClear = useCallback(() => {
-    setTitle('');
-    setContent('');
-    setSelectedProject('');
-  }, []);
-
-  const handleTemplateImport = useCallback(() => {
-    setShowTemplateSelection(true);
-  }, []);
-
-  const handleTemplateSelect = useCallback((template: Template) => {
+  const handleTemplateInsert = useCallback((template: Template) => {
     // 変数が含まれているかチェック
     const hasVariables = /\{\{\w+\}\}/.test(template.content);
 
@@ -156,22 +141,28 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       setTemplateForSubstitution(template);
       setShowVariableSubstitution(true);
     } else {
-      // 直接適用
-      setContent(template.content);
-      setTitle(template.title + ' - コピー');
+      // テキストを挿入
+      if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
+        markdownEditorRef.current.insertText(template.content);
+      }
       if (onUseTemplate) {
         onUseTemplate(template.id);
       }
     }
   }, [onUseTemplate]);
 
+  const handleTemplateEdit = useCallback((template: Template) => {
+    // TODO: 定型文編集モーダルを開く
+    console.log('定型文編集:', template);
+  }, []);
+
   const handleVariableSubstitution = useCallback((processedContent: string, variables: Record<string, string>) => {
-    setContent(processedContent);
-    if (templateForSubstitution) {
-      setTitle(templateForSubstitution.title + ' - 編集済み');
-      if (onUseTemplate) {
-        onUseTemplate(templateForSubstitution.id);
-      }
+    // 変数置換後のテキストを挿入
+    if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
+      markdownEditorRef.current.insertText(processedContent);
+    }
+    if (templateForSubstitution && onUseTemplate) {
+      onUseTemplate(templateForSubstitution.id);
     }
     setTemplateForSubstitution(null);
   }, [templateForSubstitution, onUseTemplate]);
@@ -181,71 +172,75 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     setTemplateForSubstitution(null);
   }, []);
 
-  const projects = projectsResponse?.data || [];
+  const handleCreateTemplateFromSelection = useCallback(() => {
+    let selectedText = '';
+
+    // MarkdownEditorのref経由で選択テキストを取得
+    if (markdownEditorRef.current && markdownEditorRef.current.getSelectedText) {
+      selectedText = markdownEditorRef.current.getSelectedText();
+    }
+
+    console.log('Create template button - Selected text:', {
+      length: selectedText.length,
+      lines: selectedText.split('\n').length,
+      text: selectedText
+    });
+
+    if (selectedText && selectedText.trim()) {
+      setSelectedText(selectedText.trim());
+      setShowTemplateCreate(true);
+    } else {
+      // 選択テキストがない場合は全体のコンテンツを使用
+      setSelectedText(content);
+      setShowTemplateCreate(true);
+    }
+  }, [content]);
+
+  const handleTemplateCreateSuccess = useCallback(() => {
+    setShowTemplateCreate(false);
+    setSelectedText('');
+    // 定型文作成成功のメッセージを表示（必要に応じて）
+  }, []);
+
+  // Generate title from content
+  const generateTitle = () => {
+    if (!content.trim()) return '新規文書';
+
+    const lines = content.split('\n');
+    const firstNonEmptyLine = lines.find(line => line.trim() !== '');
+    if (!firstNonEmptyLine) return '新規文書';
+
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const contentPreview = firstNonEmptyLine.trim().substring(0, 20);
+
+    return `${dateStr}：${contentPreview}`;
+  };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">文書エディタ</Typography>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="テンプレート選択">
-              <IconButton onClick={handleTemplateImport} size="small">
-                <FolderOpen />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="エディタ設定">
-              <IconButton size="small">
-                <Settings />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="クリア">
-              <IconButton onClick={handleClear} size="small">
-                <Clear />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-
-        {/* Document Settings */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <TextField
-            label="文書タイトル"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            size="small"
-            sx={{ flex: 1 }}
-            placeholder="文書のタイトルを入力"
-          />
-
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>プロジェクト</InputLabel>
-            <Select
-              value={selectedProject}
-              label="プロジェクト"
-              onChange={(e) => setSelectedProject(e.target.value as number)}
-            >
-              <MenuItem value="">プロジェクトなし</MenuItem>
-              {projects.map(project => (
-                <MenuItem key={project.id} value={project.id}>
-                  {project.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+      {/* Editor with Action Buttons */}
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
+        {/* Action Buttons - positioned absolutely in top right */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          right: 8,
+          zIndex: 10,
+          display: 'flex',
+          gap: 1,
+          bgcolor: 'background.paper',
+          borderRadius: 1,
+          boxShadow: 'none',
+          p: 0.5
+        }}>
           <Button
             variant="contained"
             startIcon={<Save />}
             onClick={handleSave}
             disabled={!content.trim() || isSaving}
+            size="small"
           >
             {isSaving ? '保存中...' : '保存'}
           </Button>
@@ -255,44 +250,33 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
             startIcon={<ContentCopy />}
             onClick={handleCopyToClipboard}
             disabled={!content.trim()}
+            size="small"
           >
             コピー
           </Button>
         </Box>
 
-        {/* Template Info */}
-        {selectedTemplate && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                選択中のテンプレート: <strong>{selectedTemplate.title}</strong>
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                作成者: {selectedTemplate.creator?.displayName || selectedTemplate.creator?.username}
-                {selectedTemplate.scene && ` • シーン: ${selectedTemplate.scene.name}`}
-              </Typography>
-            </Box>
-          </>
-        )}
-      </Paper>
-
-      {/* Editor */}
-      <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-        <MarkdownEditor
-          value={content}
-          onChange={setContent}
-          height="calc(100vh - 300px)"
-          theme={editorSettings.theme}
-          showLineNumbers={editorSettings.showLineNumbers}
-          wordWrap={editorSettings.wordWrap}
-          fontSize={editorSettings.fontSize}
-          placeholder={
-            selectedTemplate
-              ? 'テンプレートの内容を編集してください...'
-              : 'マークダウンで文書を作成してください...'
-          }
-        />
+        <Box sx={{ pt: 6 }}>
+          <MarkdownEditor
+            ref={markdownEditorRef}
+            value={content}
+            onChange={setContent}
+            height="calc(100vh - 120px)"
+            theme={editorSettings.theme}
+            showLineNumbers={editorSettings.showLineNumbers}
+            wordWrap={editorSettings.wordWrap}
+            fontSize={editorSettings.fontSize}
+            onCreateTemplate={(selectedText) => {
+              setSelectedText(selectedText);
+              setShowTemplateCreate(true);
+            }}
+            placeholder={
+              selectedTemplate
+                ? 'テンプレートの内容を編集してください...'
+                : 'マークダウンで文書を作成してください...'
+            }
+          />
+        </Box>
       </Box>
 
       {/* Copy Success Snackbar */}
@@ -315,8 +299,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       <TemplateSelectionModal
         open={showTemplateSelection}
         onClose={() => setShowTemplateSelection(false)}
-        onSelect={handleTemplateSelect}
-        title="エディタに挿入するテンプレートを選択"
+        onInsert={handleTemplateInsert}
+        onEditTemplate={handleTemplateEdit}
+        title="エディタに挿入する定型文を選択"
       />
 
       {/* Variable Substitution Modal */}
@@ -326,9 +311,21 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           onClose={handleVariableSubstitutionClose}
           onApply={handleVariableSubstitution}
           template={templateForSubstitution}
-          projectId={selectedProject || undefined}
+          projectId={selectedProjectId || undefined}
         />
       )}
+
+      {/* Template Create Modal */}
+      <TemplateCreateModal
+        open={showTemplateCreate}
+        onClose={() => {
+          setShowTemplateCreate(false);
+          setSelectedText('');
+        }}
+        onSuccess={handleTemplateCreateSuccess}
+        initialContent={selectedText}
+        initialSceneId={selectedSceneId}
+      />
     </Box>
   );
 };

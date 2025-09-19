@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -18,32 +18,30 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Add, Close, AddCircle } from '@mui/icons-material';
-import { useCreateTemplateMutation } from '../../store/api/templateApi';
+import { Edit, Close, AddCircle } from '@mui/icons-material';
+import { useUpdateTemplateMutation } from '../../store/api/templateApi';
 import { useGetAllScenesQuery, useCreateSceneMutation } from '../../store/api/sceneApi';
 import { useGetAllTagsQuery } from '../../store/api/tagApi';
-import { TemplateFormData } from '../../types';
+import { Template, TemplateFormData } from '../../types';
 
-interface TemplateCreateModalProps {
+interface TemplateEditModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  initialContent?: string;
-  initialSceneId?: number;
+  template: Template | null;
 }
 
-const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
+const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
   open,
   onClose,
   onSuccess,
-  initialContent = '',
-  initialSceneId,
+  template,
 }) => {
   const [formData, setFormData] = useState<TemplateFormData>({
     title: '',
     content: '',
     description: '',
-    sceneId: initialSceneId,
+    sceneId: undefined,
     status: 'published',
     isPublic: true,
     tagIds: [],
@@ -53,7 +51,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
   const [showNewSceneForm, setShowNewSceneForm] = useState(false);
   const [newSceneName, setNewSceneName] = useState('');
 
-  const [createTemplate, { isLoading }] = useCreateTemplateMutation();
+  const [updateTemplate, { isLoading }] = useUpdateTemplateMutation();
   const [createScene, { isLoading: isCreatingScene }] = useCreateSceneMutation();
   const { data: scenesData } = useGetAllScenesQuery();
   const { data: tagsData } = useGetAllTagsQuery();
@@ -61,24 +59,28 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
   const scenes = scenesData?.scenes || [];
   const tags = tagsData?.tags || [];
 
-  // initialContentとinitialSceneIdが変更された時にフォームデータを更新
-  React.useEffect(() => {
-    if (open) {
-      setFormData(prev => ({
-        ...prev,
-        content: initialContent || '',
-        sceneId: initialSceneId
-        // 選択したテキストから作成する場合、タイトルには入れない
-      }));
+  // テンプレートデータでフォームを初期化
+  useEffect(() => {
+    if (open && template) {
+      setFormData({
+        title: template.title || '',
+        content: template.content || '',
+        description: template.description || '',
+        sceneId: template.sceneId || undefined,
+        status: 'published',
+        isPublic: template.isPublic ?? true,
+        tagIds: template.templateTags?.map(({ tag }) => tag.id) || [],
+      });
+      setErrors({});
     }
-  }, [open, initialContent, initialSceneId]);
+  }, [open, template]);
 
   const handleClose = () => {
     setFormData({
       title: '',
       content: '',
       description: '',
-      sceneId: initialSceneId,
+      sceneId: undefined,
       status: 'published',
       isPublic: true,
       tagIds: [],
@@ -115,7 +117,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!template || !validateForm()) {
       return;
     }
 
@@ -125,12 +127,16 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
         title: formData.title.trim() || generateTitleFromContent(formData.content)
       };
 
-      await createTemplate(submissionData).unwrap();
+      await updateTemplate({
+        id: template.id,
+        data: submissionData
+      }).unwrap();
+
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.error('Template creation failed:', error);
-      setErrors({ submit: '定型文の作成に失敗しました' });
+      console.error('Template update failed:', error);
+      setErrors({ submit: '定型文の更新に失敗しました' });
     }
   };
 
@@ -161,6 +167,10 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
     }));
   };
 
+  if (!template) {
+    return null;
+  }
+
   return (
     <Dialog
       open={open}
@@ -174,8 +184,8 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Add />
-            <Typography variant="h6">新しい定型文を作成</Typography>
+            <Edit />
+            <Typography variant="h6">定型文を編集</Typography>
           </Box>
           <Button onClick={handleClose} size="small">
             <Close />
@@ -354,11 +364,11 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} /> : undefined}
         >
-          {isLoading ? '作成中...' : '作成'}
+          {isLoading ? '更新中...' : '更新'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default TemplateCreateModal;
+export default TemplateEditModal;

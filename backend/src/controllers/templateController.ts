@@ -6,7 +6,13 @@ import logger from '../utils/logger';
 class TemplateController {
   async createTemplate(req: Request, res: Response) {
     try {
+      logger.info('Create template request:', {
+        user: req.user ? 'authenticated' : 'not authenticated',
+        body: req.body
+      });
+
       if (!req.user) {
+        logger.warn('Create template: No user authenticated');
         return res.status(401).json({
           error: 'Unauthorized',
           message: 'Authentication required',
@@ -16,6 +22,7 @@ class TemplateController {
       // Validate request body
       const { error, value } = templateValidation.create.validate(req.body);
       if (error) {
+        logger.warn('Create template validation error:', error.details[0].message);
         return res.status(400).json({
           error: 'Validation Error',
           message: error.details[0].message,
