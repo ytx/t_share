@@ -59,7 +59,7 @@ function TabPanel(props: TabPanelProps) {
 interface ProjectFormData {
   name: string;
   description: string;
-  status: 'active' | 'inactive';
+  isPublic: boolean;
 }
 
 const ProjectManagement: React.FC = () => {
@@ -72,10 +72,10 @@ const ProjectManagement: React.FC = () => {
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     description: '',
-    status: 'active',
+    isPublic: true,
   });
 
-  const { data: projectsResponse, isLoading, error } = useGetAllProjectsQuery();
+  const { data: projectsResponse, isLoading, error } = useGetAllProjectsQuery({ adminMode: true });
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
@@ -91,7 +91,7 @@ const ProjectManagement: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      status: 'active',
+      isPublic: true,
     });
     setOpenDialog(true);
   }, []);
@@ -101,7 +101,7 @@ const ProjectManagement: React.FC = () => {
     setFormData({
       name: project.name || '',
       description: project.description || '',
-      status: project.status || 'active',
+      isPublic: project.isPublic ?? true,
     });
     setOpenDialog(true);
   }, []);
@@ -112,7 +112,7 @@ const ProjectManagement: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      status: 'active',
+      isPublic: true,
     });
   }, []);
 
@@ -206,9 +206,10 @@ const ProjectManagement: React.FC = () => {
                     <TableRow>
                       <TableCell>プロジェクト名</TableCell>
                       <TableCell>説明</TableCell>
-                      <TableCell>ステータス</TableCell>
+                      <TableCell>公開設定</TableCell>
+                      <TableCell>作成者</TableCell>
+                      <TableCell>文書数</TableCell>
                       <TableCell>作成日</TableCell>
-                      <TableCell>更新日</TableCell>
                       <TableCell align="right">操作</TableCell>
                     </TableRow>
                   </TableHead>
@@ -227,16 +228,23 @@ const ProjectManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={project.status === 'active' ? 'アクティブ' : '非アクティブ'}
-                            color={project.status === 'active' ? 'success' : 'default'}
+                            label={project.isPublic ? '公開' : '非公開'}
+                            color={project.isPublic ? 'success' : 'default'}
                             size="small"
                           />
                         </TableCell>
                         <TableCell>
-                          {formatDate(project.createdAt)}
+                          <Typography variant="body2">
+                            {project.creator?.displayName || project.creator?.username || 'Unknown'}
+                          </Typography>
                         </TableCell>
                         <TableCell>
-                          {formatDate(project.updatedAt)}
+                          <Typography variant="body2">
+                            {project._count?.documents || 0}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(project.createdAt)}
                         </TableCell>
                         <TableCell align="right">
                           <IconButton
@@ -257,7 +265,7 @@ const ProjectManagement: React.FC = () => {
                     ))}
                     {projects.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} align="center">
+                        <TableCell colSpan={7} align="center">
                           <Typography variant="body2" color="text.secondary">
                             プロジェクトがありません
                           </Typography>
@@ -319,14 +327,14 @@ const ProjectManagement: React.FC = () => {
             />
 
             <FormControl fullWidth>
-              <InputLabel>ステータス</InputLabel>
+              <InputLabel>公開設定</InputLabel>
               <Select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
-                label="ステータス"
+                value={formData.isPublic}
+                onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.value as boolean }))}
+                label="公開設定"
               >
-                <MenuItem value="active">アクティブ</MenuItem>
-                <MenuItem value="inactive">非アクティブ</MenuItem>
+                <MenuItem value={true}>公開</MenuItem>
+                <MenuItem value={false}>非公開</MenuItem>
               </Select>
             </FormControl>
           </Box>

@@ -21,7 +21,7 @@ import {
 import { Add, Close, AddCircle } from '@mui/icons-material';
 import { useCreateTemplateMutation } from '../../store/api/templateApi';
 import { useGetAllScenesQuery, useCreateSceneMutation } from '../../store/api/sceneApi';
-import { useGetAllTagsQuery } from '../../store/api/tagApi';
+import { useGetAllTagsQuery, useCreateTagMutation } from '../../store/api/tagApi';
 import { TemplateFormData } from '../../types';
 
 interface TemplateCreateModalProps {
@@ -52,9 +52,13 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showNewSceneForm, setShowNewSceneForm] = useState(false);
   const [newSceneName, setNewSceneName] = useState('');
+  const [showNewTagForm, setShowNewTagForm] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#1976d2');
 
   const [createTemplate, { isLoading }] = useCreateTemplateMutation();
   const [createScene, { isLoading: isCreatingScene }] = useCreateSceneMutation();
+  const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
   const { data: scenesData } = useGetAllScenesQuery();
   const { data: tagsData } = useGetAllTagsQuery();
 
@@ -86,6 +90,9 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
     setErrors({});
     setShowNewSceneForm(false);
     setNewSceneName('');
+    setShowNewTagForm(false);
+    setNewTagName('');
+    setNewTagColor('#1976d2');
     onClose();
   };
 
@@ -149,6 +156,31 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
     } catch (error) {
       console.error('Scene creation failed:', error);
       setErrors({ scene: 'シーンの作成に失敗しました' });
+    }
+  };
+
+  const handleCreateNewTag = async () => {
+    if (!newTagName.trim()) {
+      setErrors({ tag: 'タグ名を入力してください' });
+      return;
+    }
+
+    try {
+      const result = await createTag({
+        name: newTagName.trim(),
+        color: newTagColor
+      }).unwrap();
+      setFormData(prev => ({
+        ...prev,
+        tagIds: [...prev.tagIds, result.tag.id]
+      }));
+      setShowNewTagForm(false);
+      setNewTagName('');
+      setNewTagColor('#1976d2');
+      setErrors({});
+    } catch (error) {
+      console.error('Tag creation failed:', error);
+      setErrors({ tag: 'タグの作成に失敗しました' });
     }
   };
 
@@ -319,9 +351,65 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
 
           {/* 6. タグ */}
           <Box>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              タグ
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="subtitle1">
+                タグ
+              </Typography>
+              {!showNewTagForm && (
+                <Button
+                  size="small"
+                  startIcon={<AddCircle />}
+                  onClick={() => setShowNewTagForm(true)}
+                >
+                  新しいタグを作成
+                </Button>
+              )}
+            </Box>
+
+            {showNewTagForm && (
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <TextField
+                  label="新しいタグ名"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  error={!!errors.tag}
+                  helperText={errors.tag}
+                  fullWidth
+                  size="small"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  label="色"
+                  type="color"
+                  value={newTagColor}
+                  onChange={(e) => setNewTagColor(e.target.value)}
+                  size="small"
+                  sx={{ mb: 2, width: 120 }}
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleCreateNewTag}
+                    disabled={isCreatingTag}
+                  >
+                    {isCreatingTag ? '作成中...' : '作成'}
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setShowNewTagForm(false);
+                      setNewTagName('');
+                      setNewTagColor('#1976d2');
+                      setErrors({});
+                    }}
+                  >
+                    キャンセル
+                  </Button>
+                </Box>
+              </Box>
+            )}
+
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {tags.map((tag) => (
                 <Chip

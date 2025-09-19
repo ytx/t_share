@@ -4,11 +4,13 @@ import type { Project } from '../../types';
 export interface ProjectCreateData {
   name: string;
   description?: string;
+  isPublic?: boolean;
 }
 
 export interface ProjectUpdateData {
   name?: string;
   description?: string;
+  isPublic?: boolean;
 }
 
 export interface ProjectResponse {
@@ -71,8 +73,11 @@ export const projectApi = createApi({
           : [{ type: 'Project', id: 'LIST' }],
     }),
 
-    getAllProjects: builder.query<ProjectResponse, void>({
-      query: () => '/all',
+    getAllProjects: builder.query<ProjectResponse, { adminMode?: boolean }>({
+      query: ({ adminMode } = {}) => ({
+        url: '/all',
+        params: adminMode ? { adminMode: 'true' } : undefined,
+      }),
       providesTags: (result) =>
         result
           ? [

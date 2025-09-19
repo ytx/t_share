@@ -23,6 +23,7 @@ import EditorSettingsPanel from './EditorSettingsPanel';
 import AppearanceSettingsPanel from './AppearanceSettingsPanel';
 import NotificationSettingsPanel from './NotificationSettingsPanel';
 import GeneralSettingsPanel from './GeneralSettingsPanel';
+import ProjectManagement from './ProjectManagement';
 import { useResetUserPreferencesMutation } from '../../store/api/userPreferenceApi';
 import ConfirmDialog from '../Common/ConfirmDialog';
 
@@ -149,7 +150,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             <Tab label="全般" {...a11yProps(0)} />
             <Tab label="エディタ" {...a11yProps(1)} />
             <Tab label="外観" {...a11yProps(2)} />
-            <Tab label="通知" {...a11yProps(3)} />
+            <Tab label="プロジェクト" {...a11yProps(3)} />
+            <Tab label="通知" {...a11yProps(4)} />
           </Tabs>
         </Box>
 
@@ -167,6 +169,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </TabPanel>
 
           <TabPanel value={tabValue} index={3}>
+            <ProjectManagement />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={4}>
             <NotificationSettingsPanel />
           </TabPanel>
         </DialogContent>

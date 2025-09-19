@@ -185,6 +185,7 @@ export interface Project {
   id: number;
   name: string;
   description?: string;
+  isPublic: boolean;
   createdBy: number;
   createdAt: string;
   updatedAt: string;

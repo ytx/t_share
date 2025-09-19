@@ -89,11 +89,13 @@ export const projectValidation = {
   create: Joi.object({
     name: Joi.string().min(1).max(100).required(),
     description: Joi.string().max(1000),
+    isPublic: Joi.boolean().default(true),
   }),
 
   update: Joi.object({
     name: Joi.string().min(1).max(100),
     description: Joi.string().max(1000),
+    isPublic: Joi.boolean(),
   }),
 };
 

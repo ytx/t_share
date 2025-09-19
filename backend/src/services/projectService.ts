@@ -6,11 +6,13 @@ const prisma = new PrismaClient();
 export interface ProjectCreateData {
   name: string;
   description?: string;
+  isPublic?: boolean;
 }
 
 export interface ProjectUpdateData {
   name?: string;
   description?: string;
+  isPublic?: boolean;
 }
 
 class ProjectService {
@@ -20,6 +22,7 @@ class ProjectService {
         data: {
           name: data.name,
           description: data.description,
+          isPublic: data.isPublic ?? true,
           createdBy: userId,
         },
         include: {
@@ -151,8 +154,13 @@ class ProjectService {
         throw new Error('Project not found');
       }
 
-      // Check access permissions (for now, any authenticated user can view projects)
-      // In the future, this could be expanded to include project members
+      // Check access permissions
+      if (!project.isPublic && (!userId || project.createdBy !== userId)) {
+        const user = await prisma.user.findUnique({ where: { id: userId || 0 } });
+        if (!user?.isAdmin) {
+          throw new Error('Not authorized to access this project');
+        }
+      }
 
       return project;
     } catch (error) {
@@ -194,10 +202,20 @@ class ProjectService {
     }
   }
 
-  async getAllProjects(userId?: number) {
+  async getAllProjects(userId?: number, adminMode?: boolean) {
     try {
-      // For now, return all projects (in the future, this could be filtered by access permissions)
+      const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
+
+      // Filter projects based on access permissions
+      const whereClause = adminMode && user?.isAdmin ? {} : {
+        OR: [
+          { isPublic: true },
+          ...(userId ? [{ createdBy: userId }] : [])
+        ]
+      };
+
       const projects = await prisma.project.findMany({
+        where: whereClause,
         include: {
           creator: {
             select: {

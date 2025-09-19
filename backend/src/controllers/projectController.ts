@@ -6,11 +6,13 @@ import logger from '../utils/logger';
 const createProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
   description: z.string().max(1000, 'Description too long').optional(),
+  isPublic: z.boolean().default(true),
 });
 
 const updateProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long').optional(),
   description: z.string().max(1000, 'Description too long').optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const createProject = async (req: Request, res: Response) => {
@@ -118,8 +120,13 @@ export const getProject = async (req: Request, res: Response) => {
     res.json(project);
   } catch (error) {
     logger.error('Get project failed:', error);
-    if (error instanceof Error && error.message === 'Project not found') {
-      return res.status(404).json({ error: error.message });
+    if (error instanceof Error) {
+      if (error.message === 'Project not found') {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message === 'Not authorized to access this project') {
+        return res.status(403).json({ error: error.message });
+      }
     }
     res.status(500).json({ error: 'Failed to get project' });
   }
@@ -143,7 +150,8 @@ export const getUserProjects = async (req: Request, res: Response) => {
 export const getAllProjects = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const projects = await projectService.getAllProjects(userId);
+    const adminMode = req.query.adminMode === 'true';
+    const projects = await projectService.getAllProjects(userId, adminMode);
     res.json({ data: projects });
   } catch (error) {
     logger.error('Get all projects failed:', error);
