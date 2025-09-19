@@ -4,13 +4,9 @@ import {
   Typography,
   FormControl,
   FormControlLabel,
-  FormLabel,
-  RadioGroup,
-  Radio,
   Switch,
   Slider,
   Paper,
-  Divider,
   Alert,
   Select,
   MenuItem,
@@ -138,28 +134,20 @@ const EditorSettingsPanel: React.FC = () => {
 
         {/* キーバインディング */}
         <Paper variant="outlined" sx={{ p: 3 }}>
-          <FormControl component="fieldset">
-            <FormLabel component="legend">キーバインディング</FormLabel>
-            <RadioGroup
+          <Typography variant="subtitle1" gutterBottom>
+            キーバインディング
+          </Typography>
+          <FormControl fullWidth>
+            <InputLabel>キーバインディング</InputLabel>
+            <Select
               value={editorSettings.keybinding}
               onChange={(e) => handleSettingChange('keybinding', e.target.value)}
+              label="キーバインディング"
             >
-              <FormControlLabel
-                value="default"
-                control={<Radio />}
-                label="デフォルト"
-              />
-              <FormControlLabel
-                value="vim"
-                control={<Radio />}
-                label="Vim"
-              />
-              <FormControlLabel
-                value="emacs"
-                control={<Radio />}
-                label="Emacs"
-              />
-            </RadioGroup>
+              <MenuItem value="default">デフォルト</MenuItem>
+              <MenuItem value="vim">Vim</MenuItem>
+              <MenuItem value="emacs">Emacs</MenuItem>
+            </Select>
           </FormControl>
         </Paper>
 

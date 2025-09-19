@@ -16,14 +16,11 @@ import {
   Settings,
   Close,
   Restore,
-  Download,
-  Upload,
 } from '@mui/icons-material';
 import EditorSettingsPanel from './EditorSettingsPanel';
-import AppearanceSettingsPanel from './AppearanceSettingsPanel';
-import NotificationSettingsPanel from './NotificationSettingsPanel';
-import GeneralSettingsPanel from './GeneralSettingsPanel';
 import ProjectManagement from './ProjectManagement';
+import UserVariableManagement from './UserVariableManagement';
+import ProjectVariableManagement from './ProjectVariableManagement';
 import { useResetUserPreferencesMutation } from '../../store/api/userPreferenceApi';
 import ConfirmDialog from '../Common/ConfirmDialog';
 
@@ -91,15 +88,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleExportSettings = () => {
-    // TODO: Implement export functionality
-    console.log('Export settings');
-  };
-
-  const handleImportSettings = () => {
-    // TODO: Implement import functionality
-    console.log('Import settings');
-  };
 
   return (
     <>
@@ -120,18 +108,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="設定をエクスポート">
-                <IconButton size="small" onClick={handleExportSettings}>
-                  <Download />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip title="設定をインポート">
-                <IconButton size="small" onClick={handleImportSettings}>
-                  <Upload />
-                </IconButton>
-              </Tooltip>
-
               <Tooltip title="設定をリセット">
                 <IconButton size="small" onClick={() => setShowResetDialog(true)}>
                   <Restore />
@@ -147,33 +123,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-            <Tab label="全般" {...a11yProps(0)} />
-            <Tab label="エディタ" {...a11yProps(1)} />
-            <Tab label="外観" {...a11yProps(2)} />
-            <Tab label="プロジェクト" {...a11yProps(3)} />
-            <Tab label="通知" {...a11yProps(4)} />
+            <Tab label="エディタ" {...a11yProps(0)} />
+            <Tab label="プロジェクト" {...a11yProps(1)} />
+            <Tab label="ユーザ変数" {...a11yProps(2)} />
+            <Tab label="プロジェクト変数" {...a11yProps(3)} />
           </Tabs>
         </Box>
 
         <DialogContent sx={{ p: 0, overflow: 'auto', maxHeight: 'calc(80vh - 120px)' }}>
           <TabPanel value={tabValue} index={0}>
-            <GeneralSettingsPanel />
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={1}>
             <EditorSettingsPanel />
           </TabPanel>
 
-          <TabPanel value={tabValue} index={2}>
-            <AppearanceSettingsPanel />
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={1}>
             <ProjectManagement />
           </TabPanel>
 
-          <TabPanel value={tabValue} index={4}>
-            <NotificationSettingsPanel />
+          <TabPanel value={tabValue} index={2}>
+            <UserVariableManagement />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={3}>
+            <ProjectVariableManagement />
           </TabPanel>
         </DialogContent>
 

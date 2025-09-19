@@ -50,6 +50,10 @@ const Dashboard: React.FC = () => {
     }
   }, [useTemplate]);
 
+  const handleTemplateProcessed = useCallback(() => {
+    setSelectedTemplate(null);
+  }, []);
+
   const handleSaveDocument = (data: {
     title?: string;
     content: string;
@@ -177,43 +181,6 @@ const Dashboard: React.FC = () => {
           <ThemeToggleButton size="medium" />
 
           {user?.isAdmin && (
-            <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={adminMode}
-                    onChange={toggleAdminMode}
-                    size="small"
-                    sx={{
-                      '& .MuiSwitch-switchBase': {
-                        color: 'white',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: 'white',
-                      },
-                      '& .MuiSwitch-track': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'white' }}>
-                    <SupervisorAccount sx={{ mr: 0.5 }} />
-                  </Box>
-                }
-                sx={{
-                  m: 0,
-                  mr: 1,
-                  '& .MuiFormControlLabel-label': {
-                    fontSize: '0.875rem',
-                  }
-                }}
-              />
-            </Tooltip>
-          )}
-
-          {user?.isAdmin && (
             <IconButton color="inherit" onClick={handleAdminDashboard} sx={{ mr: 1 }}>
               <AdminPanelSettings />
             </IconButton>
@@ -258,16 +225,6 @@ const Dashboard: React.FC = () => {
                   </Typography>
                 </MenuItem>
                 <Divider />
-                <MenuItem onClick={handleSettings}>
-                  <Settings sx={{ mr: 1 }} />
-                  設定
-                </MenuItem>
-                {user?.isAdmin && (
-                  <MenuItem onClick={handleAdminDashboard}>
-                    <AdminPanelSettings sx={{ mr: 1 }} />
-                    管理者ダッシュボード
-                  </MenuItem>
-                )}
                 <MenuItem onClick={handleLogout}>
                   <Logout sx={{ mr: 1 }} />
                   ログアウト
@@ -283,6 +240,36 @@ const Dashboard: React.FC = () => {
                 登録
               </Button>
             </Box>
+          )}
+
+          {user?.isAdmin && (
+            <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={adminMode}
+                    onChange={toggleAdminMode}
+                    size="small"
+                    sx={{
+                      '& .MuiSwitch-switchBase': {
+                        color: 'white',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: 'white',
+                      },
+                      '& .MuiSwitch-track': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                    }}
+                  />
+                }
+                label=""
+                sx={{
+                  m: 0,
+                  ml: 1,
+                }}
+              />
+            </Tooltip>
           )}
         </Toolbar>
       </AppBar>
@@ -326,6 +313,7 @@ const Dashboard: React.FC = () => {
                 selectedTemplate={selectedTemplate}
                 onSaveDocument={handleSaveDocument}
                 onUseTemplate={handleUseTemplate}
+                onTemplateProcessed={handleTemplateProcessed}
                 selectedProjectId={selectedProjectId}
                 selectedSceneId={selectedSceneId}
               />

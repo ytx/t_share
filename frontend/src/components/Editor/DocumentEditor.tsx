@@ -28,6 +28,7 @@ interface DocumentEditorProps {
     projectId?: number;
   }) => void;
   onUseTemplate?: (templateId: number) => void;
+  onTemplateProcessed?: () => void;
   selectedProjectId?: number;
   selectedSceneId?: number;
 }
@@ -36,12 +37,16 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   selectedTemplate,
   onSaveDocument,
   onUseTemplate,
+  onTemplateProcessed,
   selectedProjectId,
   selectedSceneId,
 }) => {
   const [content, setContent] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const [selectedText, setSelectedText] = useState('');
+  const [lastProcessedTemplateId, setLastProcessedTemplateId] = useState<number | null>(null);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastClickTimeRef = useRef<number>(0);
 
   const markdownEditorRef = useRef<any>(null);
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
@@ -71,17 +76,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // ユーザ設定からエディタ設定を初期化
   React.useEffect(() => {
     if (userPreferences?.editorSettings) {
-      console.log('DocumentEditor: Updating editor settings:', userPreferences.editorSettings);
       setEditorSettings(userPreferences.editorSettings);
     }
   }, [userPreferences]);
 
-  // デバッグ用: エディタ設定とテーマモードをログ出力
-  React.useEffect(() => {
-    console.log('DocumentEditor: Current editor settings:', editorSettings);
-    console.log('DocumentEditor: Current theme mode:', themeMode);
-    console.log('DocumentEditor: Selected ACE theme:', themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme);
-  }, [editorSettings, themeMode]);
+
 
   // エディタ設定変更時にAPIに保存
   const handleEditorSettingChange = useCallback((newSettings: Partial<typeof editorSettings>) => {
@@ -94,21 +93,81 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     });
   }, [editorSettings, updateEditorSettings]);
 
+  const handleTemplateInsert = useCallback((template: Template) => {
+    // 3秒以内の連続クリックを防ぐ
+    if (lastProcessedTemplateId === template.id) {
+      return;
+    }
 
-  // テンプレートが選択された時の処理（挿入モードに変更）
-  React.useEffect(() => {
-    if (selectedTemplate) {
-      // テキストを挿入（全体置換ではなく）
+    // 変数が含まれているかチェック
+    const hasVariables = /\{\{\w+\}\}/.test(template.content);
+    // チェックボックスが含まれているかチェック（[?] のパターン）
+    const hasCheckboxes = /\[\?\]/.test(template.content);
+
+    if (hasVariables || hasCheckboxes) {
+      // 変数置換・チェックボックス設定モーダルを表示
+      setTemplateForSubstitution(template);
+      setShowVariableSubstitution(true);
+    } else {
+      // テキストを挿入
       if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
-        markdownEditorRef.current.insertText(selectedTemplate.content);
+        markdownEditorRef.current.insertText('\n' + template.content);
       }
-
-      // 使用状況を記録
       if (onUseTemplate) {
-        onUseTemplate(selectedTemplate.id);
+        onUseTemplate(template.id);
       }
     }
-  }, [selectedTemplate, onUseTemplate]);
+
+    // 処理済みテンプレートIDを設定
+    setLastProcessedTemplateId(template.id);
+
+    // 既存のタイマーをクリア
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+    }
+
+    // 3秒後にリセット
+    const timeout = setTimeout(() => {
+      setLastProcessedTemplateId(null);
+    }, 3000);
+    processingTimeoutRef.current = timeout;
+  }, [lastProcessedTemplateId, onUseTemplate]);
+
+  // テンプレートが選択された時の処理（挿入モードに変更）
+  const selectedTemplateRef = useRef<Template | null>(null);
+  const lastProcessedTimeRef = useRef<number>(0);
+
+  React.useEffect(() => {
+    if (selectedTemplate) {
+      const now = Date.now();
+
+      // 同じテンプレートが500ms以内に処理された場合はスキップ
+      if (selectedTemplateRef.current?.id === selectedTemplate.id &&
+          now - lastProcessedTimeRef.current < 500) {
+        return;
+      }
+
+      selectedTemplateRef.current = selectedTemplate;
+      lastProcessedTimeRef.current = now;
+
+      // handleTemplateInsert を直接呼び出す
+      handleTemplateInsert(selectedTemplate);
+
+      // 親コンポーネントに処理完了を通知
+      if (onTemplateProcessed) {
+        onTemplateProcessed();
+      }
+    }
+  }, [selectedTemplate, handleTemplateInsert, onTemplateProcessed]);
+
+  // コンポーネントのクリーンアップ時にタイマーをクリア
+  React.useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSave = useCallback(async () => {
     try {
@@ -142,24 +201,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [content]);
 
-  const handleTemplateInsert = useCallback((template: Template) => {
-    // 変数が含まれているかチェック
-    const hasVariables = /\{\{\w+\}\}/.test(template.content);
-
-    if (hasVariables) {
-      // 変数置換モーダルを表示
-      setTemplateForSubstitution(template);
-      setShowVariableSubstitution(true);
-    } else {
-      // テキストを挿入
-      if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
-        markdownEditorRef.current.insertText(template.content);
-      }
-      if (onUseTemplate) {
-        onUseTemplate(template.id);
-      }
-    }
-  }, [onUseTemplate]);
 
   const handleTemplateEdit = useCallback((template: Template) => {
     // TODO: 定型文編集モーダルを開く
@@ -169,7 +210,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const handleVariableSubstitution = useCallback((processedContent: string, variables: Record<string, string>) => {
     // 変数置換後のテキストを挿入
     if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
-      markdownEditorRef.current.insertText(processedContent);
+      markdownEditorRef.current.insertText('\n' + processedContent);
     }
     if (templateForSubstitution && onUseTemplate) {
       onUseTemplate(templateForSubstitution.id);
@@ -180,7 +221,23 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const handleVariableSubstitutionClose = useCallback(() => {
     setShowVariableSubstitution(false);
     setTemplateForSubstitution(null);
-  }, []);
+
+    // キャンセル時はタイマーをリセット（すぐに再度クリックできるようにする）
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+    setLastProcessedTemplateId(null);
+
+    // useEffectの重複処理防止もリセット
+    lastProcessedTimeRef.current = 0;
+    selectedTemplateRef.current = null;
+
+    // 親コンポーネントに処理完了を通知（キャンセル時も）
+    if (onTemplateProcessed) {
+      onTemplateProcessed();
+    }
+  }, [onTemplateProcessed]);
 
   const handleCreateTemplateFromSelection = useCallback(() => {
     let selectedText = '';

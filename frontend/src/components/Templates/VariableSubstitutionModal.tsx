@@ -21,6 +21,9 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
+  Paper,
 } from '@mui/material';
 import { Info, ContentCopy } from '@mui/icons-material';
 import { Template } from '../../types';
@@ -32,6 +35,13 @@ interface Variable {
   value: string;
   description?: string;
   type: 'user' | 'project' | 'template';
+}
+
+interface CheckboxLine {
+  index: number;
+  content: string;
+  checked: boolean;
+  included: boolean;
 }
 
 interface VariableSubstitutionModalProps {
@@ -52,6 +62,7 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [previewContent, setPreviewContent] = useState('');
   const [foundVariables, setFoundVariables] = useState<string[]>([]);
+  const [checkboxLines, setCheckboxLines] = useState<CheckboxLine[]>([]);
 
   // Fetch variables from API
   const { data: userVariablesResponse, isLoading: isLoadingUser } = useGetUserVariablesQuery();
@@ -89,23 +100,72 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
         '';
     });
     setVariables(initialVariables);
-  }, [template.content, userVariables, projectVariables]);
+  }, [template.content, userVariablesResponse, projectVariablesResponse]);
+
+  // テンプレート内のチェックボックス行を抽出
+  useEffect(() => {
+    const lines = template.content.split('\n');
+    const checkboxLinesList: CheckboxLine[] = [];
+
+    lines.forEach((line, index) => {
+      // [?]を含む行をチェックボックス行として判別
+      if (line.includes('[?]')) {
+        checkboxLinesList.push({
+          index,
+          content: line,
+          checked: false,
+          included: true, // デフォルトで含める
+        });
+      }
+    });
+
+    setCheckboxLines(checkboxLinesList);
+  }, [template.content]);
 
   // プレビューコンテンツを更新
   useEffect(() => {
     let content = template.content;
+
+    // 変数置換
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
       content = content.replace(regex, value);
     });
+
+    // チェックボックス行の除外処理と[?]の削除
+    if (checkboxLines.length > 0) {
+      const lines = content.split('\n');
+      const filteredLines = lines
+        .filter((line, index) => {
+          const checkboxLine = checkboxLines.find(cb => cb.index === index);
+          return !checkboxLine || checkboxLine.included;
+        })
+        .map(line => {
+          // [?]を削除
+          return line.replace(/\[\?\]/g, '');
+        });
+      content = filteredLines.join('\n');
+    } else {
+      // チェックボックス行がない場合でも[?]を削除
+      content = content.replace(/\[\?\]/g, '');
+    }
+
     setPreviewContent(content);
-  }, [template.content, variables]);
+  }, [template.content, variables, checkboxLines]);
 
   const handleVariableChange = (name: string, value: string) => {
     setVariables(prev => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleCheckboxLineChange = (index: number, included: boolean) => {
+    setCheckboxLines(prev =>
+      prev.map(line =>
+        line.index === index ? { ...line, included } : line
+      )
+    );
   };
 
   const handleApply = () => {
@@ -159,49 +219,87 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
-        ) : foundVariables.length === 0 ? (
+        ) : foundVariables.length === 0 && checkboxLines.length === 0 ? (
           <Alert severity="info">
-            このテンプレートには置換可能な変数がありません。
+            このテンプレートには置換可能な変数やチェックボックスがありません。
           </Alert>
         ) : (
           <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
             {/* 変数入力エリア */}
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" gutterBottom>
-                変数の設定
-              </Typography>
+              {foundVariables.length > 0 && (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    変数の設定
+                  </Typography>
 
-              <List dense>
-                {foundVariables.map(varName => {
-                  const source = getVariableSource(varName);
-                  return (
-                    <ListItem key={varName} sx={{ px: 0, flexDirection: 'column', alignItems: 'stretch' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1 }}>
-                          {`{{${varName}}}`}
-                        </Typography>
-                        {source.type !== 'none' && (
-                          <Chip
-                            label={source.type === 'user' ? 'ユーザ変数' : 'プロジェクト変数'}
+                  <List dense>
+                    {foundVariables.map(varName => {
+                      const source = getVariableSource(varName);
+                      return (
+                        <ListItem key={varName} sx={{ px: 0, flexDirection: 'column', alignItems: 'stretch' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1 }}>
+                              {`{{${varName}}}`}
+                            </Typography>
+                            {source.type !== 'none' && (
+                              <Chip
+                                label={source.type === 'user' ? 'ユーザ変数' : 'プロジェクト変数'}
+                                size="small"
+                                color={source.type === 'user' ? 'primary' : 'secondary'}
+                                variant="outlined"
+                              />
+                            )}
+                          </Box>
+
+                          <TextField
+                            fullWidth
                             size="small"
-                            color={source.type === 'user' ? 'primary' : 'secondary'}
-                            variant="outlined"
+                            value={variables[varName] || ''}
+                            onChange={(e) => handleVariableChange(varName, e.target.value)}
+                            placeholder={`${varName}の値を入力`}
+                            helperText={source.value ? `デフォルト値: ${source.value}` : undefined}
+                            disabled={isLoading}
                           />
-                        )}
-                      </Box>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </>
+              )}
 
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={variables[varName] || ''}
-                        onChange={(e) => handleVariableChange(varName, e.target.value)}
-                        placeholder={`${varName}の値を入力`}
-                        helperText={source.value ? `デフォルト値: ${source.value}` : undefined}
+              {/* チェックボックス行の設定 */}
+              {checkboxLines.length > 0 && (
+                <>
+                  <Typography variant="h6" gutterBottom sx={{ mt: foundVariables.length > 0 ? 3 : 0 }}>
+                    チェックボックス行の設定
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    含めたい行にチェックを入れてください
+                  </Typography>
+
+                  <Paper variant="outlined" sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
+                    {checkboxLines.map((checkboxLine) => (
+                      <FormControlLabel
+                        key={checkboxLine.index}
+                        control={
+                          <Checkbox
+                            checked={checkboxLine.included}
+                            onChange={(e) => handleCheckboxLineChange(checkboxLine.index, e.target.checked)}
+                            size="small"
+                          />
+                        }
+                        label={
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                            {checkboxLine.content.replace(/\[\?\]/g, '')}
+                          </Typography>
+                        }
+                        sx={{ width: '100%', mb: 0.5 }}
                       />
-                    </ListItem>
-                  );
-                })}
-              </List>
+                    ))}
+                  </Paper>
+                </>
+              )}
 
               {/* 共通変数のヒント */}
               <Alert severity="info" sx={{ mt: 2 }}>
