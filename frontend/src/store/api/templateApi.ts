@@ -26,7 +26,9 @@ export const templateApi = createApi({
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
             if (Array.isArray(value)) {
-              params.append(key, value.join(','));
+              if (value.length > 0) {
+                params.append(key, value.join(','));
+              }
             } else {
               params.append(key, String(value));
             }

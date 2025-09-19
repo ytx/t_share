@@ -114,6 +114,7 @@ export interface TemplateSearchFilters {
   createdBy?: string;
   status?: 'active' | 'all';
   tagIds?: number[];
+  excludedTagIds?: number[];
   sortBy?: 'lastUsed' | 'updated' | 'created';
   sortOrder?: 'asc' | 'desc';
   page?: number;

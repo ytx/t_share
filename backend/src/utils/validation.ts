@@ -48,6 +48,7 @@ export const templateValidation = {
     createdBy: Joi.string(),
     status: Joi.string().valid('active', 'all').default('active'),
     tagIds: Joi.string().allow('').optional(),
+    excludedTagIds: Joi.string().allow('').optional(),
     sortBy: Joi.string().valid('lastUsed', 'updated', 'created').default('updated'),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     page: Joi.number().integer().min(1).default(1),

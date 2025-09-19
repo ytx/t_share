@@ -75,14 +75,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     setContextMenu(null);
   };
 
-  const handleEditFromContext = () => {
+  const handleEditFromContext = (event: React.MouseEvent) => {
+    event.stopPropagation();
     if (onEdit) {
       onEdit();
     }
     handleContextMenuClose();
   };
 
-  const handleDeleteFromContext = () => {
+  const handleDeleteFromContext = (event: React.MouseEvent) => {
+    event.stopPropagation();
     if (onDelete) {
       onDelete();
     }
@@ -90,7 +92,8 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   };
 
   const handleMenuAction = (action: () => void) => {
-    return () => {
+    return (event: React.MouseEvent) => {
+      event.stopPropagation();
       action();
       handleMenuClose();
     };
@@ -165,9 +168,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           </Typography>
           <Typography variant="caption" display="block">
             更新時間: {formatTooltipDate(template.updatedAt)}
-          </Typography>
-          <Typography variant="caption" display="block">
-            状態: {template.status === 'published' ? '公開' : '下書き'}
           </Typography>
           <Typography variant="caption" display="block">
             利用回数: {usageInfo?.count || 0}回

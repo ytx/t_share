@@ -43,6 +43,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     keyword: '',
     sceneId: undefined,
     tagIds: [],
+    excludedTagIds: [],
     sortBy: 'updated',
     sortOrder: 'desc',
     page: 1,
@@ -65,6 +66,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           keyword: storedData.searchFilters?.keyword || '',
           sceneId: storedData.searchFilters?.sceneId,
           tagIds: storedData.searchFilters?.tagFilter || [],
+          excludedTagIds: storedData.searchFilters?.excludedTagFilter || [],
           sortBy: storedData.searchFilters?.sortBy || 'updated',
         }));
         setHasRestoredFromStorage(true);
@@ -129,6 +131,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
       sortBy: updatedFilters.sortBy,
       keyword: updatedFilters.keyword,
       tagFilter: updatedFilters.tagIds,
+      excludedTagFilter: updatedFilters.excludedTagIds,
     });
   }, [filters]);
 
@@ -141,6 +144,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
       keyword: '',
       sceneId: undefined,
       tagIds: [],
+      excludedTagIds: [],
       sortBy: 'updated',
       sortOrder: 'desc',
       page: 1,
@@ -150,11 +154,28 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
 
   const handleTagToggle = (tagId: number) => {
     const currentTagIds = filters.tagIds || [];
-    const newTagIds = currentTagIds.includes(tagId)
-      ? currentTagIds.filter(id => id !== tagId)
-      : [...currentTagIds, tagId];
+    const currentExcludedTagIds = filters.excludedTagIds || [];
 
-    handleFilterChange({ tagIds: newTagIds });
+    // 現在の状態を確認
+    const isIncluded = currentTagIds.includes(tagId);
+    const isExcluded = currentExcludedTagIds.includes(tagId);
+
+    let newTagIds = [...currentTagIds];
+    let newExcludedTagIds = [...currentExcludedTagIds];
+
+    if (!isIncluded && !isExcluded) {
+      // 未使用 → 含む
+      newTagIds.push(tagId);
+    } else if (isIncluded && !isExcluded) {
+      // 含む → 除外
+      newTagIds = newTagIds.filter(id => id !== tagId);
+      newExcludedTagIds.push(tagId);
+    } else if (!isIncluded && isExcluded) {
+      // 除外 → 未使用
+      newExcludedTagIds = newExcludedTagIds.filter(id => id !== tagId);
+    }
+
+    handleFilterChange({ tagIds: newTagIds, excludedTagIds: newExcludedTagIds });
   };
 
   const handleEditTemplate = (template: Template) => {
@@ -279,13 +300,27 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
                         label={tag.name}
                         size="small"
                         clickable
-                        color={filters.tagIds?.includes(tag.id) ? 'primary' : 'default'}
+                        color={filters.tagIds?.includes(tag.id) ? 'primary' : filters.excludedTagIds?.includes(tag.id) ? 'error' : 'default'}
                         onClick={() => handleTagToggle(tag.id)}
                         sx={{
-                          bgcolor: filters.tagIds?.includes(tag.id) ? undefined : tag.color + '20',
-                          borderColor: tag.color,
+                          bgcolor: filters.tagIds?.includes(tag.id)
+                            ? undefined
+                            : filters.excludedTagIds?.includes(tag.id)
+                              ? '#ffebee'
+                              : tag.color + '20',
+                          borderColor: filters.excludedTagIds?.includes(tag.id)
+                            ? '#f44336'
+                            : tag.color,
                           fontSize: '0.7rem',
                           height: 24,
+                          textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
+                          '& .MuiChip-label': {
+                            textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
+                          },
+                          '&.MuiChip-colorError': {
+                            color: '#d32f2f',
+                            borderColor: '#d32f2f',
+                          },
                         }}
                       />
                     ))}

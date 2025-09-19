@@ -29,6 +29,7 @@ export interface TemplateSearchOptions {
   createdBy?: string;
   status?: string;
   tagIds?: number[];
+  excludedTagIds?: number[];
   sortBy?: string;
   sortOrder?: string;
   page?: number;
@@ -163,16 +164,18 @@ class TemplateService {
         const nextVersionNumber = (latestVersion?.versionNumber || 0) + 1;
 
         // Update template
+        const updateData: any = {};
+        if (data.title !== undefined) updateData.title = data.title;
+        if (data.content !== undefined) updateData.content = data.content;
+        if (data.description !== undefined) updateData.description = data.description;
+        // sceneId can be null to unset the scene
+        if ('sceneId' in data) updateData.sceneId = data.sceneId;
+        if (data.status !== undefined) updateData.status = data.status;
+        if (data.isPublic !== undefined) updateData.isPublic = data.isPublic;
+
         const updatedTemplate = await tx.template.update({
           where: { id },
-          data: {
-            title: data.title,
-            content: data.content,
-            description: data.description,
-            sceneId: data.sceneId,
-            status: data.status,
-            isPublic: data.isPublic,
-          },
+          data: updateData,
         });
 
         // Create new version if content changed
@@ -319,6 +322,7 @@ class TemplateService {
         createdBy,
         status = 'active',
         tagIds,
+        excludedTagIds,
         sortBy = 'updated',
         sortOrder = 'desc',
         page = 1,
@@ -342,8 +346,13 @@ class TemplateService {
             ],
           } : {},
 
-          // Scene filter
-          sceneId ? { sceneId } : {},
+          // Scene filter - include templates with matching sceneId OR no sceneId
+          sceneId ? {
+            OR: [
+              { sceneId },
+              { sceneId: null },
+            ],
+          } : {},
 
           // Creator filter
           createdBy ? {
@@ -355,11 +364,22 @@ class TemplateService {
             },
           } : {},
 
-          // Tag filter
+          // Tag filter - include tags
           tagIds && tagIds.length > 0 ? {
             templateTags: {
               some: {
                 tagId: { in: tagIds },
+              },
+            },
+          } : {},
+
+          // Tag filter - exclude tags
+          excludedTagIds && excludedTagIds.length > 0 ? {
+            NOT: {
+              templateTags: {
+                some: {
+                  tagId: { in: excludedTagIds },
+                },
               },
             },
           } : {},

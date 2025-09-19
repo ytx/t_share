@@ -41,7 +41,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
     title: '',
     content: '',
     description: '',
-    sceneId: undefined,
+    sceneId: null,
     status: 'published',
     isPublic: true,
     tagIds: [],
@@ -70,7 +70,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
         title: template.title || '',
         content: template.content || '',
         description: template.description || '',
-        sceneId: template.sceneId || undefined,
+        sceneId: template.sceneId || null,
         status: 'published',
         isPublic: template.isPublic ?? true,
         tagIds: template.templateTags?.map(({ tag }) => tag.id) || [],
@@ -84,7 +84,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
       title: '',
       content: '',
       description: '',
-      sceneId: undefined,
+      sceneId: null,
       status: 'published',
       isPublic: true,
       tagIds: [],
@@ -242,7 +242,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
                   value={formData.sceneId || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    sceneId: e.target.value ? Number(e.target.value) : undefined
+                    sceneId: e.target.value ? Number(e.target.value) : null
                   }))}
                   label="シーン"
                 >
@@ -333,33 +333,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
             }}
           />
 
-
-          {/* 4. タイトル */}
-          <TextField
-            label="タイトル（オプション）"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            error={!!errors.title}
-            helperText={errors.title || "空の場合、コンテンツの最初の行が自動的にタイトルになります"}
-            fullWidth
-          />
-
-          {/* 5. 説明 */}
-          <TextField
-            label="説明"
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            error={!!errors.description}
-            helperText={errors.description}
-            multiline
-            rows={2}
-            fullWidth
-            InputProps={{
-              style: { resize: 'vertical' }
-            }}
-          />
-
-          {/* 6. タグ */}
+          {/* 3. タグ */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="subtitle1">
@@ -439,6 +413,31 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
               ))}
             </Box>
           </Box>
+
+          {/* 4. タイトル */}
+          <TextField
+            label="タイトル（オプション）"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            error={!!errors.title}
+            helperText={errors.title || "空の場合、コンテンツの最初の行が自動的にタイトルになります"}
+            fullWidth
+          />
+
+          {/* 5. 説明 */}
+          <TextField
+            label="説明"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            error={!!errors.description}
+            helperText={errors.description}
+            multiline
+            rows={2}
+            fullWidth
+            InputProps={{
+              style: { resize: 'vertical' }
+            }}
+          />
         </Box>
       </DialogContent>
 

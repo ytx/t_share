@@ -9,6 +9,7 @@ export interface AppLocalStorageData {
     sortBy?: string;
     keyword?: string;
     tagFilter?: string[];
+    excludedTagFilter?: string[];
   };
 }
 
@@ -67,6 +68,7 @@ export const saveSearchFilters = (filters: {
   sortBy?: string;
   keyword?: string;
   tagFilter?: string[];
+  excludedTagFilter?: string[];
 }) => {
   saveToLocalStorage({ searchFilters: filters });
 };

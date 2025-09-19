@@ -205,6 +205,15 @@ class TemplateController {
         }
       }
 
+      // Convert excludedTagIds from string to array of numbers if provided
+      if (value.excludedTagIds && typeof value.excludedTagIds === 'string') {
+        if (value.excludedTagIds.trim() === '') {
+          value.excludedTagIds = [];
+        } else {
+          value.excludedTagIds = value.excludedTagIds.split(',').map((id: string) => parseInt(id)).filter((id: number) => !isNaN(id));
+        }
+      }
+
       const result = await templateService.searchTemplates({
         ...value,
         userId: req.user?.id,

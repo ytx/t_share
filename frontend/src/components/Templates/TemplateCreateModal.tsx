@@ -43,7 +43,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
     title: '',
     content: '',
     description: '',
-    sceneId: initialSceneId,
+    sceneId: initialSceneId || null,
     status: 'published',
     isPublic: true,
     tagIds: [],
@@ -82,7 +82,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
       title: '',
       content: '',
       description: '',
-      sceneId: initialSceneId,
+      sceneId: initialSceneId || null,
       status: 'published',
       isPublic: true,
       tagIds: [],
@@ -232,7 +232,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
                   value={formData.sceneId || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    sceneId: e.target.value ? Number(e.target.value) : undefined
+                    sceneId: e.target.value ? Number(e.target.value) : null
                   }))}
                   label="シーン"
                 >
@@ -324,32 +324,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
           />
 
 
-          {/* 4. タイトル */}
-          <TextField
-            label="タイトル（オプション）"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            error={!!errors.title}
-            helperText={errors.title || "空の場合、コンテンツの最初の行が自動的にタイトルになります"}
-            fullWidth
-          />
-
-          {/* 5. 説明 */}
-          <TextField
-            label="説明"
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            error={!!errors.description}
-            helperText={errors.description}
-            multiline
-            rows={2}
-            fullWidth
-            InputProps={{
-              style: { resize: 'vertical' }
-            }}
-          />
-
-          {/* 6. タグ */}
+          {/* 3. タグ */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="subtitle1">
@@ -429,6 +404,31 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
               ))}
             </Box>
           </Box>
+
+          {/* 4. タイトル */}
+          <TextField
+            label="タイトル（オプション）"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            error={!!errors.title}
+            helperText={errors.title || "空の場合、コンテンツの最初の行が自動的にタイトルになります"}
+            fullWidth
+          />
+
+          {/* 5. 説明 */}
+          <TextField
+            label="説明"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            error={!!errors.description}
+            helperText={errors.description}
+            multiline
+            rows={2}
+            fullWidth
+            InputProps={{
+              style: { resize: 'vertical' }
+            }}
+          />
         </Box>
       </DialogContent>
 
