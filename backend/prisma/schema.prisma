@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  username     String?
+  displayName  String?  @map("display_name")
+  googleId     String?  @unique @map("google_id")
+  passwordHash String?  @map("password_hash")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdTemplates    Template[]
+  createdScenes      Scene[]
+  createdTags        Tag[]
+  createdProjects    Project[]
+  templateUsage      TemplateUsage[]
+  userVariables      UserVariable[]
+  projectVariables   ProjectVariable[]
+  documents          Document[]
+  preferences        UserPreference?
+
+  @@map("users")
+}
+
+model Scene {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator   User       @relation(fields: [createdBy], references: [id])
+  templates Template[]
+
+  @@map("scenes")
+}
+
+model Tag {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  color       String?  // hex color code
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  creator      User          @relation(fields: [createdBy], references: [id])
+  templateTags TemplateTag[]
+
+  @@map("tags")
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator          User               @relation(fields: [createdBy], references: [id])
+  projectVariables ProjectVariable[]
+  documents        Document[]
+
+  @@map("projects")
+}
+
+model Template {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  description String?
+  sceneId     Int?     @map("scene_id")
+  status      String   @default("draft") // draft, published
+  isPublic    Boolean  @default(true) @map("is_public")
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator          User               @relation(fields: [createdBy], references: [id])
+  scene            Scene?             @relation(fields: [sceneId], references: [id])
+  templateTags     TemplateTag[]
+  templateVersions TemplateVersion[]
+  templateUsage    TemplateUsage[]
+
+  @@map("templates")
+}
+
+model TemplateVersion {
+  id            Int      @id @default(autoincrement())
+  templateId    Int      @map("template_id")
+  versionNumber Int      @map("version_number")
+  title         String
+  content       String
+  description   String?
+  sceneId       Int?     @map("scene_id")
+  status        String
+  createdBy     Int      @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  creator  User     @relation(fields: [createdBy], references: [id])
+
+  @@unique([templateId, versionNumber])
+  @@map("template_versions")
+}
+
+model TemplateTag {
+  id         Int      @id @default(autoincrement())
+  templateId Int      @map("template_id")
+  tagId      Int      @map("tag_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, tagId])
+  @@map("template_tags")
+}
+
+model TemplateUsage {
+  id         Int      @id @default(autoincrement())
+  templateId Int      @map("template_id")
+  userId     Int      @map("user_id")
+  usageCount Int      @default(0) @map("usage_count")
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, userId])
+  @@map("template_usage")
+}
+
+model UserVariable {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String
+  value       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@map("user_variables")
+}
+
+model ProjectVariable {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  name        String
+  value       String
+  description String?
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User    @relation(fields: [createdBy], references: [id])
+
+  @@unique([projectId, name])
+  @@map("project_variables")
+}
+
+model Document {
+  id              Int      @id @default(autoincrement())
+  projectId       Int?     @map("project_id")
+  title           String?
+  content         String
+  contentMarkdown String   @map("content_markdown")
+  createdBy       Int      @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id])
+  creator User     @relation(fields: [createdBy], references: [id])
+
+  @@map("documents")
+}
+
+model UserPreference {
+  id                      Int     @id @default(autoincrement())
+  userId                  Int     @unique @map("user_id")
+  theme                   String  @default("light") // light, dark
+  editorKeybinding        String  @default("default") @map("editor_keybinding") // default, vim, emacs
+  editorShowLineNumbers   Boolean @default(true) @map("editor_show_line_numbers")
+  editorWordWrap          Boolean @default(true) @map("editor_word_wrap")
+  editorShowWhitespace    Boolean @default(false) @map("editor_show_whitespace")
+  panelSplitRatio         Float   @default(0.5) @map("panel_split_ratio") // left panel ratio
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}

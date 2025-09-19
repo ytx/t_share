@@ -1,0 +1,294 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+import logger from '../utils/logger';
+
+const prisma = new PrismaClient();
+
+export interface AuthResult {
+  user: {
+    id: number;
+    email: string;
+    username?: string;
+    displayName?: string;
+    isAdmin: boolean;
+  };
+  token: string;
+}
+
+export interface RegisterData {
+  email: string;
+  username?: string;
+  displayName?: string;
+  password: string;
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface GoogleUserData {
+  googleId: string;
+  email: string;
+  displayName?: string;
+}
+
+class AuthService {
+  private generateToken(userId: number): string {
+    const jwtSecret = process.env.JWT_SECRET;
+    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    return jwt.sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
+  }
+
+  async register(data: RegisterData): Promise<AuthResult> {
+    try {
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.email },
+      });
+
+      if (existingUser) {
+        throw new Error('User with this email already exists');
+      }
+
+      // Check if username is taken (if provided)
+      if (data.username) {
+        const existingUsername = await prisma.user.findFirst({
+          where: { username: data.username },
+        });
+
+        if (existingUsername) {
+          throw new Error('Username is already taken');
+        }
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(data.password, 10);
+
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          email: data.email,
+          username: data.username,
+          displayName: data.displayName || data.username || data.email.split('@')[0],
+          passwordHash,
+          isAdmin: false,
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          isAdmin: true,
+        },
+      });
+
+      // Create default preferences
+      await prisma.userPreference.create({
+        data: {
+          userId: user.id,
+          theme: 'light',
+          editorKeybinding: 'default',
+          editorShowLineNumbers: true,
+          editorWordWrap: true,
+          editorShowWhitespace: false,
+          panelSplitRatio: 0.5,
+        },
+      });
+
+      // Generate token
+      const token = this.generateToken(user.id);
+
+      logger.info(`User registered successfully: ${user.email}`);
+
+      return { user, token };
+    } catch (error) {
+      logger.error('Registration failed:', error);
+      throw error;
+    }
+  }
+
+  async login(data: LoginData): Promise<AuthResult> {
+    try {
+      // Find user by email
+      const user = await prisma.user.findUnique({
+        where: { email: data.email },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          isAdmin: true,
+          passwordHash: true,
+        },
+      });
+
+      if (!user || !user.passwordHash) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(data.password, user.passwordHash);
+
+      if (!isPasswordValid) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Generate token
+      const token = this.generateToken(user.id);
+
+      // Remove password hash from response
+      const { passwordHash, ...userWithoutPassword } = user;
+
+      logger.info(`User logged in successfully: ${user.email}`);
+
+      return { user: userWithoutPassword, token };
+    } catch (error) {
+      logger.error('Login failed:', error);
+      throw error;
+    }
+  }
+
+  async googleAuth(data: GoogleUserData): Promise<AuthResult> {
+    try {
+      let user = await prisma.user.findUnique({
+        where: { googleId: data.googleId },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          isAdmin: true,
+        },
+      });
+
+      if (!user) {
+        // Check if user exists with same email
+        const existingUser = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+
+        if (existingUser) {
+          // Link Google account to existing user
+          user = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { googleId: data.googleId },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              displayName: true,
+              isAdmin: true,
+            },
+          });
+        } else {
+          // Create new user
+          user = await prisma.user.create({
+            data: {
+              email: data.email,
+              googleId: data.googleId,
+              displayName: data.displayName || data.email.split('@')[0],
+              isAdmin: false,
+            },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              displayName: true,
+              isAdmin: true,
+            },
+          });
+
+          // Create default preferences for new user
+          await prisma.userPreference.create({
+            data: {
+              userId: user.id,
+              theme: 'light',
+              editorKeybinding: 'default',
+              editorShowLineNumbers: true,
+              editorWordWrap: true,
+              editorShowWhitespace: false,
+              panelSplitRatio: 0.5,
+            },
+          });
+        }
+      }
+
+      // Generate token
+      const token = this.generateToken(user.id);
+
+      logger.info(`Google auth successful: ${user.email}`);
+
+      return { user, token };
+    } catch (error) {
+      logger.error('Google auth failed:', error);
+      throw error;
+    }
+  }
+
+  async getUserById(id: number) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          isAdmin: true,
+          createdAt: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      logger.error('Get user by ID failed:', error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: number, data: Partial<{ username: string; displayName: string }>) {
+    try {
+      // Check if username is taken (if being updated)
+      if (data.username) {
+        const existingUsername = await prisma.user.findFirst({
+          where: {
+            username: data.username,
+            NOT: { id },
+          },
+        });
+
+        if (existingUsername) {
+          throw new Error('Username is already taken');
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          isAdmin: true,
+        },
+      });
+
+      logger.info(`User updated successfully: ${user.email}`);
+
+      return user;
+    } catch (error) {
+      logger.error('Update user failed:', error);
+      throw error;
+    }
+  }
+}
+
+export default new AuthService();
