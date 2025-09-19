@@ -14,20 +14,24 @@ import { useGetAllProjectsQuery } from '../store/api/projectApi';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import SettingsModal from '../components/Settings/SettingsModal';
+import { getFromLocalStorage, saveProjectSelection, saveSceneSelection, saveAdminMode } from '../utils/localStorage';
 
 const Dashboard: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [splitSize, setSplitSize] = useState('40%');
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedSceneId, setSelectedSceneId] = useState<number | undefined>(undefined);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(undefined);
+
+  // Initialize from localStorage
+  const storedData = getFromLocalStorage();
+  const [selectedSceneId, setSelectedSceneId] = useState<number | undefined>(storedData.selectedSceneId);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(storedData.selectedProjectId);
 
   // Header state
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(storedData.adminMode || false);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: scenesResponse } = useGetAllScenesQuery();
@@ -61,8 +65,6 @@ const Dashboard: React.FC = () => {
     projectId?: number;
   }) => {
     console.log('Save document:', data);
-    // This will be implemented in Phase 3.3
-    alert('文書保存機能は Phase 3.3 で実装予定です');
   };
 
   // Header handlers
@@ -90,7 +92,9 @@ const Dashboard: React.FC = () => {
   };
 
   const toggleAdminMode = () => {
-    setAdminMode(!adminMode);
+    const newAdminMode = !adminMode;
+    setAdminMode(newAdminMode);
+    saveAdminMode(newAdminMode);
   };
 
   const scenes = scenesResponse?.scenes || [];
@@ -122,7 +126,11 @@ const Dashboard: React.FC = () => {
               <Select
                 value={selectedProjectId || ''}
                 label="プロジェクト"
-                onChange={(e) => setSelectedProjectId(e.target.value as number || undefined)}
+                onChange={(e) => {
+                  const newProjectId = e.target.value as number || undefined;
+                  setSelectedProjectId(newProjectId);
+                  saveProjectSelection(newProjectId);
+                }}
                 sx={{
                   color: 'inherit',
                   '& .MuiOutlinedInput-notchedOutline': {
@@ -149,7 +157,11 @@ const Dashboard: React.FC = () => {
               <Select
                 value={selectedSceneId || ''}
                 label="シーン選択"
-                onChange={(e) => setSelectedSceneId(e.target.value as number || undefined)}
+                onChange={(e) => {
+                  const newSceneId = e.target.value as number || undefined;
+                  setSelectedSceneId(newSceneId);
+                  saveSceneSelection(newSceneId);
+                }}
                 sx={{
                   color: 'inherit',
                   '& .MuiOutlinedInput-notchedOutline': {

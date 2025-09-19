@@ -21,6 +21,7 @@ import { useSearchTemplatesQuery, useDeleteTemplateMutation } from '../../store/
 import { useGetAllScenesQuery } from '../../store/api/sceneApi';
 import { useGetAllTagsQuery } from '../../store/api/tagApi';
 import { TemplateSearchFilters, Template } from '../../types';
+import { getFromLocalStorage, saveSearchFilters } from '../../utils/localStorage';
 import TemplateCard from './TemplateCard';
 import TemplateEditModal from './TemplateEditModal';
 
@@ -37,9 +38,10 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
   initialSceneId,
   adminMode = false,
 }) => {
+  // Initialize with empty values, restore later
   const [filters, setFilters] = useState<TemplateSearchFilters>({
     keyword: '',
-    sceneId: initialSceneId,
+    sceneId: undefined,
     tagIds: [],
     sortBy: 'updated',
     sortOrder: 'desc',
@@ -48,10 +50,48 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     adminMode: adminMode,
   });
 
-  // Update filters when initialSceneId changes
+  // 初回マウントかどうかを判別するRef
+  const isInitialMount = React.useRef(true);
+  const [hasRestoredFromStorage, setHasRestoredFromStorage] = React.useState(false);
+  const previousInitialSceneId = React.useRef(initialSceneId);
+
+  // ヘッダーが復元された後、少し待ってから検索フィルターを復元
   React.useEffect(() => {
-    setFilters(prev => ({ ...prev, sceneId: initialSceneId, page: 1 }));
-  }, [initialSceneId]);
+    if (!hasRestoredFromStorage) {
+      const timer = setTimeout(() => {
+        const storedData = getFromLocalStorage();
+        setFilters(prev => ({
+          ...prev,
+          keyword: storedData.searchFilters?.keyword || '',
+          sceneId: storedData.searchFilters?.sceneId,
+          tagIds: storedData.searchFilters?.tagFilter || [],
+          sortBy: storedData.searchFilters?.sortBy || 'updated',
+        }));
+        setHasRestoredFromStorage(true);
+      }, 100); // 100ms後に復元
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasRestoredFromStorage]);
+
+  // Update filters when initialSceneId changes (but not during initial restoration)
+  React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // 実際に値が変更されたかチェック
+    if (previousInitialSceneId.current === initialSceneId) {
+      return;
+    }
+
+    if (hasRestoredFromStorage) {
+      // ヘッダーでシーンが変更された時のみ、検索フィルターも更新
+      setFilters(prev => ({ ...prev, sceneId: initialSceneId, page: 1 }));
+      previousInitialSceneId.current = initialSceneId;
+    }
+  }, [initialSceneId, hasRestoredFromStorage]);
 
   // Update filters when adminMode changes
   React.useEffect(() => {
@@ -76,12 +116,21 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
   const [deleteTemplate] = useDeleteTemplateMutation();
 
   const handleFilterChange = useCallback((newFilters: Partial<TemplateSearchFilters>) => {
-    setFilters(prev => ({
-      ...prev,
+    const updatedFilters = {
+      ...filters,
       ...newFilters,
       page: 1, // Reset to first page when filters change
-    }));
-  }, []);
+    };
+    setFilters(updatedFilters);
+
+    // Save to localStorage
+    saveSearchFilters({
+      sceneId: updatedFilters.sceneId,
+      sortBy: updatedFilters.sortBy,
+      keyword: updatedFilters.keyword,
+      tagFilter: updatedFilters.tagIds,
+    });
+  }, [filters]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
     setFilters(prev => ({ ...prev, page }));

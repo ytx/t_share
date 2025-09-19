@@ -5,19 +5,26 @@ import {
   Button,
   Snackbar,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Save,
   ContentCopy,
+  FolderOpen,
+  Clear,
 } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateSelectionModal from '../Templates/TemplateSelectionModal';
 import VariableSubstitutionModal from '../Templates/VariableSubstitutionModal';
 import TemplateCreateModal from '../Templates/TemplateCreateModal';
 import { Template } from '../../types';
-import { useCreateDocumentMutation } from '../../store/api/documentApi';
+import { useCreateDocumentMutation, useGetProjectDocumentsQuery } from '../../store/api/documentApi';
 import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getFromLocalStorage, saveEditorContent } from '../../utils/localStorage';
 
 interface DocumentEditorProps {
   selectedTemplate?: Template | null;
@@ -41,15 +48,25 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   selectedProjectId,
   selectedSceneId,
 }) => {
-  const [content, setContent] = useState('');
+  // Initialize editor content from localStorage
+  const storedData = getFromLocalStorage();
+  const [content, setContent] = useState(storedData.editorContent || '');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
+  const [showProjectAlert, setShowProjectAlert] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [lastProcessedTemplateId, setLastProcessedTemplateId] = useState<number | null>(null);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastClickTimeRef = useRef<number>(0);
 
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
+
   const markdownEditorRef = useRef<any>(null);
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
+
+  // プロジェクトの文書を取得
+  const { data: projectDocuments } = useGetProjectDocumentsQuery(selectedProjectId!, {
+    skip: !selectedProjectId,
+  });
 
   // User preferences and theme
   const { data: userPreferences } = useGetUserPreferencesQuery();
@@ -79,6 +96,20 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       setEditorSettings(userPreferences.editorSettings);
     }
   }, [userPreferences]);
+
+  // プロジェクト変更時に選択された文書をリセット
+  React.useEffect(() => {
+    setSelectedDocumentId('');
+  }, [selectedProjectId]);
+
+  // エディタ内容変更時にローカルストレージに保存
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveEditorContent(content);
+    }, 500); // 500ms のデバウンス
+
+    return () => clearTimeout(timeoutId);
+  }, [content]);
 
 
 
@@ -192,14 +223,57 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [content, selectedProjectId, createDocument, onSaveDocument]);
 
-  const handleCopyToClipboard = useCallback(async () => {
+  const handleSaveAndCopy = useCallback(async () => {
+    if (!content.trim()) return;
+
+    if (!selectedProjectId) {
+      setShowProjectAlert(true);
+      return;
+    }
+
     try {
+      const generatedTitle = generateTitle();
+
+      // サーバに文書を保存
+      await createDocument({
+        title: generatedTitle,
+        content,
+        contentMarkdown: content,
+        projectId: selectedProjectId,
+      }).unwrap();
+
       await navigator.clipboard.writeText(content);
       setShowCopyAlert(true);
+
+      if (onSaveDocument) {
+        onSaveDocument({
+          title: generatedTitle,
+          content,
+          contentMarkdown: content,
+          projectId: selectedProjectId,
+        });
+      }
     } catch (error) {
-      console.error('クリップボードへのコピーに失敗しました:', error);
+      console.error('文書の保存・コピーに失敗しました:', error);
     }
-  }, [content]);
+  }, [content, selectedProjectId, createDocument, onSaveDocument]);
+
+  // 現在のプロジェクトの保存された文書を取得
+  // サーバーから取得した文書データを使用
+  const currentProjectDocuments = projectDocuments?.data || [];
+
+  const handleDocumentSelect = useCallback((documentId: string) => {
+    const document = currentProjectDocuments.find(doc => doc.id.toString() === documentId);
+    if (document) {
+      setContent(document.content);
+      setSelectedDocumentId(documentId);
+    }
+  }, [currentProjectDocuments]);
+
+  const handleClear = useCallback(() => {
+    setContent('');
+    setSelectedDocumentId('');
+  }, []);
 
 
   const handleTemplateEdit = useCallback((template: Template) => {
@@ -278,10 +352,15 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     if (!firstNonEmptyLine) return '新規文書';
 
     const now = new Date();
-    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const dateStr = `${year}/${month}/${day} ${hours}:${minutes}`;
     const contentPreview = firstNonEmptyLine.trim().substring(0, 20);
 
-    return `${dateStr}：${contentPreview}`;
+    return `${dateStr} - ${contentPreview}`;
   };
 
   return (
@@ -302,24 +381,45 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           boxShadow: 'none',
           p: 0.5
         }}>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>保存された文書</InputLabel>
+            <Select
+              value={selectedDocumentId}
+              onChange={(e) => handleDocumentSelect(e.target.value as string)}
+              label="保存された文書"
+              startAdornment={<FolderOpen sx={{ mr: 1, fontSize: 16 }} />}
+              disabled={currentProjectDocuments.length === 0}
+            >
+              <MenuItem value="">
+                <em>文書を選択</em>
+              </MenuItem>
+              {currentProjectDocuments.map((doc) => (
+                <MenuItem key={doc.id} value={doc.id.toString()}>
+                  {doc.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <Button
             variant="contained"
             startIcon={<Save />}
-            onClick={handleSave}
-            disabled={!content.trim() || isSaving}
+            onClick={handleSaveAndCopy}
+            disabled={!content.trim()}
             size="small"
           >
-            {isSaving ? '保存中...' : '保存'}
+            保存・コピー
           </Button>
 
           <Button
             variant="outlined"
-            startIcon={<ContentCopy />}
-            onClick={handleCopyToClipboard}
+            startIcon={<Clear />}
+            onClick={handleClear}
             disabled={!content.trim()}
             size="small"
+            color="secondary"
           >
-            コピー
+            クリア
           </Button>
         </Box>
 
@@ -348,7 +448,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         </Box>
       </Box>
 
-      {/* Copy Success Snackbar */}
+      {/* Save and Copy Success Snackbar */}
       <Snackbar
         open={showCopyAlert}
         autoHideDuration={3000}
@@ -360,7 +460,23 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           severity="success"
           sx={{ width: '100%' }}
         >
-          クリップボードにコピーしました
+          文書を保存し、クリップボードにコピーしました
+        </Alert>
+      </Snackbar>
+
+      {/* Project Selection Alert Snackbar */}
+      <Snackbar
+        open={showProjectAlert}
+        autoHideDuration={5000}
+        onClose={() => setShowProjectAlert(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setShowProjectAlert(false)}
+          severity="warning"
+          sx={{ width: '100%' }}
+        >
+          文書を保存するにはプロジェクトを選択してください
         </Alert>
       </Snackbar>
 
