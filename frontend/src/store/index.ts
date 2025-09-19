@@ -1,30 +1,25 @@
 import { configureStore } from '@reduxjs/toolkit'
-
-// Placeholder reducer - will be expanded in Phase 2
-const initialState = {
-  app: {
-    isLoading: false,
-    error: null,
-  }
-}
-
-const appReducer = (state = initialState.app, action: any) => {
-  switch (action.type) {
-    default:
-      return state
-  }
-}
+import authReducer from './slices/authSlice'
+import { templateApi } from './api/templateApi'
+import { sceneApi } from './api/sceneApi'
+import { tagApi } from './api/tagApi'
 
 export const store = configureStore({
   reducer: {
-    app: appReducer,
+    auth: authReducer,
+    [templateApi.reducerPath]: templateApi.reducer,
+    [sceneApi.reducerPath]: sceneApi.reducer,
+    [tagApi.reducerPath]: tagApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [],
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
-    }),
+    })
+    .concat(templateApi.middleware)
+    .concat(sceneApi.middleware)
+    .concat(tagApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>
