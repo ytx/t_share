@@ -129,3 +129,93 @@ export const getSystemInfo = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to get system information' });
   }
 };
+
+// User CRUD operations
+const createUserSchema = z.object({
+  email: z.string().email(),
+  displayName: z.string().optional(),
+  username: z.string().optional(),
+  isAdmin: z.boolean().default(false),
+  password: z.string().min(6),
+});
+
+const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  displayName: z.string().optional(),
+  username: z.string().optional(),
+  isAdmin: z.boolean().optional(),
+});
+
+export const createUser = async (req: Request, res: Response) => {
+  try {
+    const validationResult = createUserSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationResult.error.errors,
+      });
+    }
+
+    const user = await adminService.createUser(validationResult.data);
+    res.status(201).json({
+      message: 'User created successfully',
+      user,
+    });
+  } catch (error: any) {
+    logger.error('Create user failed:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+};
+
+export const updateUser = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    const validationResult = updateUserSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationResult.error.errors,
+      });
+    }
+
+    const user = await adminService.updateUser(userId, validationResult.data);
+    res.json({
+      message: 'User updated successfully',
+      user,
+    });
+  } catch (error: any) {
+    logger.error('Update user failed:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    await adminService.deleteUser(userId);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error: any) {
+    logger.error('Delete user failed:', error);
+    if (error.message === 'User not found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+};

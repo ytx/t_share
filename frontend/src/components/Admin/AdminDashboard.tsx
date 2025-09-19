@@ -22,6 +22,11 @@ import {
   Timeline,
   Download,
   ArrowBack,
+  Label,
+  Category,
+  Work,
+  Settings,
+  ImportExport,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useGetSystemStatsQuery } from '../../store/api/adminApi';
@@ -29,6 +34,9 @@ import SystemOverview from './SystemOverview';
 import UserManagement from './UserManagement';
 import ActivityMonitor from './ActivityMonitor';
 import SystemHealth from './SystemHealth';
+import ProjectManagement from './ProjectManagement';
+import TagManagement from './TagManagement';
+import SceneManagement from './SceneManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -47,7 +55,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`admin-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
     </div>
   );
 }
@@ -90,9 +98,9 @@ const AdminDashboard: React.FC = memo(() => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Header */}
-      <AppBar position="static" elevation={1}>
+      <AppBar position="fixed" elevation={1}>
         <Toolbar>
           <Tooltip title="メイン画面に戻る">
             <IconButton
@@ -105,113 +113,86 @@ const AdminDashboard: React.FC = memo(() => {
           </Tooltip>
 
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            T-Share - 管理者ダッシュボード
+            T-Share - 管理画面
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ width: '100%', p: 3 }}>
-        {/* Stats Cards */}
-        <Paper sx={{ p: 3, mb: 3 }}>
+      <Box sx={{ flexGrow: 1, overflow: 'auto', pt: '16px', px: 2, pb: 2 }}>
 
-        {systemStats && (
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="text.secondary" gutterBottom>
-                    総ユーザー数
-                  </Typography>
-                  <Typography variant="h4">
-                    {systemStats.overview.totalUsers}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="text.secondary" gutterBottom>
-                    総テンプレート数
-                  </Typography>
-                  <Typography variant="h4">
-                    {systemStats.overview.totalTemplates}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="text.secondary" gutterBottom>
-                    総プロジェクト数
-                  </Typography>
-                  <Typography variant="h4">
-                    {systemStats.overview.totalProjects}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="text.secondary" gutterBottom>
-                    総文書数
-                  </Typography>
-                  <Typography variant="h4">
-                    {systemStats.overview.totalDocuments}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        )}
-      </Paper>
-
-      {/* Tabs */}
-      <Paper sx={{ mb: 3 }}>
+        {/* Tabs */}
+        <Paper sx={{ mb: 2 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="admin tabs">
-            <Tab
-              icon={<Assessment />}
-              label="システム概要"
-              {...a11yProps(0)}
-            />
+          <Tabs value={tabValue} onChange={handleTabChange} aria-label="admin tabs" variant="scrollable" scrollButtons="auto">
             <Tab
               icon={<People />}
               label="ユーザー管理"
+              {...a11yProps(0)}
+            />
+            <Tab
+              icon={<Label />}
+              label="タグ管理"
               {...a11yProps(1)}
             />
             <Tab
-              icon={<Timeline />}
-              label="アクティビティ"
+              icon={<Category />}
+              label="シーン管理"
               {...a11yProps(2)}
             />
             <Tab
-              icon={<Dashboard />}
-              label="システム状態"
+              icon={<Work />}
+              label="プロジェクト管理"
               {...a11yProps(3)}
+            />
+            <Tab
+              icon={<Settings />}
+              label="設定管理"
+              {...a11yProps(4)}
+            />
+            <Tab
+              icon={<ImportExport />}
+              label="データ管理"
+              {...a11yProps(5)}
             />
           </Tabs>
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <SystemOverview />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
           <UserManagement />
         </TabPanel>
 
+        <TabPanel value={tabValue} index={1}>
+          <TagManagement />
+        </TabPanel>
+
         <TabPanel value={tabValue} index={2}>
-          <ActivityMonitor />
+          <SceneManagement />
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
-          <SystemHealth />
+          <ProjectManagement />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={4}>
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="h6" color="text.secondary">
+              設定管理機能
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              システム設定のエクスポート・インポート機能を実装予定
+            </Typography>
+          </Box>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={5}>
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="h6" color="text.secondary">
+              データ管理機能
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              データのエクスポート・インポート、バックアップ機能を実装予定
+            </Typography>
+          </Box>
         </TabPanel>
         </Paper>
       </Box>

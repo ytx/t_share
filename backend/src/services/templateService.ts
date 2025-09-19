@@ -34,6 +34,7 @@ export interface TemplateSearchOptions {
   page?: number;
   limit?: number;
   userId?: number; // for filtering user's own templates
+  adminMode?: boolean; // for admin users to see all templates
 }
 
 class TemplateService {
@@ -323,6 +324,7 @@ class TemplateService {
         page = 1,
         limit = 20,
         userId,
+        adminMode = false,
       } = options;
 
       // Build where clause
@@ -362,13 +364,13 @@ class TemplateService {
             },
           } : {},
 
-          // Access control - show public templates or user's own templates
-          userId ? {
+          // Access control - admin mode shows all templates, otherwise show public templates or user's own templates
+          adminMode ? {} : (userId ? {
             OR: [
               { isPublic: true },
               { createdBy: userId },
             ],
-          } : { isPublic: true },
+          } : { isPublic: true }),
         ],
       };
 

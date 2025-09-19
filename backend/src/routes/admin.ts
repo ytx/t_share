@@ -8,6 +8,9 @@ import {
   getSystemHealth,
   exportSystemData,
   getSystemInfo,
+  createUser,
+  updateUser,
+  deleteUser,
 } from '../controllers/adminController';
 
 const router = express.Router();
@@ -23,6 +26,9 @@ router.get('/info', getSystemInfo);
 
 // User management
 router.get('/users', getUserList);
+router.post('/users', createUser);
+router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser);
 
 // Activity monitoring
 router.get('/activity', getRecentActivity);

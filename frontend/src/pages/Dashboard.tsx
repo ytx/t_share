@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { Box, AppBar, Toolbar, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Button, Menu, Avatar, Divider } from '@mui/material';
-import { Settings, DarkMode, LightMode, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon } from '@mui/icons-material';
+import { Box, AppBar, Toolbar, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
+import { Settings, DarkMode, LightMode, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount } from '@mui/icons-material';
+import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
 import TemplateSearch from '../components/Templates/TemplateSearch';
 import DocumentEditor from '../components/Editor/DocumentEditor';
@@ -26,6 +27,7 @@ const Dashboard: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: scenesResponse } = useGetAllScenesQuery();
@@ -85,6 +87,10 @@ const Dashboard: React.FC = () => {
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
+  };
+
+  const toggleAdminMode = () => {
+    setAdminMode(!adminMode);
   };
 
   const scenes = scenesResponse?.scenes || [];
@@ -172,15 +178,52 @@ const Dashboard: React.FC = () => {
             <Settings />
           </IconButton>
 
+          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
+            {isDarkMode ? <LightMode /> : <DarkMode />}
+          </IconButton>
+
+          {user?.isAdmin && (
+            <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={adminMode}
+                    onChange={toggleAdminMode}
+                    size="small"
+                    sx={{
+                      '& .MuiSwitch-switchBase': {
+                        color: 'white',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: 'white',
+                      },
+                      '& .MuiSwitch-track': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', color: 'white' }}>
+                    <SupervisorAccount sx={{ mr: 0.5 }} />
+                  </Box>
+                }
+                sx={{
+                  m: 0,
+                  mr: 1,
+                  '& .MuiFormControlLabel-label': {
+                    fontSize: '0.875rem',
+                  }
+                }}
+              />
+            </Tooltip>
+          )}
+
           {user?.isAdmin && (
             <IconButton color="inherit" onClick={handleAdminDashboard} sx={{ mr: 1 }}>
               <AdminPanelSettings />
             </IconButton>
           )}
-
-          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 1 }}>
-            {isDarkMode ? <LightMode /> : <DarkMode />}
-          </IconButton>
 
           {isAuthenticated ? (
             <div>
@@ -262,6 +305,16 @@ const Dashboard: React.FC = () => {
             onChange={(size) => setSplitSize(typeof size === 'string' ? size : `${size}px`)}
             style={{ height: 'calc(100vh - 64px)' }}
             paneStyle={{ overflow: 'hidden' }}
+            resizerStyle={{
+              background: '#ddd',
+              width: '8px',
+              cursor: 'col-resize',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              position: 'relative',
+              transition: 'background-color 0.2s ease',
+              opacity: 1,
+            }}
           >
             {/* Left Panel - Template Search */}
             <Box id="left-panel-search" sx={{ height: '100%', p: 2, bgcolor: 'background.default', overflow: 'hidden' }}>
@@ -269,6 +322,7 @@ const Dashboard: React.FC = () => {
                 onTemplateSelect={handleTemplateSelect}
                 onCreateTemplate={handleCreateTemplate}
                 initialSceneId={selectedSceneId}
+                adminMode={user?.isAdmin ? adminMode : false}
               />
             </Box>
 

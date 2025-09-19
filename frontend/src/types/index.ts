@@ -118,6 +118,7 @@ export interface TemplateSearchFilters {
   sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
+  adminMode?: boolean;
 }
 
 export interface PaginationInfo {

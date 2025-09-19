@@ -1,0 +1,56 @@
+/* SplitPane リサイザーのスタイル */
+.Resizer {
+  background: #ddd !important;
+  width: 8px !important;
+  cursor: col-resize !important;
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  transition: background-color 0.2s ease !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+}
+
+.Resizer:hover {
+  background: #bbb !important;
+  border-color: #999 !important;
+}
+
+.Resizer.vertical {
+  width: 8px !important;
+  margin: 0 -4px !important;
+}
+
+.Resizer.horizontal {
+  height: 8px !important;
+  margin: -4px 0 !important;
+}
+
+/* リサイザー上にドラッグインジケーターを表示 */
+.Resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 20px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #999 0px,
+    #999 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  border-radius: 1px;
+}
+
+.Resizer:hover::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    #666 0px,
+    #666 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}

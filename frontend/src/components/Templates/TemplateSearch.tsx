@@ -28,12 +28,14 @@ interface TemplateSearchProps {
   onTemplateSelect?: (template: Template) => void;
   onCreateTemplate?: () => void;
   initialSceneId?: number;
+  adminMode?: boolean;
 }
 
 const TemplateSearch: React.FC<TemplateSearchProps> = ({
   onTemplateSelect,
   onCreateTemplate,
   initialSceneId,
+  adminMode = false,
 }) => {
   const [filters, setFilters] = useState<TemplateSearchFilters>({
     keyword: '',
@@ -43,12 +45,18 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     sortOrder: 'desc',
     page: 1,
     limit: 20,
+    adminMode: adminMode,
   });
 
   // Update filters when initialSceneId changes
   React.useEffect(() => {
     setFilters(prev => ({ ...prev, sceneId: initialSceneId, page: 1 }));
   }, [initialSceneId]);
+
+  // Update filters when adminMode changes
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, adminMode: adminMode, page: 1 }));
+  }, [adminMode]);
 
   // 編集モーダルの状態
   const [showEditModal, setShowEditModal] = useState(false);

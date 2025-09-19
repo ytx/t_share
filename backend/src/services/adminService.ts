@@ -209,8 +209,8 @@ class AdminService {
           include: {
             _count: {
               select: {
-                templates: true,
-                projects: true,
+                createdTemplates: true,
+                createdProjects: true,
                 documents: true,
                 userVariables: true,
               },
@@ -347,6 +347,96 @@ class AdminService {
       };
     } catch (error) {
       logger.error('Get system health details failed:', error);
+      throw error;
+    }
+  }
+
+  async createUser(data: {
+    email: string;
+    displayName?: string;
+    username?: string;
+    isAdmin?: boolean;
+    password: string;
+  }) {
+    try {
+      const bcrypt = require('bcrypt');
+      const passwordHash = await bcrypt.hash(data.password, 10);
+
+      const user = await prisma.user.create({
+        data: {
+          email: data.email,
+          displayName: data.displayName,
+          username: data.username,
+          isAdmin: data.isAdmin || false,
+          passwordHash,
+        },
+        include: {
+          _count: {
+            select: {
+              createdTemplates: true,
+              createdProjects: true,
+              documents: true,
+              userVariables: true,
+            },
+          },
+        },
+      });
+
+      logger.info(`User created: ${user.id} by admin`);
+      return user;
+    } catch (error) {
+      logger.error('Create user failed:', error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: number, data: {
+    email?: string;
+    displayName?: string;
+    username?: string;
+    isAdmin?: boolean;
+  }) {
+    try {
+      const user = await prisma.user.update({
+        where: { id },
+        data,
+        include: {
+          _count: {
+            select: {
+              createdTemplates: true,
+              createdProjects: true,
+              documents: true,
+              userVariables: true,
+            },
+          },
+        },
+      });
+
+      logger.info(`User updated: ${id} by admin`);
+      return user;
+    } catch (error) {
+      logger.error('Update user failed:', error);
+      throw error;
+    }
+  }
+
+  async deleteUser(id: number) {
+    try {
+      // Check if user exists
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Delete user (cascade will handle related records)
+      await prisma.user.delete({
+        where: { id },
+      });
+
+      logger.info(`User deleted: ${id} by admin`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Delete user failed:', error);
       throw error;
     }
   }

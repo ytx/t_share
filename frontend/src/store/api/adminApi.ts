@@ -81,8 +81,8 @@ export interface AdminUser {
   isAdmin: boolean;
   createdAt: string;
   _count: {
-    templates: number;
-    projects: number;
+    createdTemplates: number;
+    createdProjects: number;
     documents: number;
     userVariables: number;
   };
@@ -123,7 +123,7 @@ export const adminApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['SystemStats', 'UserList', 'Activity'],
+  tagTypes: ['SystemStats', 'UserList', 'Activity', 'User'],
   endpoints: (builder) => ({
     getSystemStats: builder.query<SystemStats, void>({
       query: () => '/stats',
@@ -161,6 +161,46 @@ export const adminApi = createApi({
     exportSystemData: builder.query<any, void>({
       query: () => '/export',
     }),
+
+    createUser: builder.mutation<AdminUser, {
+      email: string;
+      displayName?: string;
+      username?: string;
+      isAdmin?: boolean;
+      password: string;
+    }>({
+      query: (data) => ({
+        url: '/users',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['UserList', 'User'],
+    }),
+
+    updateUser: builder.mutation<AdminUser, {
+      id: number;
+      data: {
+        email?: string;
+        displayName?: string;
+        username?: string;
+        isAdmin?: boolean;
+      };
+    }>({
+      query: ({ id, data }) => ({
+        url: `/users/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['UserList', 'User'],
+    }),
+
+    deleteUser: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['UserList', 'User'],
+    }),
   }),
 });
 
@@ -171,4 +211,7 @@ export const {
   useGetUserListQuery,
   useGetRecentActivityQuery,
   useExportSystemDataQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
 } = adminApi;
