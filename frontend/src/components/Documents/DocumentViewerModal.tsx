@@ -1,0 +1,285 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Paper,
+  InputAdornment,
+} from '@mui/material';
+import {
+  ArrowBack,
+  ArrowForward,
+  Search,
+  Close,
+  Launch,
+  KeyboardArrowUp,
+  KeyboardArrowDown,
+} from '@mui/icons-material';
+import { Document } from '../../types';
+
+interface DocumentViewerModalProps {
+  open: boolean;
+  onClose: () => void;
+  documents: Document[];
+  onOpenDocument: (document: Document) => void;
+}
+
+const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
+  open,
+  onClose,
+  documents,
+  onOpenDocument,
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
+
+  // フィルタリングされた文書リストを更新
+  useEffect(() => {
+    if (!searchKeyword.trim()) {
+      setFilteredDocuments(documents);
+    } else {
+      const keyword = searchKeyword.toLowerCase();
+      const filtered = documents.filter(doc =>
+        doc.title?.toLowerCase().includes(keyword) ||
+        doc.content.toLowerCase().includes(keyword)
+      );
+      setFilteredDocuments(filtered);
+    }
+    setCurrentIndex(0);
+  }, [documents, searchKeyword]);
+
+  const currentDocument = filteredDocuments[currentIndex];
+
+  // ナビゲーション関数
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex(prev => prev > 0 ? prev - 1 : filteredDocuments.length - 1);
+  }, [filteredDocuments.length]);
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex(prev => prev < filteredDocuments.length - 1 ? prev + 1 : 0);
+  }, [filteredDocuments.length]);
+
+  // キーボードイベントハンドラー
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!open) return;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        goToPrevious();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        goToNext();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        // スクロール処理（プレビューエリア内）
+        const previewElement = document.getElementById('document-preview-content');
+        if (previewElement) {
+          previewElement.scrollBy(0, -50);
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        // スクロール処理（プレビューエリア内）
+        const previewElementDown = document.getElementById('document-preview-content');
+        if (previewElementDown) {
+          previewElementDown.scrollBy(0, 50);
+        }
+        break;
+      case 'Escape':
+        onClose();
+        break;
+    }
+  }, [open, goToPrevious, goToNext, onClose]);
+
+  // キーボードイベントリスナーの設定
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [open, handleKeyDown]);
+
+  // 文書を開く
+  const handleOpenDocument = () => {
+    if (currentDocument) {
+      onOpenDocument(currentDocument);
+      onClose();
+    }
+  };
+
+  // モーダル閉じる時に検索をリセット
+  const handleClose = () => {
+    setSearchKeyword('');
+    setCurrentIndex(0);
+    onClose();
+  };
+
+  if (!open || filteredDocuments.length === 0) {
+    return (
+      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">保存された文書</Typography>
+            <IconButton onClick={handleClose} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography color="text.secondary">
+              {documents.length === 0 ? '保存された文書がありません' : '検索条件に一致する文書がありません'}
+            </Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: {
+          height: '90vh',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }
+      }}
+    >
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6">保存された文書</Typography>
+          <IconButton onClick={handleClose} size="small">
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent sx={{ flex: 1, overflow: 'hidden', p: 0 }}>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          {/* 検索ボックス */}
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="キーワードで検索..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2 }}
+          />
+
+          {/* ナビゲーション */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title="前の文書 (←)">
+                <IconButton
+                  onClick={goToPrevious}
+                  disabled={filteredDocuments.length <= 1}
+                  size="small"
+                >
+                  <ArrowBack />
+                </IconButton>
+              </Tooltip>
+
+              <Typography variant="body2" sx={{ mx: 2 }}>
+                {filteredDocuments.length > 0 ? `${currentIndex + 1} / ${filteredDocuments.length}` : '0 / 0'}
+              </Typography>
+
+              <Tooltip title="次の文書 (→)">
+                <IconButton
+                  onClick={goToNext}
+                  disabled={filteredDocuments.length <= 1}
+                  size="small"
+                >
+                  <ArrowForward />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                ↑↓でスクロール, ←→で文書切替, Escで閉じる
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* 文書内容表示エリア */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+          {currentDocument && (
+            <>
+              {/* 文書タイトル */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  {currentDocument.title || '無題の文書'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  作成日: {new Date(currentDocument.createdAt).toLocaleString('ja-JP')}
+                  {currentDocument.project && ` | プロジェクト: ${currentDocument.project.name}`}
+                </Typography>
+              </Box>
+
+              {/* 文書内容 */}
+              <Paper
+                variant="outlined"
+                id="document-preview-content"
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  overflow: 'auto',
+                  bgcolor: 'grey.50',
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  whiteSpace: 'pre-wrap',
+                  minHeight: 0,
+                }}
+              >
+                {currentDocument.content || '（内容なし）'}
+              </Paper>
+            </>
+          )}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={handleClose} color="inherit">
+          閉じる
+        </Button>
+        <Button
+          onClick={handleOpenDocument}
+          variant="contained"
+          startIcon={<Launch />}
+          disabled={!currentDocument}
+        >
+          開く
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default DocumentViewerModal;

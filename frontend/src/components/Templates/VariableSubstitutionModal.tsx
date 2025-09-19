@@ -108,12 +108,12 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
     const checkboxLinesList: CheckboxLine[] = [];
 
     lines.forEach((line, index) => {
-      // [?]を含む行をチェックボックス行として判別
-      if (line.includes('[?]')) {
+      // [?]または[*]を含む行をチェックボックス行として判別
+      if (line.includes('[?]') || line.includes('[*]')) {
         checkboxLinesList.push({
           index,
           content: line,
-          checked: false,
+          checked: line.includes('[*]'), // [*]の場合はtrue、[?]の場合はfalse
           included: true, // デフォルトで含める
         });
       }
@@ -132,22 +132,23 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
       content = content.replace(regex, value);
     });
 
-    // チェックボックス行の除外処理と[?]の削除
+    // チェックボックス行の処理
     if (checkboxLines.length > 0) {
       const lines = content.split('\n');
       const filteredLines = lines
         .filter((line, index) => {
           const checkboxLine = checkboxLines.find(cb => cb.index === index);
-          return !checkboxLine || checkboxLine.included;
+          // チェックボックス行の場合はchecked状態で判断、それ以外は含める
+          return !checkboxLine || checkboxLine.checked;
         })
         .map(line => {
-          // [?]を削除
-          return line.replace(/\[\?\]/g, '');
+          // [?]と[*]を削除
+          return line.replace(/\[\?\]|\[\*\]/g, '');
         });
       content = filteredLines.join('\n');
     } else {
-      // チェックボックス行がない場合でも[?]を削除
-      content = content.replace(/\[\?\]/g, '');
+      // チェックボックス行がない場合でも[?]と[*]を削除
+      content = content.replace(/\[\?\]|\[\*\]/g, '');
     }
 
     setPreviewContent(content);
@@ -164,6 +165,14 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
     setCheckboxLines(prev =>
       prev.map(line =>
         line.index === index ? { ...line, included } : line
+      )
+    );
+  };
+
+  const handleCheckboxChange = (index: number, checked: boolean) => {
+    setCheckboxLines(prev =>
+      prev.map(line =>
+        line.index === index ? { ...line, checked } : line
       )
     );
   };
@@ -197,10 +206,15 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       PaperProps={{
-        sx: { height: '80vh' }
+        sx: {
+          height: '90vh',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }
       }}
     >
       <DialogTitle>
@@ -214,7 +228,7 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent dividers sx={{ flex: 1, overflow: 'hidden', p: 0 }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
@@ -224,9 +238,9 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
             このテンプレートには置換可能な変数やチェックボックスがありません。
           </Alert>
         ) : (
-          <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+          <Box sx={{ display: 'flex', gap: 2, height: '100%', p: 2 }}>
             {/* 変数入力エリア */}
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, overflow: 'auto', pr: 1, minHeight: 0 }}>
               {foundVariables.length > 0 && (
                 <>
                   <Typography variant="h6" gutterBottom>
@@ -258,7 +272,6 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
                             value={variables[varName] || ''}
                             onChange={(e) => handleVariableChange(varName, e.target.value)}
                             placeholder={`${varName}の値を入力`}
-                            helperText={source.value ? `デフォルト値: ${source.value}` : undefined}
                             disabled={isLoading}
                           />
                         </ListItem>
@@ -274,49 +287,35 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
                   <Typography variant="h6" gutterBottom sx={{ mt: foundVariables.length > 0 ? 3 : 0 }}>
                     チェックボックス行の設定
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    含めたい行にチェックを入れてください
-                  </Typography>
-
-                  <Paper variant="outlined" sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
+                  <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}>
                     {checkboxLines.map((checkboxLine) => (
                       <FormControlLabel
                         key={checkboxLine.index}
                         control={
                           <Checkbox
-                            checked={checkboxLine.included}
-                            onChange={(e) => handleCheckboxLineChange(checkboxLine.index, e.target.checked)}
+                            checked={checkboxLine.checked}
+                            onChange={(e) => handleCheckboxChange(checkboxLine.index, e.target.checked)}
                             size="small"
                           />
                         }
                         label={
                           <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                            {checkboxLine.content.replace(/\[\?\]/g, '')}
+                            {checkboxLine.content.replace(/\[\?\]|\[\*\]/g, '')}
                           </Typography>
                         }
                         sx={{ width: '100%', mb: 0.5 }}
                       />
                     ))}
-                  </Paper>
+                  </Box>
                 </>
               )}
 
-              {/* 共通変数のヒント */}
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>よく使われる変数例:</strong><br />
-                  • date: 日付<br />
-                  • name: 名前<br />
-                  • project: プロジェクト名<br />
-                  • location: 場所
-                </Typography>
-              </Alert>
             </Box>
 
             <Divider orientation="vertical" flexItem />
 
             {/* プレビューエリア */}
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6">
                   プレビュー
@@ -334,12 +333,13 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
                   borderColor: 'divider',
                   borderRadius: 1,
                   p: 2,
-                  height: '400px',
+                  flex: 1,
                   overflow: 'auto',
                   bgcolor: 'grey.50',
                   fontFamily: 'monospace',
                   fontSize: '0.875rem',
                   whiteSpace: 'pre-wrap',
+                  minHeight: 0,
                 }}
               >
                 {previewContent || template.content}

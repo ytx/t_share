@@ -9,17 +9,20 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
 } from '@mui/material';
 import {
   Save,
   ContentCopy,
   FolderOpen,
   Clear,
+  ViewList,
 } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateSelectionModal from '../Templates/TemplateSelectionModal';
 import VariableSubstitutionModal from '../Templates/VariableSubstitutionModal';
 import TemplateCreateModal from '../Templates/TemplateCreateModal';
+import DocumentViewerModal from '../Documents/DocumentViewerModal';
 import { Template } from '../../types';
 import { useCreateDocumentMutation, useGetProjectDocumentsQuery } from '../../store/api/documentApi';
 import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
@@ -59,6 +62,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const lastClickTimeRef = useRef<number>(0);
 
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   const markdownEditorRef = useRef<any>(null);
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
@@ -132,8 +136,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
     // 変数が含まれているかチェック
     const hasVariables = /\{\{\w+\}\}/.test(template.content);
-    // チェックボックスが含まれているかチェック（[?] のパターン）
-    const hasCheckboxes = /\[\?\]/.test(template.content);
+    // チェックボックスが含まれているかチェック（[?] と [*] のパターン）
+    const hasCheckboxes = /\[\?\]|\[\*\]/.test(template.content);
 
     if (hasVariables || hasCheckboxes) {
       // 変数置換・チェックボックス設定モーダルを表示
@@ -264,8 +268,10 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }, [content, selectedProjectId, createDocument, onSaveDocument]);
 
   // 現在のプロジェクトの保存された文書を取得
-  // サーバーから取得した文書データを使用
-  const currentProjectDocuments = projectDocuments?.data || [];
+  // サーバーから取得した文書データを使用（ドロップダウン用は最新20件）
+  const currentProjectDocuments = projectDocuments?.data?.slice(0, 20) || [];
+  // 全文書リストをモーダル用に取得
+  const allDocuments = projectDocuments?.data || [];
 
   const handleDocumentSelect = useCallback((documentId: string) => {
     const document = currentProjectDocuments.find(doc => doc.id.toString() === documentId);
@@ -278,6 +284,14 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const handleClear = useCallback(() => {
     setContent('');
     setSelectedDocumentId('');
+  }, []);
+
+  const handleOpenDocumentViewer = useCallback(() => {
+    setShowDocumentViewer(true);
+  }, []);
+
+  const handleDocumentFromViewer = useCallback((document: any) => {
+    setContent(document.content);
   }, []);
 
 
@@ -384,8 +398,22 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           bgcolor: 'background.paper',
           borderRadius: 1,
           boxShadow: 'none',
-          p: 0.5
+          p: 0.5,
+          alignItems: 'center'
         }}>
+          <IconButton
+            size="small"
+            onClick={handleOpenDocumentViewer}
+            sx={{
+              bgcolor: 'action.hover',
+              '&:hover': {
+                bgcolor: 'action.selected',
+              }
+            }}
+            title="全ての文書を表示"
+          >
+            <ViewList />
+          </IconButton>
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>保存された文書</InputLabel>
             <Select
@@ -515,6 +543,14 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         onSuccess={handleTemplateCreateSuccess}
         initialContent={selectedText}
         initialSceneId={selectedSceneId}
+      />
+
+      {/* Document Viewer Modal */}
+      <DocumentViewerModal
+        open={showDocumentViewer}
+        onClose={() => setShowDocumentViewer(false)}
+        documents={allDocuments}
+        onOpenDocument={handleDocumentFromViewer}
       />
     </Box>
   );
