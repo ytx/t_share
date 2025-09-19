@@ -20,9 +20,12 @@ import {
   ListItemText,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import { Info, ContentCopy } from '@mui/icons-material';
 import { Template } from '../../types';
+import { useGetUserVariablesQuery } from '../../store/api/userVariableApi';
+import { useGetProjectVariablesQuery } from '../../store/api/projectVariableApi';
 
 interface Variable {
   name: string;
@@ -36,8 +39,7 @@ interface VariableSubstitutionModalProps {
   onClose: () => void;
   onApply: (content: string, variables: Record<string, string>) => void;
   template: Template;
-  userVariables?: Record<string, string>;
-  projectVariables?: Record<string, string>;
+  projectId?: number;
 }
 
 const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
@@ -45,12 +47,30 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
   onClose,
   onApply,
   template,
-  userVariables = {},
-  projectVariables = {},
+  projectId,
 }) => {
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [previewContent, setPreviewContent] = useState('');
   const [foundVariables, setFoundVariables] = useState<string[]>([]);
+
+  // Fetch variables from API
+  const { data: userVariablesResponse, isLoading: isLoadingUser } = useGetUserVariablesQuery();
+  const { data: projectVariablesResponse, isLoading: isLoadingProject } = useGetProjectVariablesQuery(
+    projectId || 0,
+    { skip: !projectId }
+  );
+
+  const userVariables = userVariablesResponse?.data.reduce((acc, variable) => {
+    acc[variable.name] = variable.value;
+    return acc;
+  }, {} as Record<string, string>) || {};
+
+  const projectVariables = projectVariablesResponse?.data.reduce((acc, variable) => {
+    acc[variable.name] = variable.value;
+    return acc;
+  }, {} as Record<string, string>) || {};
+
+  const isLoading = isLoadingUser || (projectId && isLoadingProject);
 
   // テンプレート内の変数を抽出
   useEffect(() => {
@@ -135,7 +155,11 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        {foundVariables.length === 0 ? (
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : foundVariables.length === 0 ? (
           <Alert severity="info">
             このテンプレートには置換可能な変数がありません。
           </Alert>

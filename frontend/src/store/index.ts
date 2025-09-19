@@ -5,6 +5,10 @@ import { sceneApi } from './api/sceneApi'
 import { tagApi } from './api/tagApi'
 import { projectApi } from './api/projectApi'
 import { documentApi } from './api/documentApi'
+import { userVariableApi } from './api/userVariableApi'
+import { projectVariableApi } from './api/projectVariableApi'
+import { userPreferenceApi } from './api/userPreferenceApi'
+import { adminApi } from './api/adminApi'
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +18,10 @@ export const store = configureStore({
     [tagApi.reducerPath]: tagApi.reducer,
     [projectApi.reducerPath]: projectApi.reducer,
     [documentApi.reducerPath]: documentApi.reducer,
+    [userVariableApi.reducerPath]: userVariableApi.reducer,
+    [projectVariableApi.reducerPath]: projectVariableApi.reducer,
+    [userPreferenceApi.reducerPath]: userPreferenceApi.reducer,
+    [adminApi.reducerPath]: adminApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -25,7 +33,11 @@ export const store = configureStore({
     .concat(sceneApi.middleware)
     .concat(tagApi.middleware)
     .concat(projectApi.middleware)
-    .concat(documentApi.middleware),
+    .concat(documentApi.middleware)
+    .concat(userVariableApi.middleware)
+    .concat(projectVariableApi.middleware)
+    .concat(userPreferenceApi.middleware)
+    .concat(adminApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

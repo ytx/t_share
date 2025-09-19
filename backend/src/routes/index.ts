@@ -5,6 +5,10 @@ import sceneRoutes from './scenes';
 import tagRoutes from './tags';
 import projectRoutes from './projects';
 import documentRoutes from './documents';
+import userVariableRoutes from './userVariables';
+import projectVariableRoutes from './projectVariables';
+import userPreferenceRoutes from './userPreferences';
+import adminRoutes from './admin';
 
 const router = express.Router();
 
@@ -15,6 +19,10 @@ router.use('/scenes', sceneRoutes);
 router.use('/tags', tagRoutes);
 router.use('/projects', projectRoutes);
 router.use('/documents', documentRoutes);
+router.use('/user-variables', userVariableRoutes);
+router.use('/project-variables', projectVariableRoutes);
+router.use('/user-preferences', userPreferenceRoutes);
+router.use('/admin', adminRoutes);
 
 // API information
 router.get('/', (req, res) => {
@@ -29,6 +37,10 @@ router.get('/', (req, res) => {
       tags: '/api/tags',
       projects: '/api/projects',
       documents: '/api/documents',
+      userVariables: '/api/user-variables',
+      projectVariables: '/api/project-variables',
+      userPreferences: '/api/user-preferences',
+      admin: '/api/admin',
     },
   });
 });

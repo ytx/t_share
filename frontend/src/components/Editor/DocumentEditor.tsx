@@ -28,6 +28,7 @@ import VariableSubstitutionModal from '../Templates/VariableSubstitutionModal';
 import { Template, Project } from '../../types';
 import { useGetAllProjectsQuery } from '../../store/api/projectApi';
 import { useCreateDocumentMutation } from '../../store/api/documentApi';
+import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
 
 interface DocumentEditorProps {
   selectedTemplate?: Template | null;
@@ -53,12 +54,16 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const { data: projectsResponse } = useGetAllProjectsQuery();
   const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
 
+  // User preferences
+  const { data: userPreferences } = useGetUserPreferencesQuery();
+  const [updateEditorSettings] = useUpdateEditorSettingsMutation();
+
   // モーダル状態
   const [showTemplateSelection, setShowTemplateSelection] = useState(false);
   const [showVariableSubstitution, setShowVariableSubstitution] = useState(false);
   const [templateForSubstitution, setTemplateForSubstitution] = useState<Template | null>(null);
 
-  // エディタ設定
+  // エディタ設定（ユーザ設定から取得）
   const [editorSettings, setEditorSettings] = useState({
     theme: 'light' as 'light' | 'dark',
     showLineNumbers: true,
@@ -66,17 +71,27 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     fontSize: 14,
   });
 
-  // ダミーの変数データ（Phase 4で実装）
-  const userVariables = {
-    name: 'ユーザー名',
-    email: 'user@example.com',
-    date: new Date().toLocaleDateString('ja-JP'),
-  };
+  // ユーザ設定からエディタ設定を初期化
+  React.useEffect(() => {
+    if (userPreferences?.editorSettings) {
+      setEditorSettings(prev => ({
+        ...prev,
+        ...userPreferences.editorSettings,
+      }));
+    }
+  }, [userPreferences]);
 
-  const projectVariables = {
-    projectName: 'プロジェクト名',
-    teamLead: 'チームリーダー',
-  };
+  // エディタ設定変更時にAPIに保存
+  const handleEditorSettingChange = useCallback((newSettings: Partial<typeof editorSettings>) => {
+    const updatedSettings = { ...editorSettings, ...newSettings };
+    setEditorSettings(updatedSettings);
+
+    // APIに保存
+    updateEditorSettings(newSettings).catch(error => {
+      console.error('エディタ設定の保存に失敗しました:', error);
+    });
+  }, [editorSettings, updateEditorSettings]);
+
 
   // テンプレートが選択された時の処理
   React.useEffect(() => {
@@ -311,8 +326,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           onClose={handleVariableSubstitutionClose}
           onApply={handleVariableSubstitution}
           template={templateForSubstitution}
-          userVariables={userVariables}
-          projectVariables={projectVariables}
+          projectId={selectedProject || undefined}
         />
       )}
     </Box>
