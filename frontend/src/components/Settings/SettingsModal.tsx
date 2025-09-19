@@ -123,20 +123,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-            <Tab label="エディタ" {...a11yProps(0)} />
-            <Tab label="プロジェクト" {...a11yProps(1)} />
+            <Tab label="プロジェクト" {...a11yProps(0)} />
+            <Tab label="プロジェクト変数" {...a11yProps(1)} />
             <Tab label="ユーザ変数" {...a11yProps(2)} />
-            <Tab label="プロジェクト変数" {...a11yProps(3)} />
+            <Tab label="エディタ" {...a11yProps(3)} />
           </Tabs>
         </Box>
 
         <DialogContent sx={{ p: 0, overflow: 'auto', maxHeight: 'calc(80vh - 120px)' }}>
           <TabPanel value={tabValue} index={0}>
-            <EditorSettingsPanel />
+            <ProjectManagement />
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <ProjectManagement />
+            <ProjectVariableManagement />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
@@ -144,7 +144,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </TabPanel>
 
           <TabPanel value={tabValue} index={3}>
-            <ProjectVariableManagement />
+            <EditorSettingsPanel />
           </TabPanel>
         </DialogContent>
 

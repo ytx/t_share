@@ -75,7 +75,6 @@ const SceneManagement: React.FC = () => {
   const [formData, setFormData] = useState<SceneFormData>({
     name: '',
     description: '',
-    color: '#1976d2',
   });
 
   const { data: scenesResponse, isLoading, error } = useGetAllScenesQuery();
@@ -94,7 +93,6 @@ const SceneManagement: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      color: '#1976d2',
     });
     setOpenDialog(true);
   }, []);
@@ -104,7 +102,6 @@ const SceneManagement: React.FC = () => {
     setFormData({
       name: scene.name,
       description: scene.description || '',
-      color: scene.color || '#1976d2',
     });
     setOpenDialog(true);
   }, []);
@@ -115,7 +112,6 @@ const SceneManagement: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      color: '#1976d2',
     });
   }, []);
 
@@ -217,13 +213,16 @@ const SceneManagement: React.FC = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
+              <TableContainer component={Paper} sx={{
+                maxHeight: 'calc(100vh - 300px)',
+                minHeight: 400,
+                overflow: 'auto'
+              }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
                       <TableCell>シーン名</TableCell>
                       <TableCell>説明</TableCell>
-                      <TableCell>色</TableCell>
                       <TableCell>テンプレート数</TableCell>
                       <TableCell>作成日</TableCell>
                       <TableCell>更新日</TableCell>
@@ -234,36 +233,14 @@ const SceneManagement: React.FC = () => {
                     {scenes.map((scene) => (
                       <TableRow key={scene.id}>
                         <TableCell>
-                          <Chip
-                            label={scene.name}
-                            sx={{
-                              bgcolor: (scene.color || '#1976d2') + '20',
-                              borderColor: scene.color || '#1976d2',
-                              color: scene.color || '#1976d2',
-                            }}
-                            size="small"
-                          />
+                          <Typography variant="body2" fontWeight="medium">
+                            {scene.name}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {scene.description || '-'}
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box
-                              sx={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: '50%',
-                                bgcolor: scene.color || '#1976d2',
-                                border: '1px solid #ccc',
-                              }}
-                            />
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                              {scene.color || '#1976d2'}
-                            </Typography>
-                          </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
@@ -295,7 +272,7 @@ const SceneManagement: React.FC = () => {
                     ))}
                     {scenes.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} align="center">
+                        <TableCell colSpan={6} align="center">
                           <Typography variant="body2" color="text.secondary">
                             シーンがありません
                           </Typography>
@@ -415,56 +392,6 @@ const SceneManagement: React.FC = () => {
               fullWidth
             />
 
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 2 }}>
-                シーン色
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {/* Color Palette */}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {[
-                    '#1976d2', '#d32f2f', '#388e3c', '#f57c00',
-                    '#7b1fa2', '#c2185b', '#00796b', '#455a64',
-                    '#5d4037', '#616161', '#e91e63', '#9c27b0',
-                    '#673ab7', '#3f51b5', '#2196f3', '#03a9f4',
-                  ].map((color) => (
-                    <Box
-                      key={color}
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        bgcolor: color,
-                        border: formData.color === color ? '3px solid #000' : '1px solid #ccc',
-                        cursor: 'pointer',
-                        '&:hover': {
-                          opacity: 0.8,
-                        },
-                      }}
-                      onClick={() => setFormData(prev => ({ ...prev, color }))}
-                    />
-                  ))}
-                </Box>
-
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                  <TextField
-                    label="カラーコード"
-                    value={formData.color}
-                    onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                    size="small"
-                    sx={{ width: 140 }}
-                  />
-                  <Chip
-                    label={formData.name || 'プレビュー'}
-                    sx={{
-                      bgcolor: formData.color + '20',
-                      borderColor: formData.color,
-                      color: formData.color,
-                    }}
-                  />
-                </Box>
-              </Box>
-            </Box>
           </Box>
         </DialogContent>
         <DialogActions>

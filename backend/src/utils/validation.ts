@@ -61,12 +61,12 @@ export const templateValidation = {
 export const sceneValidation = {
   create: Joi.object({
     name: Joi.string().min(1).max(100).required(),
-    description: Joi.string().max(1000),
+    description: Joi.string().max(1000).allow(''),
   }),
 
   update: Joi.object({
     name: Joi.string().min(1).max(100),
-    description: Joi.string().max(1000),
+    description: Joi.string().max(1000).allow(''),
   }),
 };
 

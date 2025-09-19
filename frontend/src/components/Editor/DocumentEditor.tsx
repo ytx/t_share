@@ -234,7 +234,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     try {
       const generatedTitle = generateTitle();
 
-      // サーバに文書を保存
+      // 1. まず保存を実行
       await createDocument({
         title: generatedTitle,
         content,
@@ -242,8 +242,13 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         projectId: selectedProjectId,
       }).unwrap();
 
-      await navigator.clipboard.writeText(content);
+      // 2. 先頭の空行を削除してからコピー
+      const contentToCopy = content.replace(/^\s*\n+/, '');
+      await navigator.clipboard.writeText(contentToCopy);
       setShowCopyAlert(true);
+
+      // 3. エディタをクリア
+      setContent('');
 
       if (onSaveDocument) {
         onSaveDocument({

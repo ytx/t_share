@@ -6,6 +6,12 @@ import logger from '../utils/logger';
 class SceneController {
   async createScene(req: Request, res: Response) {
     try {
+      logger.info('Create scene request:', {
+        user: req.user ? 'authenticated' : 'not authenticated',
+        body: req.body,
+        headers: req.headers
+      });
+
       if (!req.user) {
         return res.status(401).json({
           error: 'Unauthorized',
@@ -16,6 +22,11 @@ class SceneController {
       // Validate request body
       const { error, value } = sceneValidation.create.validate(req.body);
       if (error) {
+        logger.warn('Scene validation error:', {
+          error: error.details[0].message,
+          body: req.body,
+          value: value
+        });
         return res.status(400).json({
           error: 'Validation Error',
           message: error.details[0].message,
