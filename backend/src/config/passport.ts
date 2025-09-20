@@ -47,6 +47,7 @@ if (jwtSecret) {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
         },
       });
 

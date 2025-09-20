@@ -143,3 +143,10 @@ export const preferencesValidation = {
     panelSplitRatio: Joi.number().min(0.1).max(0.9),
   }),
 };
+
+// User approval validation
+export const approvalValidation = {
+  approveUser: Joi.object({
+    userId: Joi.number().integer().positive().required(),
+  }),
+};

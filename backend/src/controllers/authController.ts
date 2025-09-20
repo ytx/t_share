@@ -91,9 +91,19 @@ class AuthController {
         displayName: user.displayName,
       });
 
-      // Redirect to frontend with token
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
-      return res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
+
+      // Check approval status and redirect accordingly
+      if (result.user.approvalStatus === 'pending') {
+        // Redirect to pending approval page
+        return res.redirect(`${frontendUrl}/auth/pending-approval`);
+      } else if (result.user.approvalStatus === 'approved') {
+        // Redirect with token for approved users
+        return res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
+      } else {
+        // Handle other statuses (shouldn't normally happen)
+        return res.redirect(`${frontendUrl}/auth/error?reason=unknown_status`);
+      }
     } catch (error: any) {
       logger.error('Google callback controller error:', error);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';

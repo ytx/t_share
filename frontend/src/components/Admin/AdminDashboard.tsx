@@ -38,6 +38,7 @@ import ProjectManagement from './ProjectManagement';
 import TagManagement from './TagManagement';
 import SceneManagement from './SceneManagement';
 import DataManagementPanel from '../Settings/DataManagementPanel';
+import OAuthSettings from './OAuthSettings';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -114,7 +115,7 @@ const AdminDashboard: React.FC = memo(() => {
           </Tooltip>
 
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            T-Share - 管理画面
+            T-SHARE - 管理画面
           </Typography>
         </Toolbar>
       </AppBar>
@@ -147,7 +148,7 @@ const AdminDashboard: React.FC = memo(() => {
             />
             <Tab
               icon={<Settings />}
-              label="設定管理"
+              label="OAuth設定"
               {...a11yProps(4)}
             />
             <Tab
@@ -175,14 +176,7 @@ const AdminDashboard: React.FC = memo(() => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={4}>
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              設定管理機能
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 2 }}>
-              システム設定のエクスポート・インポート機能を実装予定
-            </Typography>
-          </Box>
+          <OAuthSettings />
         </TabPanel>
 
         <TabPanel value={tabValue} index={5}>

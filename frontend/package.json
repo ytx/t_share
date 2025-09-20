@@ -1,7 +1,7 @@
 {
-  "name": "template-share-frontend",
+  "name": "t-share-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Template Share application",
+  "description": "Frontend for T-SHARE application",
   "type": "module",
   "scripts": {
     "dev": "vite",

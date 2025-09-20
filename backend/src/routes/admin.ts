@@ -11,6 +11,9 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  approveUser,
+  getPendingUsers,
+  getUserApprovalStats,
 } from '../controllers/adminController';
 import {
   exportAllData,
@@ -18,6 +21,11 @@ import {
   getExportStats,
   validateImportData,
 } from '../controllers/dataExportImportController';
+import {
+  getOAuthConfig,
+  updateOAuthConfig,
+  testOAuthConfig,
+} from '../controllers/oauthConfigController';
 
 const router = express.Router();
 
@@ -36,6 +44,11 @@ router.post('/users', createUser);
 router.put('/users/:id', updateUser);
 router.delete('/users/:id', deleteUser);
 
+// User approval management
+router.get('/users/pending', getPendingUsers);
+router.get('/users/approval-stats', getUserApprovalStats);
+router.post('/users/:id/approve', approveUser);
+
 // Activity monitoring
 router.get('/activity', getRecentActivity);
 
@@ -47,5 +60,10 @@ router.get('/data/export', exportAllData);
 router.post('/data/import', importAllData);
 router.get('/data/stats', getExportStats);
 router.post('/data/validate', validateImportData);
+
+// OAuth configuration management
+router.get('/oauth/google/config', getOAuthConfig);
+router.put('/oauth/google/config', updateOAuthConfig);
+router.post('/oauth/google/test', testOAuthConfig);
 
 export default router;

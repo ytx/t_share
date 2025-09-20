@@ -107,7 +107,7 @@ const Login: React.FC = () => {
         >
           <LoginIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
           <Typography component="h1" variant="h4" gutterBottom>
-            Template Share
+            T-SHARE
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             アカウントにログインしてください

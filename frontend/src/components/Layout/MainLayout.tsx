@@ -75,7 +75,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, headerExtras }) => {
           </IconButton>
 
           <Typography variant="h6" component="div">
-            T-Share
+            T-SHARE
           </Typography>
 
           {/* Header extras (project/scene selection) */}

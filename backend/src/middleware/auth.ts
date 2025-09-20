@@ -37,6 +37,7 @@ export const authenticateToken = async (
         username: true,
         displayName: true,
         isAdmin: true,
+        approvalStatus: true,
       },
     });
 
@@ -44,6 +45,14 @@ export const authenticateToken = async (
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'User not found',
+      });
+    }
+
+    // Check if user is approved (unless they are admin)
+    if (user.approvalStatus !== 'approved' && !user.isAdmin) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Account pending approval',
       });
     }
 
@@ -109,10 +118,12 @@ export const optionalAuth = async (
         username: true,
         displayName: true,
         isAdmin: true,
+        approvalStatus: true,
       },
     });
 
-    if (user) {
+    // Only set user if they exist and are approved (or admin)
+    if (user && (user.approvalStatus === 'approved' || user.isAdmin)) {
       req.user = user;
     }
   } catch (error) {

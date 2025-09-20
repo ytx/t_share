@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
           </IconButton>
 
           <Typography variant="h6" component="div">
-            T-Share
+            T-SHARE
           </Typography>
 
           {/* Project and Scene Selection */}

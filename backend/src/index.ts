@@ -13,6 +13,7 @@ dotenv.config();
 import './config/passport';
 import apiRoutes from './routes';
 import logger from './utils/logger';
+import startUserCleanupJob from './jobs/userCleanup';
 
 const app = express();
 const port = process.env.PORT || 3101;
@@ -108,6 +109,10 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
   console.log(`🔗 Network access: http://0.0.0.0:${port}/api/health`);
+
+  // Start cron jobs
+  startUserCleanupJob();
+  console.log(`⏰ Cron jobs initialized`);
 });
 
 export default app;

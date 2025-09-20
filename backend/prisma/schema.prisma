@@ -11,15 +11,19 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  username     String?
-  displayName  String?  @map("display_name")
-  googleId     String?  @unique @map("google_id")
-  passwordHash String?  @map("password_hash")
-  isAdmin      Boolean  @default(false) @map("is_admin")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  username        String?
+  displayName     String?  @map("display_name")
+  googleId        String?  @unique @map("google_id")
+  passwordHash    String?  @map("password_hash")
+  isAdmin         Boolean  @default(false) @map("is_admin")
+  approvalStatus  String   @default("pending") @map("approval_status") // pending, approved
+  appliedAt       DateTime @default(now()) @map("applied_at")
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      Int?     @map("approved_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
   createdTemplates    Template[]
@@ -32,6 +36,8 @@ model User {
   documents          Document[]
   preferences        UserPreference?
   templateVersions   TemplateVersion[]
+  approver           User?   @relation("UserApproval", fields: [approvedBy], references: [id])
+  approvedUsers      User[]  @relation("UserApproval")
 
   @@map("users")
 }

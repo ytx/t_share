@@ -12,6 +12,7 @@ export interface AuthResult {
     username?: string;
     displayName?: string;
     isAdmin: boolean;
+    approvalStatus: string;
   };
   token: string;
 }
@@ -35,13 +36,14 @@ export interface GoogleUserData {
 }
 
 class AuthService {
-  private normalizeUser(user: any): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean } {
+  private normalizeUser(user: any): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean; approvalStatus: string } {
     return {
       id: user.id,
       email: user.email,
       username: user.username ?? undefined,
       displayName: user.displayName ?? undefined,
       isAdmin: user.isAdmin,
+      approvalStatus: user.approvalStatus,
     };
   }
 
@@ -96,6 +98,7 @@ class AuthService {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
         },
       });
 
@@ -135,6 +138,7 @@ class AuthService {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
           passwordHash: true,
         },
       });
@@ -175,6 +179,7 @@ class AuthService {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
         },
       });
 
@@ -195,6 +200,7 @@ class AuthService {
               username: true,
               displayName: true,
               isAdmin: true,
+              approvalStatus: true,
             },
           });
         } else {
@@ -212,6 +218,7 @@ class AuthService {
               username: true,
               displayName: true,
               isAdmin: true,
+              approvalStatus: true,
             },
           });
 
@@ -252,6 +259,7 @@ class AuthService {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
           createdAt: true,
         },
       });
@@ -288,6 +296,7 @@ class AuthService {
           username: true,
           displayName: true,
           isAdmin: true,
+          approvalStatus: true,
         },
       });
 

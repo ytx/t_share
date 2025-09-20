@@ -21,7 +21,7 @@ export const exportAllData = async (req: Request, res: Response) => {
     const exportData = await dataExportImportService.exportAllData();
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `template-share-export-${timestamp}.json`;
+    const filename = `t-share-export-${timestamp}.json`;
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

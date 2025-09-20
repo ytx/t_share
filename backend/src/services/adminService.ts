@@ -440,6 +440,110 @@ class AdminService {
       throw error;
     }
   }
+
+  // ユーザー承認システム機能
+  async approveUser(userId: number, adminId: number) {
+    try {
+      // ユーザーが存在し、申請中であることを確認
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.approvalStatus === 'approved') {
+        throw new Error('User is already approved');
+      }
+
+      // ユーザーを承認
+      const approvedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          approvalStatus: 'approved',
+          approvedAt: new Date(),
+          approvedBy: adminId,
+        },
+        include: {
+          approver: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true,
+            }
+          }
+        }
+      });
+
+      logger.info(`User approved: ${userId} by admin ${adminId}`);
+      return approvedUser;
+    } catch (error) {
+      logger.error('Approve user failed:', error);
+      throw error;
+    }
+  }
+
+  async getPendingUsers() {
+    try {
+      const pendingUsers = await prisma.user.findMany({
+        where: {
+          approvalStatus: 'pending'
+        },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          googleId: true,
+          appliedAt: true,
+          createdAt: true,
+        },
+        orderBy: {
+          appliedAt: 'asc'
+        }
+      });
+
+      return pendingUsers;
+    } catch (error) {
+      logger.error('Get pending users failed:', error);
+      throw error;
+    }
+  }
+
+  async getUserApprovalStats() {
+    try {
+      const stats = await prisma.user.groupBy({
+        by: ['approvalStatus'],
+        _count: {
+          approvalStatus: true
+        }
+      });
+
+      const pendingCount = stats.find(s => s.approvalStatus === 'pending')?._count.approvalStatus || 0;
+      const approvedCount = stats.find(s => s.approvalStatus === 'approved')?._count.approvalStatus || 0;
+
+      // 7日以内の申請数
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const recentApplications = await prisma.user.count({
+        where: {
+          appliedAt: {
+            gte: sevenDaysAgo
+          }
+        }
+      });
+
+      return {
+        pendingCount,
+        approvedCount,
+        recentApplications,
+      };
+    } catch (error) {
+      logger.error('Get user approval stats failed:', error);
+      throw error;
+    }
+  }
 }
 
 export default new AdminService();

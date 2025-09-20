@@ -219,3 +219,52 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
+
+// ユーザー承認機能
+export const approveUser = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    const adminId = (req as any).user.id;
+    const approvedUser = await adminService.approveUser(userId, adminId);
+
+    res.json({
+      message: 'User approved successfully',
+      user: approvedUser,
+    });
+  } catch (error: any) {
+    logger.error('Approve user failed:', error);
+    if (error.message === 'User not found') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (error.message === 'User is already approved') {
+      return res.status(400).json({ error: 'User is already approved' });
+    }
+    res.status(500).json({ error: 'Failed to approve user' });
+  }
+};
+
+export const getPendingUsers = async (req: Request, res: Response) => {
+  try {
+    const pendingUsers = await adminService.getPendingUsers();
+    res.json({
+      data: pendingUsers,
+    });
+  } catch (error: any) {
+    logger.error('Get pending users failed:', error);
+    res.status(500).json({ error: 'Failed to get pending users' });
+  }
+};
+
+export const getUserApprovalStats = async (req: Request, res: Response) => {
+  try {
+    const stats = await adminService.getUserApprovalStats();
+    res.json(stats);
+  } catch (error: any) {
+    logger.error('Get user approval stats failed:', error);
+    res.status(500).json({ error: 'Failed to get approval stats' });
+  }
+};

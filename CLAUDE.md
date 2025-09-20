@@ -1,4 +1,4 @@
-# 定型文管理・共有Webアプリ (Template Share)
+# 定型文管理・共有Webアプリ (T-SHARE)
 
 ## プロジェクト概要
 定型文を管理・共有するためのWebアプリケーション。ユーザーが定型文を作成・編集・共有し、文書作成時に効率的に活用できるシステム。
@@ -58,6 +58,44 @@ docker-compose up -d
 - テスト: Jest + React Testing Library
 
 ## 最新の変更履歴 (2025-09-20)
+
+### アプリケーション名変更・OAuth設定UI実装
+1. **アプリケーション名変更（「Template Share」→ 「T-SHARE」）**
+   - package.json（frontend/backend）のname・description更新
+   - public/index.html のタイトル変更
+   - Layout.tsx、MainLayout.tsx、AdminDashboard.tsx、Dashboard.tsx のヘッダ表示名変更
+   - login.tsx のページタイトル変更
+   - global.css のコメント更新
+   - logger.ts のサービス名変更
+   - dataExportImportController.ts のエクスポートファイル名変更
+
+2. **Google OAuth設定UI実装**
+   - OAuthSettings.tsx コンポーネント新規作成
+   - 基本設定（有効/無効、クライアントID/シークレット、リダイレクトURI）
+   - スコープ設定（推奨・追加スコープの選択UI）
+   - 自動承認設定（新規ユーザーの自動承認可否）
+   - 設定テスト機能・保存機能
+   - セキュリティ注意事項・設定手順の表示
+
+3. **OAuth設定バックエンドAPI実装**
+   - oauthConfigController.ts 新規作成
+   - GET /api/admin/oauth/google/config - 設定取得
+   - PUT /api/admin/oauth/google/config - 設定更新
+   - POST /api/admin/oauth/google/test - 設定テスト
+   - Zodバリデーションによる入力検証
+   - クライアントシークレットのマスキング機能
+
+4. **管理画面統合**
+   - AdminDashboard.tsx にOAuth設定タブ追加
+   - admin.ts ルーティングにOAuth関連エンドポイント追加
+   - 認証・管理者権限チェック適用
+
+5. **認証問題修正**
+   - OAuth設定コンポーネントの認証方式をlocalStorage → Redux Storeに統一
+   - getAuthHeaders関数でuseSelector使用に変更
+   - 他の管理コンポーネントとの認証パターン統一
+
+## 以前の変更履歴 (2025-09-20)
 
 ### 右側パネルの垂直分割機能の実装
 1. **SplitPaneを使った上下分割**
