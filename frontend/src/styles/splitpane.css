@@ -23,11 +23,13 @@
 
 .Resizer.horizontal {
   height: 8px !important;
+  width: 100% !important;
   margin: -4px 0 !important;
+  cursor: row-resize !important;
 }
 
-/* リサイザー上にドラッグインジケーターを表示 */
-.Resizer::after {
+/* 垂直リサイザー（左右分割）のドラッグインジケーター */
+.Resizer.vertical::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -45,9 +47,38 @@
   border-radius: 1px;
 }
 
-.Resizer:hover::after {
+.Resizer.vertical:hover::after {
   background: repeating-linear-gradient(
     to bottom,
+    #666 0px,
+    #666 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* 水平リサイザー（上下分割）のドラッグインジケーター */
+.Resizer.horizontal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 3px;
+  background: repeating-linear-gradient(
+    to right,
+    #999 0px,
+    #999 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  border-radius: 1px;
+}
+
+.Resizer.horizontal:hover::after {
+  background: repeating-linear-gradient(
+    to right,
     #666 0px,
     #666 2px,
     transparent 2px,

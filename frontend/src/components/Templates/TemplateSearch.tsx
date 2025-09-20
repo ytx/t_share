@@ -16,7 +16,7 @@ import {
   Pagination,
   IconButton,
 } from '@mui/material';
-import { Search, Clear, Add, ExpandMore, ExpandLess, Label, Tune } from '@mui/icons-material';
+import { Search, Clear, Add, ExpandMore, ExpandLess, LocalOffer, Tune, History } from '@mui/icons-material';
 import { useSearchTemplatesQuery, useDeleteTemplateMutation } from '../../store/api/templateApi';
 import { useGetAllScenesQuery } from '../../store/api/sceneApi';
 import { useGetAllTagsQuery } from '../../store/api/tagApi';
@@ -28,14 +28,12 @@ import TemplateEditModal from './TemplateEditModal';
 interface TemplateSearchProps {
   onTemplateSelect?: (template: Template) => void;
   onCreateTemplate?: () => void;
-  initialSceneId?: number;
   adminMode?: boolean;
 }
 
 const TemplateSearch: React.FC<TemplateSearchProps> = ({
   onTemplateSelect,
   onCreateTemplate,
-  initialSceneId,
   adminMode = false,
 }) => {
   // Initialize with empty values, restore later
@@ -54,7 +52,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
   // 初回マウントかどうかを判別するRef
   const isInitialMount = React.useRef(true);
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = React.useState(false);
-  const previousInitialSceneId = React.useRef(initialSceneId);
 
   // ヘッダーが復元された後、少し待ってから検索フィルターを復元
   React.useEffect(() => {
@@ -76,24 +73,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     }
   }, [hasRestoredFromStorage]);
 
-  // Update filters when initialSceneId changes (but not during initial restoration)
-  React.useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-
-    // 実際に値が変更されたかチェック
-    if (previousInitialSceneId.current === initialSceneId) {
-      return;
-    }
-
-    if (hasRestoredFromStorage) {
-      // ヘッダーでシーンが変更された時のみ、検索フィルターも更新
-      setFilters(prev => ({ ...prev, sceneId: initialSceneId, page: 1 }));
-      previousInitialSceneId.current = initialSceneId;
-    }
-  }, [initialSceneId, hasRestoredFromStorage]);
 
   // Update filters when adminMode changes
   React.useEffect(() => {
@@ -103,9 +82,9 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
   // 編集モーダルの状態
   const [showEditModal, setShowEditModal] = useState(false);
   const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
+  const [showKeywordSearch, setShowKeywordSearch] = useState(false);
+  const [showTagSearch, setShowTagSearch] = useState(false);
 
-  // 展開状態の管理
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const {
     data: templatesResponse,
@@ -219,11 +198,25 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
 
         {/* Filters Row */}
         <Box sx={{ display: 'flex', gap: 1, mb: 0, flexWrap: 'wrap' }}>
+          {/* Keyword Search Button */}
+          <IconButton
+            size="small"
+            onClick={() => setShowKeywordSearch(!showKeywordSearch)}
+            title="キーワード検索"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'action.hover' },
+              bgcolor: filters.keyword ? 'action.selected' : 'transparent',
+            }}
+          >
+            <Search />
+          </IconButton>
+
           {/* Scene Filter */}
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>シーン</InputLabel>
             <Select
-              value={filters.sceneId || ''}
+              value={scenes.length > 0 && filters.sceneId && scenes.some(s => s.id === filters.sceneId) ? filters.sceneId : ''}
               label="シーン"
               onChange={(e) => handleFilterChange({ sceneId: e.target.value as number || undefined })}
             >
@@ -237,30 +230,18 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           </FormControl>
 
 
-          {/* Sort Filter */}
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>並び順</InputLabel>
-            <Select
-              value={filters.sortBy || 'updated'}
-              label="並び順"
-              onChange={(e) => handleFilterChange({ sortBy: e.target.value as any })}
-            >
-              <MenuItem value="updated">更新日時</MenuItem>
-              <MenuItem value="created">作成日時</MenuItem>
-              <MenuItem value="lastUsed">利用日時</MenuItem>
-            </Select>
-          </FormControl>
 
+          {/* Tag Search Button */}
           <IconButton
             size="small"
-            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-            title="検索・フィルター"
+            onClick={() => setShowTagSearch(!showTagSearch)}
+            title="タグ検索"
             sx={{
               color: 'text.secondary',
               '&:hover': { bgcolor: 'action.hover' },
             }}
           >
-            <Tune />
+            <LocalOffer />
           </IconButton>
 
           <IconButton
@@ -272,65 +253,82 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           </IconButton>
         </Box>
 
-        {/* Combined Search and Filter Section */}
-        <Box sx={{ mb: 1 }}>
+      </Paper>
 
-          {isFiltersExpanded && (
-            <Box sx={{ mt: 0.5, pl: 0 }}>
-              {/* Keyword Search */}
-              <TextField
-                fullWidth
-                placeholder="キーワードで検索..."
-                value={filters.keyword || ''}
-                onChange={(e) => handleFilterChange({ keyword: e.target.value })}
-                size="small"
-                sx={{ mb: 1.5, mt: 2 }}
-              />
+      {/* Keyword Search Section */}
+      {showKeywordSearch && (
+        <Box sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <TextField
+              placeholder="キーワードで検索..."
+              value={filters.keyword || ''}
+              onChange={(e) => handleFilterChange({ keyword: e.target.value })}
+              autoFocus
+              size="small"
+              sx={{ flexGrow: 1 }}
+            />
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>並び順</InputLabel>
+              <Select
+                value={filters.sortBy || 'updated'}
+                label="並び順"
+                onChange={(e) => handleFilterChange({ sortBy: e.target.value as any })}
+              >
+                <MenuItem value="updated">更新日時</MenuItem>
+                <MenuItem value="created">作成日時</MenuItem>
+                <MenuItem value="lastUsed">利用日時</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+      )}
 
-              {/* Tag Filter */}
-              {tags.length > 0 && (
-                <Box>
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 0.5, display: 'block' }}>
-                    タグフィルター
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {tags.slice(0, 10).map(tag => (
-                      <Chip
-                        key={tag.id}
-                        label={tag.name}
-                        size="small"
-                        clickable
-                        color={filters.tagIds?.includes(tag.id) ? 'primary' : filters.excludedTagIds?.includes(tag.id) ? 'error' : 'default'}
-                        onClick={() => handleTagToggle(tag.id)}
-                        sx={{
-                          bgcolor: filters.tagIds?.includes(tag.id)
-                            ? undefined
-                            : filters.excludedTagIds?.includes(tag.id)
-                              ? '#ffebee'
-                              : tag.color + '20',
-                          borderColor: filters.excludedTagIds?.includes(tag.id)
-                            ? '#f44336'
-                            : tag.color,
-                          fontSize: '0.7rem',
-                          height: 24,
-                          textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
-                          '& .MuiChip-label': {
-                            textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
-                          },
-                          '&.MuiChip-colorError': {
-                            color: '#d32f2f',
-                            borderColor: '#d32f2f',
-                          },
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              )}
+      {/* Tag Search Section */}
+      {showTagSearch && (
+        <Box sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          {tags.length > 0 ? (
+            <Box>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                タグをクリックして検索条件を設定してください（青：含む、赤：除外）
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {tags.map(tag => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.name}
+                    size="small"
+                    clickable
+                    color={filters.tagIds?.includes(tag.id) ? 'primary' : filters.excludedTagIds?.includes(tag.id) ? 'error' : 'default'}
+                    onClick={() => handleTagToggle(tag.id)}
+                    sx={{
+                      bgcolor: filters.tagIds?.includes(tag.id)
+                        ? undefined
+                        : filters.excludedTagIds?.includes(tag.id)
+                          ? '#ffebee'
+                          : tag.color + '20',
+                      borderColor: filters.excludedTagIds?.includes(tag.id)
+                        ? '#f44336'
+                        : tag.color,
+                      textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
+                      '& .MuiChip-label': {
+                        textDecoration: filters.excludedTagIds?.includes(tag.id) ? 'line-through' : 'none',
+                      },
+                      '&.MuiChip-colorError': {
+                        color: '#d32f2f',
+                        borderColor: '#d32f2f',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
             </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              タグがありません
+            </Typography>
           )}
         </Box>
-      </Paper>
+      )}
 
       {/* Results */}
       <Box id="search-results-container" sx={{ flexGrow: 1, overflow: 'auto', minHeight: 0 }}>
@@ -384,6 +382,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
         onSuccess={handleEditSuccess}
         template={templateToEdit}
       />
+
     </Box>
   );
 };

@@ -15,7 +15,7 @@ ace.config.set('basePath', '/node_modules/ace-builds/src-noconflict/')
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <CustomThemeProvider>
           <App />
         </CustomThemeProvider>

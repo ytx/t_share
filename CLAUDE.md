@@ -59,6 +59,47 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-20)
 
+### 右側パネルの垂直分割機能の実装
+1. **SplitPaneを使った上下分割**
+   - 右側パネルをSplitPaneで上下に分割
+   - 上部：既存のDocumentEditor（保存・コピー・クリアボタン付き）
+   - 下部：新しいSimpleMarkdownEditor（ボタンなし）
+   - リサイザーバーでの動的サイズ調整機能
+
+2. **SimpleMarkdownEditorコンポーネントの新規作成**
+   - DocumentEditorから機能を簡素化したシンプル版
+   - 保存・コピー・クリアボタンを削除
+   - プロジェクト連動でlocalStorageに自動保存
+   - プロジェクト切り替え時の内容自動復元
+   - 500msデバウンスでの自動保存
+
+3. **プロジェクト連動データ管理**
+   - `projectEditorContent`をlocalStorageスキーマに追加
+   - プロジェクトIDをキーとした内容保存・復元
+   - プロジェクト未選択時の適切なプレースホルダー表示
+   - リロード時の内容復元機能
+
+4. **ACEエディタの高さ調整問題の修正**
+   - MarkdownEditorコンポーネントのflexbox対応
+   - Paper・Boxコンポーネントの高さ継承修正
+   - SplitPaneサイズ変更に対応した動的高さ調整
+   - DocumentEditorコンテナの高さ計算修正
+
+5. **UI/UX改善**
+   - 水平リサイザーのスタイル修正（縦表示 → 横表示）
+   - SplitPaneのpaneStyleとresizerStyleの最適化
+   - エディタコンテナのmargin・paddingの調整
+   - React Router Future Flagsの追加
+   - MUI Selectコンポーネントの値検証修正
+
+6. **技術的修正**
+   - 固有のeditorIdでACEエディタのID重複回避
+   - flexboxレイアウトでの高さ継承チェーン修正
+   - MarkdownEditor内のPaperコンポーネントpadding調整
+   - overflow: 'hidden'とminHeight: 0の適切な配置
+
+## 以前の変更履歴 (2025-09-20)
+
 ### 文書参照モーダルウィンドウの実装
 1. **DocumentViewerModalコンポーネントの新規作成**
    - 保存された全文書の参照・検索・閲覧機能

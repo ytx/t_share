@@ -52,6 +52,7 @@ interface MarkdownEditorProps {
   showWhitespace?: boolean;
   readOnly?: boolean;
   onCreateTemplate?: (selectedText: string) => void;
+  editorId?: string;
 }
 
 interface MarkdownEditorRef {
@@ -73,6 +74,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   showWhitespace = false,
   readOnly = false,
   onCreateTemplate,
+  editorId,
 }, ref) => {
   const [contextMenu, setContextMenu] = useState<{
     position: { top: number; left: number } | null;
@@ -194,16 +196,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   }, [aceTheme]);
 
   const renderEditor = () => (
-    <Box onContextMenu={handleContextMenu}>
+    <Box onContextMenu={handleContextMenu} sx={{ height: '100%' }}>
       <AceEditor
         ref={aceEditorRef}
         mode="markdown"
         theme={aceTheme}
         value={value}
         onChange={onChange}
-        name="markdown-editor"
+        name={editorId || "markdown-editor"}
         width="100%"
-        height={typeof height === 'number' ? `${height}px` : height}
+        height="100%"
         placeholder={placeholder}
         setOptions={editorOptions}
         readOnly={readOnly}
@@ -217,9 +219,9 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
 
 
   return (
-    <Paper sx={{ height: typeof height === 'number' ? `${height + 32}px` : `calc(${height} + 32px)`, overflow: 'hidden' }}>
+    <Paper sx={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Editor Content */}
-      <Box sx={{ p: 2, height: '100%', overflow: 'hidden' }}>
+      <Box sx={{ p: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {renderEditor()}
       </Box>
 

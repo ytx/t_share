@@ -14,9 +14,8 @@ import {
 import {
   Save,
   ContentCopy,
-  FolderOpen,
   Clear,
-  ViewList,
+  History,
 } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateSelectionModal from '../Templates/TemplateSelectionModal';
@@ -61,7 +60,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastClickTimeRef = useRef<number>(0);
 
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   const markdownEditorRef = useRef<any>(null);
@@ -101,10 +99,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [userPreferences]);
 
-  // プロジェクト変更時に選択された文書をリセット
-  React.useEffect(() => {
-    setSelectedDocumentId('');
-  }, [selectedProjectId]);
 
   // エディタ内容変更時にローカルストレージに保存
   React.useEffect(() => {
@@ -273,17 +267,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // 全文書リストをモーダル用に取得
   const allDocuments = projectDocuments?.data || [];
 
-  const handleDocumentSelect = useCallback((documentId: string) => {
-    const document = currentProjectDocuments.find(doc => doc.id.toString() === documentId);
-    if (document) {
-      setContent(document.content);
-      setSelectedDocumentId(documentId);
-    }
-  }, [currentProjectDocuments]);
 
   const handleClear = useCallback(() => {
     setContent('');
-    setSelectedDocumentId('');
   }, []);
 
   const handleOpenDocumentViewer = useCallback(() => {
@@ -383,10 +369,10 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
 
       {/* Editor with Action Buttons */}
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
         {/* Action Buttons - positioned absolutely in top right */}
         <Box sx={{
           position: 'absolute',
@@ -401,38 +387,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           p: 0.5,
           alignItems: 'center'
         }}>
-          <IconButton
-            size="small"
-            onClick={handleOpenDocumentViewer}
-            sx={{
-              bgcolor: 'action.hover',
-              '&:hover': {
-                bgcolor: 'action.selected',
-              }
-            }}
-            title="全ての文書を表示"
-          >
-            <ViewList />
-          </IconButton>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>保存された文書</InputLabel>
-            <Select
-              value={selectedDocumentId}
-              onChange={(e) => handleDocumentSelect(e.target.value as string)}
-              label="保存された文書"
-              startAdornment={<FolderOpen sx={{ mr: 1, fontSize: 16 }} />}
-              disabled={currentProjectDocuments.length === 0}
-            >
-              <MenuItem value="">
-                <em>文書を選択</em>
-              </MenuItem>
-              {currentProjectDocuments.map((doc) => (
-                <MenuItem key={doc.id} value={doc.id.toString()}>
-                  {doc.title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
           <Button
             variant="contained"
@@ -456,18 +410,19 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </Button>
         </Box>
 
-        <Box sx={{ pt: 6 }}>
+        <Box sx={{ pt: 6, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <MarkdownEditor
             ref={markdownEditorRef}
             value={content}
             onChange={setContent}
-            height="calc(100vh - 120px)"
+            height="100%"
             aceTheme={themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme}
             showLineNumbers={editorSettings.showLineNumbers}
             wordWrap={editorSettings.wordWrap}
             fontSize={editorSettings.fontSize}
             keybinding={editorSettings.keybinding}
             showWhitespace={editorSettings.showWhitespace}
+            editorId="document-markdown-editor"
             onCreateTemplate={(selectedText) => {
               setSelectedText(selectedText);
               setShowTemplateCreate(true);

@@ -1,29 +1,31 @@
 import React, { useState, useCallback } from 'react';
 import { Box, AppBar, Toolbar, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
-import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount } from '@mui/icons-material';
+import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount, History } from '@mui/icons-material';
 import ThemeToggleButton from '../components/Common/ThemeToggleButton';
 import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
 import TemplateSearch from '../components/Templates/TemplateSearch';
 import DocumentEditor from '../components/Editor/DocumentEditor';
+import SimpleMarkdownEditor from '../components/Editor/SimpleMarkdownEditor';
 import TemplateCreateModal from '../components/Templates/TemplateCreateModal';
 import { Template } from '../types';
 import { useUseTemplateMutation } from '../store/api/templateApi';
-import { useGetAllScenesQuery } from '../store/api/sceneApi';
 import { useGetAllProjectsQuery } from '../store/api/projectApi';
+import { useSearchDocumentsQuery } from '../store/api/documentApi';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import SettingsModal from '../components/Settings/SettingsModal';
-import { getFromLocalStorage, saveProjectSelection, saveSceneSelection, saveAdminMode } from '../utils/localStorage';
+import DocumentViewerModal from '../components/Documents/DocumentViewerModal';
+import { getFromLocalStorage, saveProjectSelection, saveAdminMode } from '../utils/localStorage';
 
 const Dashboard: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [splitSize, setSplitSize] = useState('40%');
+  const [verticalSplitSize, setVerticalSplitSize] = useState('60%');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Initialize from localStorage
   const storedData = getFromLocalStorage();
-  const [selectedSceneId, setSelectedSceneId] = useState<number | undefined>(storedData.selectedSceneId);
   const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(storedData.selectedProjectId);
 
   // Header state
@@ -32,10 +34,11 @@ const Dashboard: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(storedData.adminMode || false);
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
 
   const [useTemplate] = useUseTemplateMutation();
-  const { data: scenesResponse } = useGetAllScenesQuery();
   const { data: projectsResponse } = useGetAllProjectsQuery();
+  const { data: documentsResponse } = useSearchDocumentsQuery({});
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template);
@@ -97,8 +100,19 @@ const Dashboard: React.FC = () => {
     saveAdminMode(newAdminMode);
   };
 
-  const scenes = scenesResponse?.scenes || [];
+  const handleOpenDocumentViewer = () => {
+    setDocumentViewerOpen(true);
+  };
+
+  const handleOpenDocument = (document: any) => {
+    // This function handles opening a document in the editor
+    console.log('Opening document:', document);
+    setDocumentViewerOpen(false);
+    // TODO: Implement document opening logic
+  };
+
   const projects = projectsResponse?.data || [];
+  const documents = documentsResponse?.data || [];
 
   return (
     <Box id="dashboard-container" sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -124,7 +138,7 @@ const Dashboard: React.FC = () => {
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel sx={{ color: 'inherit' }}>プロジェクト</InputLabel>
               <Select
-                value={selectedProjectId || ''}
+                value={projects.length > 0 && selectedProjectId && projects.some(p => p.id === selectedProjectId) ? selectedProjectId : ''}
                 label="プロジェクト"
                 onChange={(e) => {
                   const newProjectId = e.target.value as number || undefined;
@@ -152,37 +166,16 @@ const Dashboard: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel sx={{ color: 'inherit' }}>シーン選択</InputLabel>
-              <Select
-                value={selectedSceneId || ''}
-                label="シーン選択"
-                onChange={(e) => {
-                  const newSceneId = e.target.value as number || undefined;
-                  setSelectedSceneId(newSceneId);
-                  saveSceneSelection(newSceneId);
-                }}
-                sx={{
-                  color: 'inherit',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.23)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.4)',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'inherit',
-                  }
-                }}
-              >
-                <MenuItem value="">全てのシーン</MenuItem>
-                {scenes.map(scene => (
-                  <MenuItem key={scene.id} value={scene.id}>
-                    {scene.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+
+            {/* Document Viewer Button */}
+            <IconButton
+              color="inherit"
+              onClick={handleOpenDocumentViewer}
+              title="全ての文書"
+              sx={{ ml: 2 }}
+            >
+              <History />
+            </IconButton>
           </Box>
 
           {/* Navigation buttons */}
@@ -191,12 +184,6 @@ const Dashboard: React.FC = () => {
           </IconButton>
 
           <ThemeToggleButton size="medium" />
-
-          {user?.isAdmin && (
-            <IconButton color="inherit" onClick={handleAdminDashboard} sx={{ mr: 1 }}>
-              <AdminPanelSettings />
-            </IconButton>
-          )}
 
           {isAuthenticated ? (
             <div>
@@ -255,33 +242,38 @@ const Dashboard: React.FC = () => {
           )}
 
           {user?.isAdmin && (
-            <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={adminMode}
-                    onChange={toggleAdminMode}
-                    size="small"
-                    sx={{
-                      '& .MuiSwitch-switchBase': {
-                        color: 'white',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: 'white',
-                      },
-                      '& .MuiSwitch-track': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                      },
-                    }}
-                  />
-                }
-                label=""
-                sx={{
-                  m: 0,
-                  ml: 1,
-                }}
-              />
-            </Tooltip>
+            <>
+              <Tooltip title={adminMode ? "全ての定型文を表示中" : "公開・自分の定型文のみ表示中"}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={adminMode}
+                      onChange={toggleAdminMode}
+                      size="small"
+                      sx={{
+                        '& .MuiSwitch-switchBase': {
+                          color: 'white',
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: 'white',
+                        },
+                        '& .MuiSwitch-track': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                        },
+                      }}
+                    />
+                  }
+                  label=""
+                  sx={{
+                    m: 0,
+                    ml: 1,
+                  }}
+                />
+              </Tooltip>
+              <IconButton color="inherit" onClick={handleAdminDashboard} sx={{ ml: 1 }}>
+                <AdminPanelSettings />
+              </IconButton>
+            </>
           )}
         </Toolbar>
       </AppBar>
@@ -297,7 +289,7 @@ const Dashboard: React.FC = () => {
             defaultSize={splitSize}
             onChange={(size) => setSplitSize(typeof size === 'string' ? size : `${size}px`)}
             style={{ height: 'calc(100vh - 64px)' }}
-            paneStyle={{ overflow: 'hidden' }}
+            paneStyle={{ overflow: 'hidden', margin: 0 }}
             resizerStyle={{
               background: '#ddd',
               width: '8px',
@@ -314,22 +306,55 @@ const Dashboard: React.FC = () => {
               <TemplateSearch
                 onTemplateSelect={handleTemplateSelect}
                 onCreateTemplate={handleCreateTemplate}
-                initialSceneId={selectedSceneId}
                 adminMode={user?.isAdmin ? adminMode : false}
               />
             </Box>
 
-            {/* Right Panel - Document Editor */}
-            <Box sx={{ height: '100%', p: 2, bgcolor: 'background.paper', overflow: 'hidden' }}>
-              <DocumentEditor
-                selectedTemplate={selectedTemplate}
-                onSaveDocument={handleSaveDocument}
-                onUseTemplate={handleUseTemplate}
-                onTemplateProcessed={handleTemplateProcessed}
-                selectedProjectId={selectedProjectId}
-                selectedSceneId={selectedSceneId}
-              />
-            </Box>
+            {/* Right Panel - Vertical Split */}
+            <SplitPane
+              split="horizontal"
+              minSize={200}
+              maxSize={-200}
+              defaultSize="60%"
+              onChange={(size) => setVerticalSplitSize(typeof size === 'string' ? size : `${size}px`)}
+              style={{ height: '100%' }}
+              paneStyle={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: 0 }}
+              resizerStyle={{
+                background: '#ddd',
+                height: '8px',
+                width: '100%',
+                cursor: 'row-resize',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                position: 'relative',
+                transition: 'background-color 0.2s ease',
+                opacity: 1,
+                zIndex: 1,
+                boxSizing: 'border-box',
+                userSelect: 'none',
+                outline: 'none',
+              }}
+            >
+              {/* Upper Panel - Document Editor */}
+              <Box sx={{ height: '100%', p: 2, bgcolor: 'background.paper', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  <DocumentEditor
+                    selectedTemplate={selectedTemplate}
+                    onSaveDocument={handleSaveDocument}
+                    onUseTemplate={handleUseTemplate}
+                    onTemplateProcessed={handleTemplateProcessed}
+                    selectedProjectId={selectedProjectId}
+                  />
+                </Box>
+              </Box>
+
+              {/* Lower Panel - Simple ACE Editor */}
+              <Box sx={{ height: '100%', p: 2, bgcolor: 'background.default', overflow: 'hidden' }}>
+                <SimpleMarkdownEditor
+                  selectedProjectId={selectedProjectId}
+                />
+              </Box>
+            </SplitPane>
           </SplitPane>
           </Box>
         </Box>
@@ -347,7 +372,13 @@ const Dashboard: React.FC = () => {
           // Refresh template list would be handled by RTK Query cache invalidation
           console.log('定型文が正常に作成されました');
         }}
-        initialSceneId={selectedSceneId}
+      />
+
+      <DocumentViewerModal
+        open={documentViewerOpen}
+        onClose={() => setDocumentViewerOpen(false)}
+        documents={documents}
+        onOpenDocument={handleOpenDocument}
       />
     </Box>
   );

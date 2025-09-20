@@ -4,6 +4,7 @@ export interface AppLocalStorageData {
   themeMode?: 'light' | 'dark';
   adminMode?: boolean;
   editorContent?: string;
+  projectEditorContent?: Record<number, string>;
   searchFilters?: {
     sceneId?: number;
     sortBy?: string;
