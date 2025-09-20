@@ -133,50 +133,7 @@ const Dashboard: React.FC = () => {
             T-SHARE
           </Typography>
 
-          {/* Project and Scene Selection */}
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 2, ml: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel sx={{ color: 'inherit' }}>プロジェクト</InputLabel>
-              <Select
-                value={projects.length > 0 && selectedProjectId && projects.some(p => p.id === selectedProjectId) ? selectedProjectId : ''}
-                label="プロジェクト"
-                onChange={(e) => {
-                  const newProjectId = e.target.value as number || undefined;
-                  setSelectedProjectId(newProjectId);
-                  saveProjectSelection(newProjectId);
-                }}
-                sx={{
-                  color: 'inherit',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.23)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.4)',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'inherit',
-                  }
-                }}
-              >
-                <MenuItem value="">プロジェクトなし</MenuItem>
-                {projects.map(project => (
-                  <MenuItem key={project.id} value={project.id}>
-                    {project.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Document Viewer Button */}
-            <IconButton
-              color="inherit"
-              onClick={handleOpenDocumentViewer}
-              title="全ての文書"
-              sx={{ ml: 2 }}
-            >
-              <History />
-            </IconButton>
-          </Box>
+          <Box sx={{ flexGrow: 1 }} />
 
           {/* Navigation buttons */}
           <IconButton color="inherit" onClick={() => setSettingsOpen(true)} sx={{ mr: 1 }}>
@@ -344,6 +301,12 @@ const Dashboard: React.FC = () => {
                     onUseTemplate={handleUseTemplate}
                     onTemplateProcessed={handleTemplateProcessed}
                     selectedProjectId={selectedProjectId}
+                    projects={projects}
+                    onProjectChange={(projectId) => {
+                      setSelectedProjectId(projectId);
+                      saveProjectSelection(projectId);
+                    }}
+                    onOpenDocumentViewer={handleOpenDocumentViewer}
                   />
                 </Box>
               </Box>

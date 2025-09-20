@@ -59,6 +59,30 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-20)
 
+### UI調整・レイアウト改善
+1. **検索フィルター領域の調整**
+   - TemplateSearch.tsx の検索条件レイアウト改善
+   - シーン選択の最大幅を400pxに設定（maxWidth: 400）
+   - 虫眼鏡、シーン選択、タグ、クリアボタンを1行に適切に配置
+   - フレックスボックスレイアウトによる応答性向上
+
+2. **プロジェクト選択機能の統合・移動**
+   - Dashboard.tsx からプロジェクト選択を DocumentEditor に移動
+   - ACE Editor の左上に配置し、保存・コピー・クリアボタンと同列化
+   - プロジェクト選択のスタイルを検索条件のシーンと統一
+   - 「プロジェクト」ラベルを削除し、minWidth: 200px を設定
+   - 機能的統合による一貫したUX提供
+
+3. **DocumentEditor アクションボタン領域の調整**
+   - プロジェクト選択と保存・コピー・クリアボタンを囲む div の padding-top を 0 に設定
+   - `p: 0.5` を `pt: 0, px: 0.5, pb: 0.5` に変更
+   - レイアウトの密度向上とボタン領域の最適化
+
+4. **DocumentEditor Props の拡張**
+   - DocumentEditorProps に projects, onProjectChange, onOpenDocumentViewer を追加
+   - プロジェクト連動機能の完全統合
+   - Dashboard から DocumentEditor への責務移譲完了
+
 ### アプリケーション名変更・OAuth設定UI実装
 1. **アプリケーション名変更（「Template Share」→ 「T-SHARE」）**
    - package.json（frontend/backend）のname・description更新

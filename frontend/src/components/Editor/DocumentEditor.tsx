@@ -40,6 +40,9 @@ interface DocumentEditorProps {
   onTemplateProcessed?: () => void;
   selectedProjectId?: number;
   selectedSceneId?: number;
+  projects?: Array<{ id: number; name: string }>;
+  onProjectChange?: (projectId: number | undefined) => void;
+  onOpenDocumentViewer?: () => void;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
@@ -49,6 +52,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   onTemplateProcessed,
   selectedProjectId,
   selectedSceneId,
+  projects = [],
+  onProjectChange,
+  onOpenDocumentViewer,
 }) => {
   // Initialize editor content from localStorage
   const storedData = getFromLocalStorage();
@@ -373,10 +379,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
       {/* Editor with Action Buttons */}
       <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        {/* Action Buttons - positioned absolutely in top right */}
+        {/* Action Buttons - positioned absolutely in top */}
         <Box sx={{
           position: 'absolute',
           top: 0,
+          left: 8,
           right: 8,
           zIndex: 10,
           display: 'flex',
@@ -384,30 +391,70 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           bgcolor: 'background.paper',
           borderRadius: 1,
           boxShadow: 'none',
-          p: 0.5,
-          alignItems: 'center'
+          pt: 0,
+          px: 0.5,
+          pb: 0.5,
+          alignItems: 'center',
+          justifyContent: 'space-between'
         }}>
+          {/* Left side - Project Selection and Document Viewer */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ flex: 1, maxWidth: 400, minWidth: 200 }}>
+              <Select
+                value={projects.length > 0 && selectedProjectId && projects.some(p => p.id === selectedProjectId) ? selectedProjectId : ''}
+                onChange={(e) => {
+                  const newProjectId = e.target.value as number || undefined;
+                  if (onProjectChange) {
+                    onProjectChange(newProjectId);
+                  }
+                }}
+                displayEmpty
+              >
+                <MenuItem value="">プロジェクトなし</MenuItem>
+                {projects.map(project => (
+                  <MenuItem key={project.id} value={project.id}>
+                    {project.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          <Button
-            variant="contained"
-            startIcon={<Save />}
-            onClick={handleSaveAndCopy}
-            disabled={!content.trim()}
-            size="small"
-          >
-            保存・コピー
-          </Button>
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (onOpenDocumentViewer) {
+                  onOpenDocumentViewer();
+                }
+              }}
+              title="全ての文書"
+            >
+              <History />
+            </IconButton>
+          </Box>
 
-          <Button
-            variant="outlined"
-            startIcon={<Clear />}
-            onClick={handleClear}
-            disabled={!content.trim()}
-            size="small"
-            color="secondary"
-          >
-            クリア
-          </Button>
+          {/* Right side - Save and Clear buttons */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button
+              variant="contained"
+              startIcon={<Save />}
+              onClick={handleSaveAndCopy}
+              disabled={!content.trim()}
+              size="small"
+            >
+              保存・コピー
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<Clear />}
+              onClick={handleClear}
+              disabled={!content.trim()}
+              size="small"
+              color="secondary"
+            >
+              クリア
+            </Button>
+          </Box>
         </Box>
 
         <Box sx={{ pt: 6, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

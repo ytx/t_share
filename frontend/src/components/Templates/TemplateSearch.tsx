@@ -197,7 +197,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
 
 
         {/* Filters Row */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 0, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 0, alignItems: 'center', width: '100%' }}>
           {/* Keyword Search Button */}
           <IconButton
             size="small"
@@ -213,7 +213,7 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           </IconButton>
 
           {/* Scene Filter */}
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+          <FormControl size="small" sx={{ flex: 1, maxWidth: 400 }}>
             <InputLabel>シーン</InputLabel>
             <Select
               value={scenes.length > 0 && filters.sceneId && scenes.some(s => s.id === filters.sceneId) ? filters.sceneId : ''}
@@ -228,8 +228,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
               ))}
             </Select>
           </FormControl>
-
-
 
           {/* Tag Search Button */}
           <IconButton
