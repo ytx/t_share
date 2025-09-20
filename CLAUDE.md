@@ -59,6 +59,13 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-20)
 
+### 文書参照モーダルの表示制限解除
+1. **20件制限の削除**
+   - Dashboard.tsx でuseSearchDocumentsQuery の呼び出しパラメータを空オブジェクト `{}` から `{ limit: 100 }` に変更
+   - バックエンドAPI（documentController.ts）でデフォルト制限が20件に設定されていたため、最大制限値100件を指定
+   - DocumentViewerModal で保存されている全ての文書を参照可能に変更
+   - frontend/src/pages/Dashboard.tsx:41 での修正完了
+
 ### Ansible デプロイメント環境構築
 1. **Ubuntu 24.04 対応 Ansible Playbook 実装**
    - ステージング環境：t_share9.trusted-host.online (mainブランチ)

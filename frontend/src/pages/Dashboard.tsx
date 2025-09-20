@@ -38,7 +38,7 @@ const Dashboard: React.FC = () => {
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: projectsResponse } = useGetAllProjectsQuery();
-  const { data: documentsResponse } = useSearchDocumentsQuery({});
+  const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 });
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template);
