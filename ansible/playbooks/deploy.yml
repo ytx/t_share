@@ -1,0 +1,300 @@
+---
+- name: Deploy T-SHARE Application
+  hosts: all
+  become: yes
+  vars_files:
+    - "../secrets/{{ group_names[0] }}_secrets.yml"
+
+  pre_tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  tasks:
+    # System Setup
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - nginx
+          - git
+          - curl
+          - ufw
+          - logrotate
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        system: yes
+        shell: /bin/bash
+        home: "{{ app_dir }}"
+        create_home: no
+
+    - name: Create data directory
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Create PostgreSQL data directory
+      file:
+        path: "{{ db_data_dir }}"
+        state: directory
+        owner: "999"  # PostgreSQL container user
+        group: "999"
+        mode: '0750'
+
+    - name: Create log directory
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Create SSL certificate directory
+      file:
+        path: "{{ ssl_cert_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # SSL Certificate Setup
+    - name: Copy SSL certificates
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - { src: "~/certs/trusted/server.crt", dest: "{{ ssl_cert_file }}" }
+        - { src: "~/certs/trusted/ca.crt", dest: "{{ ssl_ca_file }}" }
+      notify: restart nginx
+
+    - name: Copy SSL private key
+      copy:
+        src: "~/certs/trusted/nopass.key"
+        dest: "{{ ssl_key_file }}"
+        owner: root
+        group: root
+        mode: '0600'
+      notify: restart nginx
+
+    # Application Code
+    - name: Clone application repository
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ git_branch }}"
+        force: yes
+      become_user: "{{ app_user }}"
+      notify: rebuild application
+
+    - name: Fix backend Dockerfile port
+      lineinfile:
+        path: "{{ app_dir }}/backend/Dockerfile"
+        regexp: '^EXPOSE 5000'
+        line: 'EXPOSE 3101'
+        backup: yes
+      notify: rebuild application
+
+    # Docker Compose Configuration
+    - name: Generate Docker Compose file
+      template:
+        src: "../templates/docker-compose.yml.j2"
+        dest: "{{ docker_compose_file }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+      notify: restart application
+
+    - name: Generate environment file
+      template:
+        src: "../templates/.env.j2"
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+      notify: restart application
+
+    # Nginx Configuration
+    - name: Generate Nginx configuration
+      template:
+        src: "../templates/nginx.conf.j2"
+        dest: "/etc/nginx/sites-available/{{ app_name }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+
+    - name: Enable Nginx site
+      file:
+        src: "/etc/nginx/sites-available/{{ app_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ app_name }}"
+        state: link
+      notify: restart nginx
+
+    - name: Remove default Nginx site
+      file:
+        path: "/etc/nginx/sites-enabled/default"
+        state: absent
+      notify: restart nginx
+
+    # System Optimization
+    - name: Create swap file if not exists
+      block:
+        - name: Check if swap file exists
+          stat:
+            path: "{{ swap_file_path }}"
+          register: swap_file_check
+
+        - name: Create swap file
+          command: "dd if=/dev/zero of={{ swap_file_path }} bs=1M count=1024"
+          when: not swap_file_check.stat.exists
+
+        - name: Set swap file permissions
+          file:
+            path: "{{ swap_file_path }}"
+            mode: '0600'
+          when: not swap_file_check.stat.exists
+
+        - name: Make swap file
+          command: "mkswap {{ swap_file_path }}"
+          when: not swap_file_check.stat.exists
+
+        - name: Add swap to fstab
+          lineinfile:
+            path: /etc/fstab
+            line: "{{ swap_file_path }} none swap sw 0 0"
+          when: not swap_file_check.stat.exists
+
+        - name: Enable swap
+          command: "swapon {{ swap_file_path }}"
+          when: not swap_file_check.stat.exists
+
+    # Systemd Service
+    - name: Generate systemd service file
+      template:
+        src: "../templates/systemd/t-share.service.j2"
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart application service
+
+    # Log Rotation
+    - name: Configure log rotation
+      template:
+        src: "../templates/logrotate.j2"
+        dest: "/etc/logrotate.d/{{ app_name }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Firewall Configuration
+    - name: Configure UFW
+      block:
+        - name: Allow SSH
+          ufw:
+            rule: allow
+            port: '22'
+            proto: tcp
+
+        - name: Allow HTTP
+          ufw:
+            rule: allow
+            port: '80'
+            proto: tcp
+
+        - name: Allow HTTPS
+          ufw:
+            rule: allow
+            port: '443'
+            proto: tcp
+
+        - name: Enable UFW
+          ufw:
+            state: enabled
+            policy: deny
+
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+
+    - name: rebuild application
+      shell: |
+        cd {{ app_dir }}
+        docker-compose build --no-cache
+      become_user: "{{ app_user }}"
+
+    - name: restart application
+      shell: |
+        cd {{ app_dir }}
+        docker-compose down
+        docker-compose up -d
+      become_user: "{{ app_user }}"
+
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart application service
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted
+        enabled: yes
+
+  post_tasks:
+    - name: Wait for application to start
+      wait_for:
+        host: localhost
+        port: "{{ backend_port }}"
+        timeout: 300
+        msg: "Application failed to start within 5 minutes"
+
+    - name: Display deployment information
+      debug:
+        msg: |
+          T-SHARE deployment completed successfully!
+
+          Application URL: {{ app_url }}
+          Environment: {{ environment }}
+          Git Branch: {{ git_branch }}
+
+          Services:
+          - Frontend: http://localhost:{{ frontend_port }}
+          - Backend: http://localhost:{{ backend_port }}
+          - Database: localhost:{{ postgres_external_port }}
+
+          Logs location: {{ log_dir }}
+          Data location: {{ data_dir }}
+
+          Next steps:
+          1. Configure DNS to point {{ domain_name }} to this server
+          2. Set up Google OAuth credentials in the admin panel
+          3. Monitor logs: journalctl -u {{ app_name }} -f

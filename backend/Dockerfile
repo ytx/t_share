@@ -17,7 +17,7 @@ RUN npm run db:generate
 # Build the application
 RUN npm run build
 
-EXPOSE 5000
+EXPOSE 3101
 
 # Start the application
 CMD ["npm", "start"]

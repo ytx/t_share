@@ -1,0 +1,42 @@
+---
+# T-SHARE Production Environment Configuration
+
+# Environment
+environment: production
+git_branch: release
+
+# Domain settings
+domain_name: t_share0.trusted-host.online
+app_url: "https://{{ domain_name }}"
+
+# Application ports (internal Docker network)
+backend_port: 3101
+frontend_port: 3000
+postgres_port: 5432
+
+# Database settings
+db_password: "{{ vault_production_db_password }}"
+postgres_external_port: 5434
+
+# Application secrets (to be loaded from vault)
+jwt_secret: "{{ vault_production_jwt_secret }}"
+google_client_id: "{{ vault_production_google_client_id }}"
+google_client_secret: "{{ vault_production_google_client_secret }}"
+
+# Node.js environment
+node_env: production
+
+# Debug and logging
+debug_enabled: false
+log_level: info
+
+# Backup settings
+backup_enabled: true
+backup_retention_days: 30
+
+# Container restart policy
+restart_policy: always
+
+# Production security settings
+container_security_opts:
+  - no-new-privileges:true

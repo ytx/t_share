@@ -1,0 +1,19 @@
+---
+all:
+  children:
+    staging:
+      hosts:
+        t_share9.trusted-host.online:
+          ansible_host: t_share9.trusted-host.online
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    production:
+      hosts:
+        t_share0.trusted-host.online:
+          ansible_host: t_share0.trusted-host.online
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    ansible_become: yes
+    ansible_become_method: sudo

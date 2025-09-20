@@ -1,0 +1,49 @@
+[Unit]
+Description=T-SHARE Application
+Documentation={{ app_url }}
+After=docker.service
+Requires=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ app_dir }}
+
+# Environment
+Environment=COMPOSE_PROJECT_NAME={{ app_name }}
+Environment=COMPOSE_FILE={{ docker_compose_file }}
+
+# Start command
+ExecStart=/usr/bin/docker-compose up -d
+
+# Stop command
+ExecStop=/usr/bin/docker-compose down
+
+# Reload command
+ExecReload=/usr/bin/docker-compose restart
+
+# Health check
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -f http://localhost:{{ backend_port }}/health >/dev/null 2>&1 && exit 0; sleep 10; done; exit 1'
+
+# Restart settings
+Restart=on-failure
+RestartSec=30
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ app_dir }} {{ data_dir }} {{ log_dir }}
+
+# Resource limits
+LimitNOFILE=65536
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

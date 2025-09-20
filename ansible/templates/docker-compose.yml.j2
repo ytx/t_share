@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:{{ postgres_version }}
+    container_name: {{ app_name }}-db
+    environment:
+      POSTGRES_USER: {{ db_user }}
+      POSTGRES_PASSWORD: {{ db_password }}
+      POSTGRES_DB: {{ db_name }}
+    ports:
+      - "{{ postgres_external_port }}:5432"
+    volumes:
+      - {{ db_data_dir }}:/var/lib/postgresql/data
+      - {{ app_dir }}/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - {{ app_name }}-network
+    restart: {{ restart_policy }}
+    {% if environment == 'production' %}
+    security_opt:
+{% for opt in container_security_opts %}
+      - {{ opt }}
+{% endfor %}
+    {% endif %}
+    deploy:
+      resources:
+        limits:
+          memory: {{ postgres_shared_buffers|int * 2 }}M
+        reservations:
+          memory: {{ postgres_shared_buffers }}
+    command: >
+      postgres
+      -c shared_buffers={{ postgres_shared_buffers }}
+      -c work_mem={{ postgres_work_mem }}
+      -c maintenance_work_mem={{ postgres_maintenance_work_mem }}
+      -c effective_cache_size={{ postgres_effective_cache_size }}
+      -c max_connections=20
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+
+  backend:
+    build:
+      context: {{ app_dir }}/backend
+      dockerfile: Dockerfile
+    container_name: {{ app_name }}-backend
+    environment:
+      NODE_ENV: {{ node_env }}
+      PORT: {{ backend_port }}
+      DATABASE_URL: postgresql://{{ db_user }}:{{ db_password }}@postgres:5432/{{ db_name }}
+      JWT_SECRET: {{ jwt_secret }}
+      GOOGLE_CLIENT_ID: {{ google_client_id }}
+      GOOGLE_CLIENT_SECRET: {{ google_client_secret }}
+      {% if debug_enabled %}
+      DEBUG: {{ app_name }}:*
+      {% endif %}
+    ports:
+      - "127.0.0.1:{{ backend_port }}:{{ backend_port }}"
+    volumes:
+      - {{ log_dir }}/backend:/app/logs
+    depends_on:
+      - postgres
+    networks:
+      - {{ app_name }}-network
+    restart: {{ restart_policy }}
+    {% if environment == 'production' %}
+    security_opt:
+{% for opt in container_security_opts %}
+      - {{ opt }}
+{% endfor %}
+    {% endif %}
+    deploy:
+      resources:
+        limits:
+          memory: {{ node_max_memory|replace('m', '') }}M
+        reservations:
+          memory: {{ (node_max_memory|replace('m', '')|int // 2) }}M
+    command: npm start
+
+  frontend:
+    build:
+      context: {{ app_dir }}/frontend
+      dockerfile: Dockerfile
+    container_name: {{ app_name }}-frontend
+    environment:
+      NODE_ENV: {{ node_env }}
+      VITE_API_BASE_URL: {{ app_url }}
+    ports:
+      - "127.0.0.1:{{ frontend_port }}:3000"
+    volumes:
+      - {{ log_dir }}/frontend:/app/logs
+    depends_on:
+      - backend
+    networks:
+      - {{ app_name }}-network
+    restart: {{ restart_policy }}
+    {% if environment == 'production' %}
+    security_opt:
+{% for opt in container_security_opts %}
+      - {{ opt }}
+{% endfor %}
+    {% endif %}
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: {{ db_data_dir }}
+
+networks:
+  {{ app_name }}-network:
+    driver: bridge

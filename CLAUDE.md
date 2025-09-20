@@ -59,6 +59,54 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-20)
 
+### Ansible デプロイメント環境構築
+1. **Ubuntu 24.04 対応 Ansible Playbook 実装**
+   - ステージング環境：t_share9.trusted-host.online (mainブランチ)
+   - 本番環境：t_share0.trusted-host.online (releaseブランチ)
+   - 1GBメモリサーバー向け最適化設定
+
+2. **システム基盤自動構築**
+   - Docker & Docker Compose 自動インストール
+   - Nginx リバースプロキシ設定（SSL/TLS対応）
+   - PostgreSQL 15 データベース設定
+   - UFW ファイアウォール設定
+   - 1GB スワップファイル自動作成
+
+3. **メモリ最適化設定**
+   - PostgreSQL: shared_buffers=128MB, work_mem=4MB
+   - Node.js: max_memory=256m
+   - Nginx: worker_processes=1, worker_connections=512
+   - Docker コンテナリソース制限設定
+
+4. **セキュリティ強化**
+   - SSL証明書自動配置（ワイルドカード証明書対応）
+   - Rate limiting（API: 10r/s, Auth: 5r/s）
+   - セキュリティヘッダー設定
+   - ansible-vault による機密情報暗号化対応
+   - Container security options（本番環境）
+
+5. **運用・監視機能**
+   - Systemd サービス統合
+   - ログローテーション設定（7日保持）
+   - ヘルスチェック機能
+   - 自動再起動ポリシー設定
+
+6. **Ansible ファイル構成**
+   ```
+   ansible/
+   ├── inventory.yml              # ホスト定義
+   ├── group_vars/               # 環境別設定
+   ├── secrets/                  # 機密情報管理
+   ├── playbooks/deploy.yml      # メインPlaybook
+   └── templates/                # Jinja2テンプレート
+   ```
+
+7. **デプロイメント統合修正**
+   - backend/Dockerfile のポート修正（5000 → 3101）
+   - Docker Compose 本番環境設定
+   - 環境変数テンプレート作成
+   - Git リポジトリ統合（https://github.com/ytx/t_share.git）
+
 ### UI調整・レイアウト改善
 1. **検索フィルター領域の調整**
    - TemplateSearch.tsx の検索条件レイアウト改善

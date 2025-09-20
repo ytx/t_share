@@ -1,0 +1,50 @@
+---
+# T-SHARE Application Common Configuration
+
+# Application settings
+app_name: t-share
+app_user: t-share
+app_group: "{{ app_user }}"
+app_dir: /opt/t-share
+data_dir: /mnt/data
+
+# Git repository settings
+git_repo_url: https://github.com/ytx/t_share.git
+
+# Docker settings
+docker_compose_file: "{{ app_dir }}/docker-compose.yml"
+
+# SSL/TLS settings
+ssl_cert_dir: /etc/ssl/certs/t-share
+ssl_cert_file: "{{ ssl_cert_dir }}/server.crt"
+ssl_ca_file: "{{ ssl_cert_dir }}/ca.crt"
+ssl_key_file: "{{ ssl_cert_dir }}/nopass.key"
+
+# Database settings (common)
+postgres_version: "15"
+db_user: t_share_user
+db_name: t_share_db
+db_data_dir: "{{ data_dir }}/postgresql"
+
+# Memory optimization settings (1GB total memory)
+# PostgreSQL memory settings
+postgres_shared_buffers: "128MB"
+postgres_work_mem: "4MB"
+postgres_maintenance_work_mem: "64MB"
+postgres_effective_cache_size: "512MB"
+
+# Node.js memory settings
+node_max_memory: "256m"
+
+# Nginx settings
+nginx_worker_processes: 1
+nginx_worker_connections: 512
+nginx_client_max_body_size: "10m"
+
+# System settings
+swap_file_size: "1G"
+swap_file_path: "{{ data_dir }}/swapfile"
+
+# Log settings
+log_dir: "{{ data_dir }}/logs"
+log_rotation_days: 7
