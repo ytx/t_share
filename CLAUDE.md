@@ -59,12 +59,36 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-20)
 
-### 文書参照モーダルの表示制限解除
+### 文書参照モーダルの機能強化
 1. **20件制限の削除**
    - Dashboard.tsx でuseSearchDocumentsQuery の呼び出しパラメータを空オブジェクト `{}` から `{ limit: 100 }` に変更
    - バックエンドAPI（documentController.ts）でデフォルト制限が20件に設定されていたため、最大制限値100件を指定
    - DocumentViewerModal で保存されている全ての文書を参照可能に変更
    - frontend/src/pages/Dashboard.tsx:41 での修正完了
+
+2. **プロジェクト連動表示機能**
+   - useGetProjectDocumentsQuery を追加してプロジェクト固有の文書取得機能を実装
+   - displayDocuments ロジックでプロジェクト選択時は該当プロジェクトの文書のみ表示
+   - プロジェクト未選択時は全文書を表示する条件分岐を追加
+   - frontend/src/pages/Dashboard.tsx:42-45, 122-124 での実装完了
+
+3. **作成者名表示機能**
+   - DocumentViewerModal に文書作成者名の表示機能を追加
+   - creator.displayName または creator.username を優先的に表示
+   - 作成日・作成者・プロジェクト情報を統合した情報表示レイアウト
+   - frontend/src/components/Documents/DocumentViewerModal.tsx:242 での実装完了
+
+4. **文書をエディタで開く機能**
+   - Dashboard.tsx に documentToOpen 状態管理を追加
+   - DocumentEditor.tsx に documentToOpen プロパティと useEffect による文書読み込み機能を実装
+   - 文書選択時の自動プロジェクト切り替え機能
+   - 使用後の状態クリア機能（100ms後に自動リセット）
+   - frontend/src/pages/Dashboard.tsx:38, 112-122 および frontend/src/components/Editor/DocumentEditor.tsx:46, 59, 295-304 での実装完了
+
+5. **技術的修正**
+   - DocumentEditor.tsx で useEffect のインポート不足によるエラーを修正
+   - React hooks の適切なインポート管理
+   - frontend/src/components/Editor/DocumentEditor.tsx:1 での修正完了
 
 ### Ansible デプロイメント環境構築
 1. **Ubuntu 24.04 対応 Ansible Playbook 実装**

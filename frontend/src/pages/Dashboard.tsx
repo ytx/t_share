@@ -11,7 +11,7 @@ import TemplateCreateModal from '../components/Templates/TemplateCreateModal';
 import { Template } from '../types';
 import { useUseTemplateMutation } from '../store/api/templateApi';
 import { useGetAllProjectsQuery } from '../store/api/projectApi';
-import { useSearchDocumentsQuery } from '../store/api/documentApi';
+import { useSearchDocumentsQuery, useGetProjectDocumentsQuery } from '../store/api/documentApi';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import SettingsModal from '../components/Settings/SettingsModal';
@@ -35,10 +35,15 @@ const Dashboard: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(storedData.adminMode || false);
   const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
+  const [documentToOpen, setDocumentToOpen] = useState<any>(null);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: projectsResponse } = useGetAllProjectsQuery();
   const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 });
+  const { data: projectDocumentsResponse } = useGetProjectDocumentsQuery(
+    selectedProjectId!,
+    { skip: !selectedProjectId }
+  );
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template);
@@ -107,12 +112,22 @@ const Dashboard: React.FC = () => {
   const handleOpenDocument = (document: any) => {
     // This function handles opening a document in the editor
     console.log('Opening document:', document);
+    setDocumentToOpen(document);
     setDocumentViewerOpen(false);
-    // TODO: Implement document opening logic
+
+    // documentToOpenは一度使用されたらクリアする
+    setTimeout(() => {
+      setDocumentToOpen(null);
+    }, 100);
   };
 
   const projects = projectsResponse?.data || [];
   const documents = documentsResponse?.data || [];
+
+  // プロジェクトが選択されている場合は、そのプロジェクトの文書のみを表示
+  const displayDocuments = selectedProjectId
+    ? (projectDocumentsResponse?.data || [])
+    : documents;
 
   return (
     <Box id="dashboard-container" sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -307,6 +322,7 @@ const Dashboard: React.FC = () => {
                       saveProjectSelection(projectId);
                     }}
                     onOpenDocumentViewer={handleOpenDocumentViewer}
+                    documentToOpen={documentToOpen}
                   />
                 </Box>
               </Box>
@@ -340,7 +356,7 @@ const Dashboard: React.FC = () => {
       <DocumentViewerModal
         open={documentViewerOpen}
         onClose={() => setDocumentViewerOpen(false)}
-        documents={documents}
+        documents={displayDocuments}
         onOpenDocument={handleOpenDocument}
       />
     </Box>

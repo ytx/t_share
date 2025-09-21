@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -43,6 +43,7 @@ interface DocumentEditorProps {
   projects?: Array<{ id: number; name: string }>;
   onProjectChange?: (projectId: number | undefined) => void;
   onOpenDocumentViewer?: () => void;
+  documentToOpen?: any;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
@@ -55,6 +56,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   projects = [],
   onProjectChange,
   onOpenDocumentViewer,
+  documentToOpen,
 }) => {
   // Initialize editor content from localStorage
   const storedData = getFromLocalStorage();
@@ -284,7 +286,23 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const handleDocumentFromViewer = useCallback((document: any) => {
     setContent(document.content);
-  }, []);
+    // プロジェクトが設定されている場合は、プロジェクトも変更
+    if (document.projectId && onProjectChange) {
+      onProjectChange(document.projectId);
+    }
+  }, [onProjectChange]);
+
+  // 文書を開く処理
+  useEffect(() => {
+    if (documentToOpen) {
+      setContent(documentToOpen.content);
+      // プロジェクトが設定されている場合は、プロジェクトも変更
+      if (documentToOpen.projectId && onProjectChange) {
+        onProjectChange(documentToOpen.projectId);
+      }
+    }
+  }, [documentToOpen, onProjectChange]);
+
 
 
   const handleTemplateEdit = useCallback((template: Template) => {

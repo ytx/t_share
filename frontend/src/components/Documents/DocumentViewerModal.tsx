@@ -239,6 +239,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   作成日: {new Date(currentDocument.createdAt).toLocaleString('ja-JP')}
+                  {currentDocument.creator && ` | 作成者: ${currentDocument.creator.displayName || currentDocument.creator.username || '不明'}`}
                   {currentDocument.project && ` | プロジェクト: ${currentDocument.project.name}`}
                 </Typography>
               </Box>
