@@ -195,6 +195,22 @@
         DOCKER_BUILDKIT: 1
         NODE_OPTIONS: "--max-old-space-size=1536"
 
+    - name: Wait for database to be ready
+      shell: |
+        cd {{ app_dir }}
+        timeout 60 bash -c 'until sudo docker exec t-share-postgres pg_isready -U {{ db_user }}; do sleep 2; done'
+
+    - name: Run database migrations
+      shell: |
+        cd {{ app_dir }}
+        sudo docker exec t-share-backend npx prisma migrate deploy
+
+    - name: Seed database with initial data (if needed)
+      shell: |
+        cd {{ app_dir }}
+        sudo docker exec t-share-backend npx prisma db seed || echo "No seed script found, skipping..."
+      ignore_errors: yes
+
   handlers:
     - name: reload systemd
       systemd:
