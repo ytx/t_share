@@ -29,24 +29,18 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Allow localhost
-    if (origin.includes('localhost:3100')) return callback(null, true);
-
-    // Allow any IP address on port 3100
-    if (origin.match(/^https?:\/\/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:3100$/)) {
+    // Get allowed origins from environment variable
+    const corsOrigin = process.env.CORS_ORIGIN;
+    if (corsOrigin && origin === corsOrigin) {
       return callback(null, true);
     }
 
-    // Allow specific development URLs
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3100'
-    ];
-
-    if (allowedOrigins.includes(origin)) {
+    // Allow localhost for development
+    if (origin && origin.includes('localhost')) {
       return callback(null, true);
     }
 
-    // For development, allow all origins (remove in production)
+    // For development, allow all origins
     if (process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
