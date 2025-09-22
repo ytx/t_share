@@ -16,8 +16,6 @@ import {
   AccessTime,
   Storage,
   Error,
-  Speed,
-  TrendingUp,
 } from '@mui/icons-material';
 import { useGetSystemStatsQuery } from '../../store/api/adminApi';
 

@@ -7,7 +7,6 @@ import {
   Button,
   TextField,
   Box,
-  Typography,
   Alert,
 } from '@mui/material';
 import { useUpdateUserVariableMutation } from '../../store/api/userVariableApi';

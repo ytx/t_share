@@ -3,9 +3,6 @@ import {
   Box,
   Paper,
   Typography,
-  Grid,
-  Card,
-  CardContent,
   Tabs,
   Tab,
   Alert,
@@ -16,11 +13,7 @@ import {
   Toolbar,
 } from '@mui/material';
 import {
-  Dashboard,
   People,
-  Assessment,
-  Timeline,
-  Download,
   ArrowBack,
   Label,
   Category,
@@ -30,10 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useGetSystemStatsQuery } from '../../store/api/adminApi';
-import SystemOverview from './SystemOverview';
 import UserManagement from './UserManagement';
-import ActivityMonitor from './ActivityMonitor';
-import SystemHealth from './SystemHealth';
 import ProjectManagement from './ProjectManagement';
 import TagManagement from './TagManagement';
 import SceneManagement from './SceneManagement';
@@ -73,9 +63,9 @@ const AdminDashboard: React.FC = memo(() => {
   const [tabValue, setTabValue] = useState(0);
   const navigate = useNavigate();
 
-  const { data: systemStats, isLoading, error } = useGetSystemStatsQuery();
+  const { isLoading, error } = useGetSystemStatsQuery();
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   }, []);
 

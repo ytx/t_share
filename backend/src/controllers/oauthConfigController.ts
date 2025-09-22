@@ -70,7 +70,7 @@ export const updateOAuthConfig = async (req: Request, res: Response) => {
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid OAuth configuration',
-        details: validation.error.errors,
+        details: validation.error.issues,
       });
     }
 
@@ -125,7 +125,7 @@ export const testOAuthConfig = async (req: Request, res: Response) => {
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid OAuth configuration',
-        details: validation.error.errors,
+        details: validation.error.issues,
       });
     }
 

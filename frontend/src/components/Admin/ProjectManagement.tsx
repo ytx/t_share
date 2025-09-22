@@ -82,7 +82,7 @@ const ProjectManagement: React.FC = () => {
 
   const projects = projectsResponse?.data || [];
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   }, []);
 
@@ -329,12 +329,12 @@ const ProjectManagement: React.FC = () => {
             <FormControl fullWidth>
               <InputLabel>公開設定</InputLabel>
               <Select
-                value={formData.isPublic}
-                onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.value as boolean }))}
+                value={formData.isPublic.toString()}
+                onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.value === "true" }))}
                 label="公開設定"
               >
-                <MenuItem value={true}>公開</MenuItem>
-                <MenuItem value={false}>非公開</MenuItem>
+                <MenuItem value="true">公開</MenuItem>
+                <MenuItem value="false">非公開</MenuItem>
               </Select>
             </FormControl>
           </Box>

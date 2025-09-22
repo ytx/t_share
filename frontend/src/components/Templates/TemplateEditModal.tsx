@@ -41,7 +41,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
     title: '',
     content: '',
     description: '',
-    sceneId: null,
+    sceneId: undefined,
     status: 'published',
     isPublic: true,
     tagIds: [],
@@ -70,7 +70,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
         title: template.title || '',
         content: template.content || '',
         description: template.description || '',
-        sceneId: template.sceneId || null,
+        sceneId: template.sceneId || undefined,
         status: 'published',
         isPublic: template.isPublic ?? true,
         tagIds: template.templateTags?.map(({ tag }) => tag.id) || [],
@@ -84,7 +84,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
       title: '',
       content: '',
       description: '',
-      sceneId: null,
+      sceneId: undefined,
       status: 'published',
       isPublic: true,
       tagIds: [],
@@ -242,7 +242,7 @@ const TemplateEditModal: React.FC<TemplateEditModalProps> = ({
                   value={formData.sceneId || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    sceneId: e.target.value ? Number(e.target.value) : null
+                    sceneId: e.target.value ? Number(e.target.value) : undefined
                   }))}
                   label="シーン"
                 >

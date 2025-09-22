@@ -182,7 +182,7 @@ class AuthController {
     }
   }
 
-  async logout(req: Request, res: Response) {
+  async logout(_req: Request, res: Response) {
     try {
       // For JWT tokens, logout is handled on the client side
       // Server can optionally maintain a blacklist of revoked tokens

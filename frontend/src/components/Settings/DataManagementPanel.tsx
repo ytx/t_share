@@ -22,8 +22,6 @@ import {
 import {
   Download as DownloadIcon,
   Upload as UploadIcon,
-  Assessment as StatsIcon,
-  Warning as WarningIcon,
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
 } from '@mui/icons-material';

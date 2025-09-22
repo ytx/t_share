@@ -68,7 +68,7 @@ const UserManagement: React.FC = memo(() => {
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  const handleChangePage = useCallback((event: unknown, newPage: number) => {
+  const handleChangePage = useCallback((_: unknown, newPage: number) => {
     setPage(newPage);
   }, []);
 

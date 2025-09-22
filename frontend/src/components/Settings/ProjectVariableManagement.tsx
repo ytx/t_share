@@ -60,7 +60,7 @@ interface VariableFormData {
 
 const ProjectVariableManagement: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<number>(0);
-  const { data: projectsResponse } = useGetAllProjectsQuery();
+  const { data: projectsResponse } = useGetAllProjectsQuery({});
   const { data: variablesResponse, isLoading } = useGetProjectVariablesQuery(
     selectedProjectId,
     { skip: selectedProjectId === 0 }
@@ -117,11 +117,14 @@ const ProjectVariableManagement: React.FC = () => {
         // 更新
         await updateVariable({
           id: editingVariable.id,
-          ...formData,
+          data: formData,
         }).unwrap();
       } else {
         // 新規作成
-        await createVariable(formData).unwrap();
+        await createVariable({
+          projectId: selectedProjectId,
+          data: formData,
+        }).unwrap();
       }
       setShowCreateDialog(false);
       setEditingVariable(null);

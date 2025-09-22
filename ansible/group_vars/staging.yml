@@ -6,7 +6,7 @@ environment: staging
 git_branch: main
 
 # Domain settings
-domain_name: t_share9.trusted-host.online
+domain_name: t-share9.trusted-host.online
 app_url: "https://{{ domain_name }}"
 
 # Application ports (internal Docker network)

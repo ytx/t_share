@@ -197,7 +197,7 @@ const EditorSettingsPanel: React.FC = () => {
           </Typography>
           <Slider
             value={editorSettings.fontSize}
-            onChange={(e, value) => handleSettingChange('fontSize', value)}
+            onChange={(_, value) => handleSettingChange('fontSize', value)}
             min={8}
             max={24}
             step={1}

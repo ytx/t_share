@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -9,14 +9,12 @@ import {
   MenuItem,
   Chip,
   Typography,
-  Button,
-  Divider,
   CircularProgress,
   Alert,
   Pagination,
   IconButton,
 } from '@mui/material';
-import { Search, Clear, Add, ExpandMore, ExpandLess, LocalOffer, Tune, History } from '@mui/icons-material';
+import { Search, Clear, LocalOffer } from '@mui/icons-material';
 import { useSearchTemplatesQuery, useDeleteTemplateMutation } from '../../store/api/templateApi';
 import { useGetAllScenesQuery } from '../../store/api/sceneApi';
 import { useGetAllTagsQuery } from '../../store/api/tagApi';
@@ -27,13 +25,11 @@ import TemplateEditModal from './TemplateEditModal';
 
 interface TemplateSearchProps {
   onTemplateSelect?: (template: Template) => void;
-  onCreateTemplate?: () => void;
   adminMode?: boolean;
 }
 
 const TemplateSearch: React.FC<TemplateSearchProps> = ({
   onTemplateSelect,
-  onCreateTemplate,
   adminMode = false,
 }) => {
   // Initialize with empty values, restore later
@@ -49,8 +45,6 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
     adminMode: adminMode,
   });
 
-  // 初回マウントかどうかを判別するRef
-  const isInitialMount = React.useRef(true);
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = React.useState(false);
 
   // ヘッダーが復元された後、少し待ってから検索フィルターを復元
@@ -62,9 +56,9 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
           ...prev,
           keyword: storedData.searchFilters?.keyword || '',
           sceneId: storedData.searchFilters?.sceneId,
-          tagIds: storedData.searchFilters?.tagFilter || [],
-          excludedTagIds: storedData.searchFilters?.excludedTagFilter || [],
-          sortBy: storedData.searchFilters?.sortBy || 'updated',
+          tagIds: (storedData.searchFilters?.tagFilter || []).map(Number),
+          excludedTagIds: (storedData.searchFilters?.excludedTagFilter || []).map(Number),
+          sortBy: (storedData.searchFilters?.sortBy as 'lastUsed' | 'updated' | 'created') || 'updated',
         }));
         setHasRestoredFromStorage(true);
       }, 100); // 100ms後に復元
@@ -109,12 +103,12 @@ const TemplateSearch: React.FC<TemplateSearchProps> = ({
       sceneId: updatedFilters.sceneId,
       sortBy: updatedFilters.sortBy,
       keyword: updatedFilters.keyword,
-      tagFilter: updatedFilters.tagIds,
-      excludedTagFilter: updatedFilters.excludedTagIds,
+      tagFilter: updatedFilters.tagIds?.map(String) || [],
+      excludedTagFilter: updatedFilters.excludedTagIds?.map(String) || [],
     });
   }, [filters]);
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
     setFilters(prev => ({ ...prev, page }));
   };
 

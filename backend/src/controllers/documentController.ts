@@ -35,7 +35,7 @@ export const createDocument = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -72,7 +72,7 @@ export const updateDocument = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -163,7 +163,7 @@ export const searchDocuments = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 

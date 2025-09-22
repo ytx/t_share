@@ -10,32 +10,19 @@ import {
   Typography,
   Chip,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Divider,
   List,
   ListItem,
-  ListItemText,
   IconButton,
   Tooltip,
   CircularProgress,
   Checkbox,
   FormControlLabel,
-  Paper,
 } from '@mui/material';
-import { Info, ContentCopy } from '@mui/icons-material';
+import { ContentCopy } from '@mui/icons-material';
 import { Template } from '../../types';
 import { useGetUserVariablesQuery } from '../../store/api/userVariableApi';
 import { useGetProjectVariablesQuery } from '../../store/api/projectVariableApi';
-
-interface Variable {
-  name: string;
-  value: string;
-  description?: string;
-  type: 'user' | 'project' | 'template';
-}
 
 interface CheckboxLine {
   index: number;
@@ -136,7 +123,7 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
     if (checkboxLines.length > 0) {
       const lines = content.split('\n');
       const filteredLines = lines
-        .filter((line, index) => {
+        .filter((_, index) => {
           const checkboxLine = checkboxLines.find(cb => cb.index === index);
           // チェックボックス行の場合はchecked状態で判断、それ以外は含める
           return !checkboxLine || checkboxLine.checked;
@@ -161,13 +148,13 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
     }));
   };
 
-  const handleCheckboxLineChange = (index: number, included: boolean) => {
-    setCheckboxLines(prev =>
-      prev.map(line =>
-        line.index === index ? { ...line, included } : line
-      )
-    );
-  };
+  // const handleCheckboxLineChange = (index: number, included: boolean) => {
+  //   setCheckboxLines(prev =>
+  //     prev.map(line =>
+  //       line.index === index ? { ...line, included } : line
+  //     )
+  //   );
+  // };
 
   const handleCheckboxChange = (index: number, checked: boolean) => {
     setCheckboxLines(prev =>
@@ -272,7 +259,7 @@ const VariableSubstitutionModal: React.FC<VariableSubstitutionModalProps> = ({
                             value={variables[varName] || ''}
                             onChange={(e) => handleVariableChange(varName, e.target.value)}
                             placeholder={`${varName}の値を入力`}
-                            disabled={isLoading}
+                            disabled={false}
                           />
                         </ListItem>
                       );

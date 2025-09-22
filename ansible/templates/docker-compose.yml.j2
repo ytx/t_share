@@ -16,12 +16,12 @@ services:
     networks:
       - {{ app_name }}-network
     restart: {{ restart_policy }}
-    {% if environment == 'production' %}
+{% if environment == 'production' %}
     security_opt:
 {% for opt in container_security_opts %}
       - {{ opt }}
 {% endfor %}
-    {% endif %}
+{% endif %}
     deploy:
       resources:
         limits:
@@ -50,11 +50,11 @@ services:
       JWT_SECRET: {{ jwt_secret }}
       GOOGLE_CLIENT_ID: {{ google_client_id }}
       GOOGLE_CLIENT_SECRET: {{ google_client_secret }}
-      {% if debug_enabled %}
+{% if debug_enabled %}
       DEBUG: {{ app_name }}:*
-      {% endif %}
-    ports:
-      - "127.0.0.1:{{ backend_port }}:{{ backend_port }}"
+{% endif %}
+    expose:
+      - "{{ backend_port }}"
     volumes:
       - {{ log_dir }}/backend:/app/logs
     depends_on:
@@ -62,19 +62,19 @@ services:
     networks:
       - {{ app_name }}-network
     restart: {{ restart_policy }}
-    {% if environment == 'production' %}
+{% if environment == 'production' %}
     security_opt:
 {% for opt in container_security_opts %}
       - {{ opt }}
 {% endfor %}
-    {% endif %}
+{% endif %}
     deploy:
       resources:
         limits:
           memory: {{ node_max_memory|replace('m', '') }}M
         reservations:
           memory: {{ (node_max_memory|replace('m', '')|int // 2) }}M
-    command: npm start
+    command: npm run dev
 
   frontend:
     build:
@@ -84,8 +84,8 @@ services:
     environment:
       NODE_ENV: {{ node_env }}
       VITE_API_BASE_URL: {{ app_url }}
-    ports:
-      - "127.0.0.1:{{ frontend_port }}:3000"
+    expose:
+      - "3000"
     volumes:
       - {{ log_dir }}/frontend:/app/logs
     depends_on:
@@ -93,18 +93,47 @@ services:
     networks:
       - {{ app_name }}-network
     restart: {{ restart_policy }}
-    {% if environment == 'production' %}
+{% if environment == 'production' %}
     security_opt:
 {% for opt in container_security_opts %}
       - {{ opt }}
 {% endfor %}
-    {% endif %}
+{% endif %}
     deploy:
       resources:
         limits:
           memory: 128M
         reservations:
           memory: 64M
+
+  nginx:
+    image: nginx:alpine
+    container_name: {{ app_name }}-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/nginx/sites-available/{{ app_name }}:/etc/nginx/conf.d/default.conf:ro
+      - {{ ssl_cert_dir }}:{{ ssl_cert_dir }}:ro
+      - {{ log_dir }}/nginx:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - {{ app_name }}-network
+    restart: {{ restart_policy }}
+{% if environment == 'production' %}
+    security_opt:
+{% for opt in container_security_opts %}
+      - {{ opt }}
+{% endfor %}
+{% endif %}
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
 
 volumes:
   postgres_data:

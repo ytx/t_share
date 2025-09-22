@@ -93,7 +93,7 @@ const UserVariableManagement: React.FC = () => {
         // 更新
         await updateVariable({
           id: editingVariable.id,
-          ...formData,
+          data: formData,
         }).unwrap();
       } else {
         // 新規作成

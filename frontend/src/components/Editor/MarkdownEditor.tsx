@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Box, Paper, IconButton } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import ContextMenu from '../Common/ContextMenu';
 import AceEditor from 'react-ace';
-import ReactMarkdown from 'react-markdown';
 
 // Import Ace Editor modes and themes
 import 'ace-builds/src-noconflict/mode-markdown';
@@ -65,7 +64,6 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   value,
   onChange,
   placeholder = 'マークダウンで入力してください...',
-  height = '400px',
   aceTheme = 'github',
   showLineNumbers = true,
   wordWrap = true,
@@ -185,7 +183,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
     wrap: wordWrap,
     fontSize,
     showInvisibles: showWhitespace,
-    scrollPastEnd: 0.5,
+    scrollPastEnd: true,
     vScrollBarAlwaysVisible: true,
     hScrollBarAlwaysVisible: false,
   };

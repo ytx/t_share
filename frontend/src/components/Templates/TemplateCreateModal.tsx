@@ -43,7 +43,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
     title: '',
     content: '',
     description: '',
-    sceneId: initialSceneId || null,
+    sceneId: initialSceneId || undefined,
     status: 'published',
     isPublic: true,
     tagIds: [],
@@ -82,7 +82,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
       title: '',
       content: '',
       description: '',
-      sceneId: initialSceneId || null,
+      sceneId: initialSceneId || undefined,
       status: 'published',
       isPublic: true,
       tagIds: [],
@@ -232,7 +232,7 @@ const TemplateCreateModal: React.FC<TemplateCreateModalProps> = ({
                   value={formData.sceneId || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    sceneId: e.target.value ? Number(e.target.value) : null
+                    sceneId: e.target.value ? Number(e.target.value) : undefined
                   }))}
                   label="シーン"
                 >

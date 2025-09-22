@@ -16,7 +16,7 @@ if (googleClientId && googleClientSecret) {
     clientID: googleClientId,
     clientSecret: googleClientSecret,
     callbackURL: googleCallbackUrl,
-  }, async (accessToken, refreshToken, profile, done) => {
+  }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       // The actual user creation/linking is handled in the controller
       // Here we just pass the profile data

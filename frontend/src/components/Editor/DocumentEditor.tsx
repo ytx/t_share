@@ -1,19 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Box,
-  Typography,
   Button,
   Snackbar,
   Alert,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   IconButton,
 } from '@mui/material';
 import {
   Save,
-  ContentCopy,
   Clear,
   History,
 } from '@mui/icons-material';
@@ -24,7 +21,7 @@ import TemplateCreateModal from '../Templates/TemplateCreateModal';
 import DocumentViewerModal from '../Documents/DocumentViewerModal';
 import { Template } from '../../types';
 import { useCreateDocumentMutation, useGetProjectDocumentsQuery } from '../../store/api/documentApi';
-import { useGetUserPreferencesQuery, useUpdateEditorSettingsMutation } from '../../store/api/userPreferenceApi';
+import { useGetUserPreferencesQuery, EditorSettings } from '../../store/api/userPreferenceApi';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getFromLocalStorage, saveEditorContent } from '../../utils/localStorage';
 
@@ -66,12 +63,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [selectedText, setSelectedText] = useState('');
   const [lastProcessedTemplateId, setLastProcessedTemplateId] = useState<number | null>(null);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastClickTimeRef = useRef<number>(0);
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   const markdownEditorRef = useRef<any>(null);
-  const [createDocument, { isLoading: isSaving }] = useCreateDocumentMutation();
+  const [createDocument] = useCreateDocumentMutation();
 
   // プロジェクトの文書を取得
   const { data: projectDocuments } = useGetProjectDocumentsQuery(selectedProjectId!, {
@@ -80,7 +76,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   // User preferences and theme
   const { data: userPreferences } = useGetUserPreferencesQuery();
-  const [updateEditorSettings] = useUpdateEditorSettingsMutation();
   const { mode: themeMode } = useTheme();
 
   // モーダル状態
@@ -90,7 +85,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [showTemplateCreate, setShowTemplateCreate] = useState(false);
 
   // エディタ設定（ユーザ設定から取得）
-  const [editorSettings, setEditorSettings] = useState({
+  const [editorSettings, setEditorSettings] = useState<EditorSettings>({
     lightTheme: 'github',
     darkTheme: 'monokai',
     showLineNumbers: true,
@@ -103,7 +98,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // ユーザ設定からエディタ設定を初期化
   React.useEffect(() => {
     if (userPreferences?.editorSettings) {
-      setEditorSettings(userPreferences.editorSettings);
+      setEditorSettings(prev => ({ ...prev, ...userPreferences.editorSettings }));
     }
   }, [userPreferences]);
 
@@ -120,15 +115,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
 
   // エディタ設定変更時にAPIに保存
-  const handleEditorSettingChange = useCallback((newSettings: Partial<typeof editorSettings>) => {
-    const updatedSettings = { ...editorSettings, ...newSettings };
-    setEditorSettings(updatedSettings);
-
-    // APIに保存
-    updateEditorSettings(newSettings).catch(error => {
-      console.error('エディタ設定の保存に失敗しました:', error);
-    });
-  }, [editorSettings, updateEditorSettings]);
 
   const handleTemplateInsert = useCallback((template: Template) => {
     // 3秒以内の連続クリックを防ぐ
@@ -206,29 +192,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     };
   }, []);
 
-  const handleSave = useCallback(async () => {
-    try {
-      const generatedTitle = generateTitle();
-      await createDocument({
-        title: generatedTitle,
-        content,
-        contentMarkdown: content,
-        projectId: selectedProjectId || undefined,
-      }).unwrap();
-
-      if (onSaveDocument) {
-        onSaveDocument({
-          title: generatedTitle,
-          content,
-          contentMarkdown: content,
-          projectId: selectedProjectId || undefined,
-        });
-      }
-    } catch (error) {
-      console.error('文書の保存に失敗しました:', error);
-    }
-  }, [content, selectedProjectId, createDocument, onSaveDocument]);
-
   const handleSaveAndCopy = useCallback(async () => {
     if (!content.trim()) return;
 
@@ -270,8 +233,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }, [content, selectedProjectId, createDocument, onSaveDocument]);
 
   // 現在のプロジェクトの保存された文書を取得
-  // サーバーから取得した文書データを使用（ドロップダウン用は最新20件）
-  const currentProjectDocuments = projectDocuments?.data?.slice(0, 20) || [];
   // 全文書リストをモーダル用に取得
   const allDocuments = projectDocuments?.data || [];
 
@@ -280,9 +241,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     setContent('');
   }, []);
 
-  const handleOpenDocumentViewer = useCallback(() => {
-    setShowDocumentViewer(true);
-  }, []);
 
   const handleDocumentFromViewer = useCallback((document: any) => {
     setContent(document.content);
@@ -310,7 +268,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     console.log('定型文編集:', template);
   }, []);
 
-  const handleVariableSubstitution = useCallback((processedContent: string, variables: Record<string, string>) => {
+  const handleVariableSubstitution = useCallback((processedContent: string, _: Record<string, string>) => {
     // 変数置換後のテキストを挿入
     if (markdownEditorRef.current && markdownEditorRef.current.insertText) {
       markdownEditorRef.current.insertText('\n' + processedContent);
@@ -342,29 +300,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [onTemplateProcessed]);
 
-  const handleCreateTemplateFromSelection = useCallback(() => {
-    let selectedText = '';
-
-    // MarkdownEditorのref経由で選択テキストを取得
-    if (markdownEditorRef.current && markdownEditorRef.current.getSelectedText) {
-      selectedText = markdownEditorRef.current.getSelectedText();
-    }
-
-    console.log('Create template button - Selected text:', {
-      length: selectedText.length,
-      lines: selectedText.split('\n').length,
-      text: selectedText
-    });
-
-    if (selectedText && selectedText.trim()) {
-      setSelectedText(selectedText.trim());
-      setShowTemplateCreate(true);
-    } else {
-      // 選択テキストがない場合は全体のコンテンツを使用
-      setSelectedText(content);
-      setShowTemplateCreate(true);
-    }
-  }, [content]);
 
   const handleTemplateCreateSuccess = useCallback(() => {
     setShowTemplateCreate(false);

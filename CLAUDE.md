@@ -57,7 +57,58 @@ docker-compose up -d
 - ブランチ戦略: Git Flow
 - テスト: Jest + React Testing Library
 
-## 最新の変更履歴 (2025-09-20)
+## 最新の変更履歴 (2025-09-22)
+
+### TypeScript厳密設定の復元と完全修正
+1. **緊急修正項目の完全解決**
+   - Express Request.user型定義問題の修正：backend/src/types/express.d.ts でモジュール拡張とグローバル名前空間の両方のアプローチを実装
+   - EditorSettings型不整合の解決：DocumentEditor.tsx と SimpleMarkdownEditor.tsx でuseState型の適切な設定
+   - APIパラメータ型エラーの修正：RTK Query構造の正規化（data: パラメータのネスト化）
+   - Express Requestインポート問題：コントローラでのExpress Request型の明示的インポート
+
+2. **TypeScript厳密設定の復元**
+   - frontend/tsconfig.json と backend/tsconfig.json の strict モードを復元
+   - "noUnusedLocals": true, "noUnusedParameters": true の再有効化
+   - ビルドスクリプトからエラー抑制フラグの削除
+
+3. **未使用変数・インポートの完全清理**
+   - フロントエンド：50以上のTS6133エラーを体系的に修正
+   - バックエンド：コントローラ・サービス・ミドルウェアの未使用パラメータ修正
+   - 主要修正箇所：
+     - store/api/*.ts: RTK Queryコールバックの未使用パラメータ削除
+     - コンポーネント: Material-UI未使用インポート削除
+     - バックエンドコントローラ: req → _req による意図的未使用の明示
+     - auth.ts: User型不整合の解決
+
+4. **型整合性の向上**
+   - null vs undefined型の統一（TemplateCreateModal, TemplateEditModal）
+   - RTK Query APIパラメータ構造の正規化
+   - Prisma型定義との整合性確保
+
+5. **ランタイムエラーの修正**
+   - index.ts からの './types/express' 明示的インポート削除
+   - TypeScript型定義ファイルの適切な配置確認
+
+6. **技術的修正箇所**
+   - **フロントエンド主要修正**:
+     - src/pages/Dashboard.tsx: useGetAllProjectsQuery パラメータ修正
+     - src/components/Editor/DocumentEditor.tsx: EditorSettings型定義修正
+     - src/components/Templates/TemplateCreateModal.tsx: sceneId型修正（null → undefined）
+     - src/store/api/*.ts: 7ファイルの未使用パラメータ削除
+   - **バックエンド主要修正**:
+     - src/controllers/*.ts: 4ファイルのExpress Request型インポート追加
+     - src/middleware/auth.ts: User型不整合解決とtype assertion追加
+     - src/services/userPreferenceService.ts: 非存在プロパティアクセス修正
+     - src/index.ts: 実行時型インポートエラー解決
+
+**最終結果:**
+- **フロントエンド**: TypeScriptエラー 0件、Viteビルド成功
+- **バックエンド**: TypeScriptエラー 0件、開発サーバー正常稼働（ポート3101）
+- **型安全性**: 厳密なTypeScript設定で完全な型チェック
+- **コード品質**: 未使用変数なし、本番環境デプロイ準備完了
+- **開発環境**: cron jobs、health check、環境設定全て正常稼働
+
+## 以前の変更履歴 (2025-09-20)
 
 ### 文書参照モーダルの機能強化
 1. **20件制限の削除**

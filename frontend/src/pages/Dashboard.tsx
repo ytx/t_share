@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Box, AppBar, Toolbar, Typography, FormControl, InputLabel, Select, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
-import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, SupervisorAccount, History } from '@mui/icons-material';
+import { Box, AppBar, Toolbar, Typography, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
+import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon } from '@mui/icons-material';
 import ThemeToggleButton from '../components/Common/ThemeToggleButton';
 import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
@@ -21,7 +21,6 @@ import { getFromLocalStorage, saveProjectSelection, saveAdminMode } from '../uti
 const Dashboard: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [splitSize, setSplitSize] = useState('40%');
-  const [verticalSplitSize, setVerticalSplitSize] = useState('60%');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Initialize from localStorage
@@ -38,8 +37,8 @@ const Dashboard: React.FC = () => {
   const [documentToOpen, setDocumentToOpen] = useState<any>(null);
 
   const [useTemplate] = useUseTemplateMutation();
-  const { data: projectsResponse } = useGetAllProjectsQuery();
-  const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 });
+  const { data: projectsResponse } = useGetAllProjectsQuery({});
+  const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 } as any);
   const { data: projectDocumentsResponse } = useGetProjectDocumentsQuery(
     selectedProjectId!,
     { skip: !selectedProjectId }
@@ -47,10 +46,6 @@ const Dashboard: React.FC = () => {
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template);
-  };
-
-  const handleCreateTemplate = () => {
-    setCreateModalOpen(true);
   };
 
   const handleUseTemplate = useCallback(async (templateId: number) => {
@@ -94,10 +89,6 @@ const Dashboard: React.FC = () => {
     handleClose();
   };
 
-  const handleSettings = () => {
-    setSettingsOpen(true);
-    handleClose();
-  };
 
   const toggleAdminMode = () => {
     const newAdminMode = !adminMode;
@@ -277,7 +268,6 @@ const Dashboard: React.FC = () => {
             <Box id="left-panel-search" sx={{ height: '100%', p: 2, bgcolor: 'background.default', overflow: 'hidden' }}>
               <TemplateSearch
                 onTemplateSelect={handleTemplateSelect}
-                onCreateTemplate={handleCreateTemplate}
                 adminMode={user?.isAdmin ? adminMode : false}
               />
             </Box>
@@ -288,7 +278,7 @@ const Dashboard: React.FC = () => {
               minSize={200}
               maxSize={-200}
               defaultSize="60%"
-              onChange={(size) => setVerticalSplitSize(typeof size === 'string' ? size : `${size}px`)}
+              onChange={(size) => setSplitSize(typeof size === 'string' ? size : `${size}px`)}
               style={{ height: '100%' }}
               paneStyle={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', margin: 0 }}
               resizerStyle={{

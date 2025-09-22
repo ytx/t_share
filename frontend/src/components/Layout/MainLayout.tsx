@@ -10,9 +10,6 @@ import {
   MenuItem,
   Avatar,
   Divider,
-  FormControl,
-  InputLabel,
-  Select,
 } from '@mui/material';
 import {
   Menu as MenuIcon,

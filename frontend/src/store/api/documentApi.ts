@@ -65,7 +65,7 @@ export const documentApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Document', id }],
+      invalidatesTags: (_, __, { id }) => [{ type: 'Document', id }],
     }),
 
     deleteDocument: builder.mutation<{ success: boolean }, number>({
@@ -78,7 +78,7 @@ export const documentApi = createApi({
 
     getDocument: builder.query<Document, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Document', id }],
+      providesTags: (_, __, id) => [{ type: 'Document', id }],
     }),
 
     searchDocuments: builder.query<DocumentSearchResponse, DocumentSearchParams>({
@@ -97,7 +97,7 @@ export const documentApi = createApi({
 
     getProjectDocuments: builder.query<DocumentListResponse, number>({
       query: (projectId) => `/project/${projectId}`,
-      providesTags: (result, error, projectId) =>
+      providesTags: (result, _, projectId) =>
         result
           ? [
               ...result.data.map(({ id }) => ({ type: 'Document' as const, id })),

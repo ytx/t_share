@@ -27,7 +27,7 @@ export const sceneApi = createApi({
     // Get scene by ID
     getScene: builder.query<{ scene: Scene }, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Scene', id }],
+      providesTags: (_, __, id) => [{ type: 'Scene', id }],
     }),
 
     // Create scene (admin only)
@@ -47,7 +47,7 @@ export const sceneApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Scene', id }, 'Scene'],
+      invalidatesTags: (_, __, { id }) => [{ type: 'Scene', id }, 'Scene'],
     }),
 
     // Delete scene (admin only)

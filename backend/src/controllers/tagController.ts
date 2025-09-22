@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import tagService from '../services/tagService';
 import { tagValidation } from '../utils/validation';
 import logger from '../utils/logger';
@@ -193,7 +193,7 @@ class TagController {
     }
   }
 
-  async getAllTags(req: Request, res: Response) {
+  async getAllTags(_req: Request, res: Response) {
     try {
       const tags = await tagService.getAllTags();
 

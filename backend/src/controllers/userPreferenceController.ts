@@ -63,7 +63,7 @@ export const updateUserPreferences = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -101,7 +101,7 @@ export const updateEditorSettings = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -124,7 +124,7 @@ export const updateUISettings = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -147,7 +147,7 @@ export const updateNotificationSettings = async (req: Request, res: Response) =>
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 

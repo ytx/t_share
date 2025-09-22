@@ -33,7 +33,7 @@ export const tagApi = createApi({
     // Get tag by ID
     getTag: builder.query<{ tag: Tag }, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Tag', id }],
+      providesTags: (_, __, id) => [{ type: 'Tag', id }],
     }),
 
     // Create tag
@@ -53,7 +53,7 @@ export const tagApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Tag', id }, 'Tag'],
+      invalidatesTags: (_, __, { id }) => [{ type: 'Tag', id }, 'Tag'],
     }),
 
     // Delete tag

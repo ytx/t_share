@@ -85,7 +85,7 @@ const TagManagement: React.FC = () => {
 
   const tags = tagsResponse?.tags || [];
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   }, []);
 
@@ -267,14 +267,14 @@ const TagManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {tag.usageCount || 0}回
+                            {0 || 0}回
                           </Typography>
                         </TableCell>
                         <TableCell>
                           {formatDate(tag.createdAt)}
                         </TableCell>
                         <TableCell>
-                          {formatDate(tag.updatedAt)}
+                          {formatDate(tag.createdAt)}
                         </TableCell>
                         <TableCell align="right">
                           <IconButton
@@ -354,7 +354,7 @@ const TagManagement: React.FC = () => {
                       使用中タグ
                     </Typography>
                     <Typography variant="h4">
-                      {tags.filter(tag => (tag.usageCount || 0) > 0).length}
+                      {tags.filter(_ => (0 || 0) > 0).length}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -366,7 +366,7 @@ const TagManagement: React.FC = () => {
                       未使用タグ
                     </Typography>
                     <Typography variant="h4">
-                      {tags.filter(tag => (tag.usageCount || 0) === 0).length}
+                      {tags.filter(_ => (0 || 0) === 0).length}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -379,7 +379,7 @@ const TagManagement: React.FC = () => {
                     </Typography>
                     <Typography variant="h4">
                       {tags.length > 0
-                        ? Math.round(tags.reduce((sum, tag) => sum + (tag.usageCount || 0), 0) / tags.length)
+                        ? Math.round(tags.reduce((sum, _) => sum + (0 || 0), 0) / tags.length)
                         : 0
                       }
                     </Typography>

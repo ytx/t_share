@@ -43,7 +43,7 @@ export const templateApi = createApi({
     // Get template by ID
     getTemplate: builder.query<{ template: Template }, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Template', id }],
+      providesTags: (_, __, id) => [{ type: 'Template', id }],
     }),
 
     // Create template
@@ -63,7 +63,7 @@ export const templateApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Template', id }, 'Template'],
+      invalidatesTags: (_, __, { id }) => [{ type: 'Template', id }, 'Template'],
     }),
 
     // Delete template
@@ -81,13 +81,13 @@ export const templateApi = createApi({
         url: `/${id}/use`,
         method: 'POST',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Template', id }],
+      invalidatesTags: (_, __, id) => [{ type: 'Template', id }],
     }),
 
     // Get template versions
     getTemplateVersions: builder.query<{ versions: TemplateVersion[] }, number>({
       query: (id) => `/${id}/versions`,
-      providesTags: (result, error, id) => [{ type: 'TemplateVersion', id }],
+      providesTags: (_, __, id) => [{ type: 'TemplateVersion', id }],
     }),
 
     // Restore template version
@@ -96,7 +96,7 @@ export const templateApi = createApi({
         url: `/${id}/restore/${version}`,
         method: 'POST',
       }),
-      invalidatesTags: (result, error, { id }) => [
+      invalidatesTags: (_, __, { id }) => [
         { type: 'Template', id },
         { type: 'TemplateVersion', id },
         'Template',

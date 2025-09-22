@@ -10,6 +10,8 @@ data_dir: /mnt/data
 
 # Git repository settings
 git_repo_url: https://github.com/ytx/t_share.git
+# For private repository, use token-based URL:
+# git_repo_url: "https://{{ github_token }}@github.com/ytx/t_share.git"
 
 # Docker settings
 docker_compose_file: "{{ app_dir }}/docker-compose.yml"
@@ -19,6 +21,12 @@ ssl_cert_dir: /etc/ssl/certs/t-share
 ssl_cert_file: "{{ ssl_cert_dir }}/server.crt"
 ssl_ca_file: "{{ ssl_cert_dir }}/ca.crt"
 ssl_key_file: "{{ ssl_cert_dir }}/nopass.key"
+
+# SSL certificate source paths (local)
+ssl_cert_source_dir: "~/valut/certs/trusted-host.online/cur"
+ssl_cert_source_file: "{{ ssl_cert_source_dir }}/server.crt"
+ssl_ca_source_file: "{{ ssl_cert_source_dir }}/ca.crt"
+ssl_key_source_file: "{{ ssl_cert_source_dir }}/nopass.key"
 
 # Database settings (common)
 postgres_version: "15"

@@ -30,7 +30,7 @@ export const createUserVariable = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -64,7 +64,7 @@ export const updateUserVariable = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -171,7 +171,7 @@ export const bulkCreateUserVariables = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 

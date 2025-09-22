@@ -13,7 +13,6 @@ import {
   Add,
   Upload,
   Download,
-  Settings,
 } from '@mui/icons-material';
 import UserVariablesList from './UserVariablesList';
 import ProjectVariablesList from './ProjectVariablesList';
@@ -60,7 +59,7 @@ const VariableManager: React.FC<VariableManagerProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

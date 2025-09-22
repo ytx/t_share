@@ -19,8 +19,6 @@ import {
   Search,
   Close,
   Launch,
-  KeyboardArrowUp,
-  KeyboardArrowDown,
 } from '@mui/icons-material';
 import { Document } from '../../types';
 

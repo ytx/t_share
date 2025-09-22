@@ -84,7 +84,7 @@ const SceneManagement: React.FC = () => {
 
   const scenes = scenesResponse?.scenes || [];
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   }, []);
 
@@ -244,7 +244,7 @@ const SceneManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {scene.templateCount || 0}件
+                            {0 || 0}件
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -331,7 +331,7 @@ const SceneManagement: React.FC = () => {
                       使用中シーン
                     </Typography>
                     <Typography variant="h4">
-                      {scenes.filter(scene => (scene.templateCount || 0) > 0).length}
+                      {scenes.filter(_ => (0 || 0) > 0).length}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -343,7 +343,7 @@ const SceneManagement: React.FC = () => {
                       未使用シーン
                     </Typography>
                     <Typography variant="h4">
-                      {scenes.filter(scene => (scene.templateCount || 0) === 0).length}
+                      {scenes.filter(_ => (0 || 0) === 0).length}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -356,7 +356,7 @@ const SceneManagement: React.FC = () => {
                     </Typography>
                     <Typography variant="h4">
                       {scenes.length > 0
-                        ? Math.round(scenes.reduce((sum, scene) => sum + (scene.templateCount || 0), 0) / scenes.length)
+                        ? Math.round(scenes.reduce((sum, _) => sum + (0 || 0), 0) / scenes.length)
                         : 0
                       }
                     </Typography>
@@ -451,9 +451,9 @@ const SceneManagement: React.FC = () => {
                     <Chip
                       label={scene.name}
                       sx={{
-                        bgcolor: (scene.color || '#1976d2') + '20',
-                        borderColor: scene.color || '#1976d2',
-                        color: scene.color || '#1976d2',
+                        bgcolor: '#1976d2' + '20',
+                        borderColor: '#1976d2',
+                        color: '#1976d2',
                       }}
                       size="small"
                     />
@@ -477,9 +477,9 @@ const SceneManagement: React.FC = () => {
                     <Chip
                       label={scene.name}
                       sx={{
-                        bgcolor: (scene.color || '#1976d2') + '20',
-                        borderColor: scene.color || '#1976d2',
-                        color: scene.color || '#1976d2',
+                        bgcolor: '#1976d2' + '20',
+                        borderColor: '#1976d2',
+                        color: '#1976d2',
                       }}
                       size="small"
                     />

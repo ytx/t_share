@@ -25,7 +25,7 @@ router.use('/user-preferences', userPreferenceRoutes);
 router.use('/admin', adminRoutes);
 
 // API information
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   res.json({
     message: 'Template Share API',
     version: '1.0.0',

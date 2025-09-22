@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import templateService from '../services/templateService';
 import { templateValidation } from '../utils/validation';
 import logger from '../utils/logger';
@@ -340,8 +340,8 @@ class TemplateController {
       const template = await templateService.updateTemplate(templateId, (req.user as any).id, {
         title: targetVersion.title,
         content: targetVersion.content,
-        description: targetVersion.description,
-        sceneId: targetVersion.sceneId,
+        description: targetVersion.description || undefined,
+        sceneId: targetVersion.sceneId || undefined,
         status: targetVersion.status,
       });
 

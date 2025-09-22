@@ -60,7 +60,7 @@ export const projectVariableApi = createApi({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (result, error, { projectId }) => [
+      invalidatesTags: (_, __, { projectId }) => [
         { type: 'ProjectVariable', id: `PROJECT_${projectId}` },
       ],
     }),
@@ -71,7 +71,7 @@ export const projectVariableApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'ProjectVariable', id }],
+      invalidatesTags: (_, __, { id }) => [{ type: 'ProjectVariable', id }],
     }),
 
     deleteProjectVariable: builder.mutation<{ success: boolean }, number>({
@@ -84,12 +84,12 @@ export const projectVariableApi = createApi({
 
     getProjectVariable: builder.query<ProjectVariable, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'ProjectVariable', id }],
+      providesTags: (_, __, id) => [{ type: 'ProjectVariable', id }],
     }),
 
     getProjectVariables: builder.query<ProjectVariableResponse, number>({
       query: (projectId) => `/project/${projectId}`,
-      providesTags: (result, error, projectId) =>
+      providesTags: (result, _, projectId) =>
         result
           ? [
               ...result.data.map(({ id }) => ({ type: 'ProjectVariable' as const, id })),
@@ -104,7 +104,7 @@ export const projectVariableApi = createApi({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (result, error, { projectId }) => [
+      invalidatesTags: (_, __, { projectId }) => [
         { type: 'ProjectVariable', id: `PROJECT_${projectId}` },
       ],
     }),

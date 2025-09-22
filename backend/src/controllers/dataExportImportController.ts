@@ -62,7 +62,7 @@ export const importAllData = async (req: Request, res: Response) => {
     if (!optionsValidation.success) {
       return res.status(400).json({
         error: 'Invalid import options',
-        details: optionsValidation.error.errors
+        details: optionsValidation.error.issues
       });
     }
 

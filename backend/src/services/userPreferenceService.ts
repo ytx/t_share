@@ -45,7 +45,7 @@ class UserPreferenceService {
         id: preferences.id,
         userId: preferences.userId,
         theme: preferences.theme as 'light' | 'dark' | 'auto',
-        language: preferences.language as 'ja' | 'en',
+        language: 'ja' as 'ja' | 'en', // Default language since not stored in DB
         editorSettings: {
           lightTheme: preferences.editorLightTheme,
           darkTheme: preferences.editorDarkTheme,
@@ -59,7 +59,7 @@ class UserPreferenceService {
           panelSplitRatio: preferences.panelSplitRatio,
           ...this.getDefaultPreferences().uiSettings,
         },
-        notifications: preferences.notifications ? JSON.parse(preferences.notifications) : this.getDefaultPreferences().notifications,
+        notifications: this.getDefaultPreferences().notifications, // Default notifications since not stored in DB
         createdAt: preferences.createdAt,
         updatedAt: preferences.updatedAt,
       };
@@ -97,17 +97,15 @@ class UserPreferenceService {
         }
       });
 
-      let preferences;
-
       if (existingPreferences) {
         // Update existing preferences
-        preferences = await prisma.userPreference.update({
+        await prisma.userPreference.update({
           where: { id: existingPreferences.id },
           data: updateData,
         });
       } else {
         // Create new preferences
-        preferences = await prisma.userPreference.create({
+        await prisma.userPreference.create({
           data: {
             userId,
             ...updateData,

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Box } from '@mui/material';
 import MarkdownEditor from './MarkdownEditor';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useGetUserPreferencesQuery } from '../../store/api/userPreferenceApi';
+import { useGetUserPreferencesQuery, EditorSettings } from '../../store/api/userPreferenceApi';
 import { getFromLocalStorage } from '../../utils/localStorage';
 
 interface SimpleMarkdownEditorProps {
@@ -29,7 +29,7 @@ const SimpleMarkdownEditor: React.FC<SimpleMarkdownEditorProps> = ({
   const { mode: themeMode } = useTheme();
 
   // エディタ設定（ユーザ設定から取得）
-  const [editorSettings, setEditorSettings] = useState({
+  const [editorSettings, setEditorSettings] = useState<EditorSettings>({
     lightTheme: 'github',
     darkTheme: 'monokai',
     showLineNumbers: true,
@@ -42,7 +42,7 @@ const SimpleMarkdownEditor: React.FC<SimpleMarkdownEditorProps> = ({
   // ユーザ設定からエディタ設定を初期化
   React.useEffect(() => {
     if (userPreferences?.editorSettings) {
-      setEditorSettings(userPreferences.editorSettings);
+      setEditorSettings(prev => ({ ...prev, ...userPreferences.editorSettings }));
     }
   }, [userPreferences]);
 

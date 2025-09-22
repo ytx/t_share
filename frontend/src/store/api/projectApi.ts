@@ -46,7 +46,7 @@ export const projectApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Project', id }],
+      invalidatesTags: (_, __, { id }) => [{ type: 'Project', id }],
     }),
 
     deleteProject: builder.mutation<{ success: boolean }, number>({
@@ -59,7 +59,7 @@ export const projectApi = createApi({
 
     getProject: builder.query<Project, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Project', id }],
+      providesTags: (_, __, id) => [{ type: 'Project', id }],
     }),
 
     getUserProjects: builder.query<ProjectResponse, void>({

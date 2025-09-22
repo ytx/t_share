@@ -59,7 +59,7 @@ export const userVariableApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'UserVariable', id }],
+      invalidatesTags: (_, __, { id }) => [{ type: 'UserVariable', id }],
     }),
 
     deleteUserVariable: builder.mutation<{ success: boolean }, number>({
@@ -72,7 +72,7 @@ export const userVariableApi = createApi({
 
     getUserVariable: builder.query<UserVariable, number>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: 'UserVariable', id }],
+      providesTags: (_, __, id) => [{ type: 'UserVariable', id }],
     }),
 
     getUserVariables: builder.query<UserVariableResponse, void>({

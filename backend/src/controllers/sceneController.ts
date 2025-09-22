@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import sceneService from '../services/sceneService';
 import { sceneValidation } from '../utils/validation';
 import logger from '../utils/logger';
@@ -204,7 +204,7 @@ class SceneController {
     }
   }
 
-  async getAllScenes(req: Request, res: Response) {
+  async getAllScenes(_req: Request, res: Response) {
     try {
       const scenes = await sceneService.getAllScenes();
 

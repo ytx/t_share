@@ -12,11 +12,12 @@ dotenv.config();
 // Import configurations
 import './config/passport';
 import apiRoutes from './routes';
-import logger from './utils/logger';
+// Logger imported but not used in main file
+// import logger from './utils/logger';
 import startUserCleanupJob from './jobs/userCleanup';
 
 const app = express();
-const port = process.env.PORT || 3101;
+const port = parseInt(process.env.PORT || '3101', 10);
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
@@ -62,7 +63,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -74,7 +75,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', apiRoutes);
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
     error: 'Something went wrong!',

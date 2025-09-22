@@ -21,7 +21,7 @@ export const requireAdmin = (req: Request, res: Response, next: any) => {
   next();
 };
 
-export const getSystemStats = async (req: Request, res: Response) => {
+export const getSystemStats = async (_req: Request, res: Response) => {
   try {
     const stats = await adminService.getSystemStats();
     res.json(stats);
@@ -37,7 +37,7 @@ export const getUserList = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -56,7 +56,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -69,7 +69,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
   }
 };
 
-export const getSystemHealth = async (req: Request, res: Response) => {
+export const getSystemHealth = async (_req: Request, res: Response) => {
   try {
     const health = await adminService.getSystemHealthDetails();
     res.json(health);
@@ -79,7 +79,7 @@ export const getSystemHealth = async (req: Request, res: Response) => {
   }
 };
 
-export const exportSystemData = async (req: Request, res: Response) => {
+export const exportSystemData = async (_req: Request, res: Response) => {
   try {
     // This would be a more complex operation in a real system
     const stats = await adminService.getSystemStats();
@@ -111,7 +111,7 @@ export const exportSystemData = async (req: Request, res: Response) => {
   }
 };
 
-export const getSystemInfo = async (req: Request, res: Response) => {
+export const getSystemInfo = async (_req: Request, res: Response) => {
   try {
     const info = {
       version: '1.0.0',
@@ -152,7 +152,7 @@ export const createUser = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -181,7 +181,7 @@ export const updateUser = async (req: Request, res: Response) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -247,7 +247,7 @@ export const approveUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getPendingUsers = async (req: Request, res: Response) => {
+export const getPendingUsers = async (_req: Request, res: Response) => {
   try {
     const pendingUsers = await adminService.getPendingUsers();
     res.json({
@@ -259,7 +259,7 @@ export const getPendingUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserApprovalStats = async (req: Request, res: Response) => {
+export const getUserApprovalStats = async (_req: Request, res: Response) => {
   try {
     const stats = await adminService.getUserApprovalStats();
     res.json(stats);

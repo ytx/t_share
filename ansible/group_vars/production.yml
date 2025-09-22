@@ -6,7 +6,7 @@ environment: production
 git_branch: release
 
 # Domain settings
-domain_name: t_share0.trusted-host.online
+domain_name: t-share0.trusted-host.online
 app_url: "https://{{ domain_name }}"
 
 # Application ports (internal Docker network)
