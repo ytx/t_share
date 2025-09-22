@@ -3,6 +3,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Install OpenSSL for Prisma compatibility
+RUN apk add --no-cache openssl
+
 # Copy package files
 COPY package*.json ./
 
@@ -22,6 +25,9 @@ RUN npm run build
 FROM node:18-alpine AS production
 
 WORKDIR /app
+
+# Install OpenSSL for Prisma compatibility
+RUN apk add --no-cache openssl
 
 # Copy package files
 COPY package*.json ./
@@ -56,6 +62,9 @@ CMD ["node", "dist/index.js"]
 FROM node:18-alpine AS development
 
 WORKDIR /app
+
+# Install OpenSSL for Prisma compatibility
+RUN apk add --no-cache openssl
 
 # Copy package files
 COPY package*.json ./
