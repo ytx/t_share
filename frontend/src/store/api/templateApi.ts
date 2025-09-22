@@ -1,13 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { Template, TemplateSearchResponse, TemplateSearchFilters, TemplateFormData, TemplateVersion } from '../../types';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:3101`;
+import { API_BASE_URL } from '../../config/api';
 
 export const templateApi = createApi({
   reducerPath: 'templateApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/templates`,
+    baseUrl: `${API_BASE_URL}/templates`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('authToken');
       if (token) {

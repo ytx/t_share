@@ -1,13 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { Tag, TagFormData } from '../../types';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:3101`;
+import { API_BASE_URL } from '../../config/api';
 
 export const tagApi = createApi({
   reducerPath: 'tagApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/tags`,
+    baseUrl: `${API_BASE_URL}/tags`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('authToken');
       if (token) {

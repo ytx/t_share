@@ -189,7 +189,8 @@
     - name: Build and start application
       shell: |
         cd {{ app_dir }}
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --build -d
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml build --no-cache
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up -d
       environment:
         DOCKER_BUILDKIT: 1
         NODE_OPTIONS: "--max-old-space-size=1536"

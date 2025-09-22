@@ -1,7 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:3101`;
+import { API_BASE_URL } from '../../config/api';
 
 export interface ExportData {
   exportedAt: string;
@@ -53,7 +51,7 @@ export interface ValidationResult {
 export const dataExportImportApi = createApi({
   reducerPath: 'dataExportImportApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE_URL}/api/admin/data`,
+    baseUrl: `${API_BASE_URL}/admin/data`,
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('authToken');
       if (token) {
