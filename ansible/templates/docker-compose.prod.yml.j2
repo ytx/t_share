@@ -57,10 +57,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        REACT_APP_API_URL: {{ app_url }}/api
     container_name: {{ app_name }}-frontend
     environment:
       NODE_ENV: production
-      REACT_APP_API_URL: {{ app_url }}/api
     ports:
       - "{{ frontend_port }}:80"
     depends_on:

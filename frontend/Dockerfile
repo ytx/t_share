@@ -14,8 +14,12 @@ COPY . .
 
 # Build the application for 2GB servers with generous memory allocation
 ENV NODE_OPTIONS="--max-old-space-size=1536"
+# Build-time environment variables for React
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
 # デバッグ用：実際のメモリ制限を確認
 RUN echo "NODE_OPTIONS: $NODE_OPTIONS"
+RUN echo "REACT_APP_API_URL: $REACT_APP_API_URL"
 RUN node -e "console.log('Max heap size:', require('v8').getHeapStatistics().heap_size_limit / 1024 / 1024, 'MB')"
 RUN npm run build
 
