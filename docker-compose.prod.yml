@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: t-share-postgres-prod
+    environment:
+      POSTGRES_DB: templateshare
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "5200:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - t-share-network
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: t-share-backend-prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/templateshare
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      PORT: 3101
+      CORS_ORIGIN: http://localhost:3200
+    ports:
+      - "4200:3101"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3101/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - backend_logs:/app/logs
+    networks:
+      - t-share-network
+
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: t-share-frontend-prod
+    environment:
+      NODE_ENV: production
+      REACT_APP_API_URL: http://localhost:4200/api
+    ports:
+      - "3200:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - t-share-network
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  t-share-network:
+    driver: bridge
