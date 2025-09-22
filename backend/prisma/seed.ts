@@ -55,7 +55,7 @@ async function main() {
     },
   });
 
-  const emailScene = await prisma.scene.upsert({
+  await prisma.scene.upsert({
     where: { id: 3 },
     update: {},
     create: {
@@ -77,7 +77,7 @@ async function main() {
     },
   });
 
-  const urgentTag = await prisma.tag.upsert({
+  await prisma.tag.upsert({
     where: { name: '緊急' },
     update: {},
     create: {
