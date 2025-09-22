@@ -4,8 +4,6 @@
   become: yes
   vars_files:
     - "../secrets/{{ group_names[0] }}_secrets.yml"
-  vars:
-    ansible_common_remote_tmp: /tmp/.ansible-${USER}/tmp
 
   pre_tasks:
     - name: Update package cache
@@ -20,11 +18,10 @@
         name:
           - docker.io
           - docker-compose
-          - nginx
           - git
           - curl
           - ufw
-          - logrotate
+          - nginx
         state: present
 
     - name: Start and enable Docker
@@ -32,6 +29,24 @@
         name: docker
         state: started
         enabled: yes
+
+    # Create swap file early for build processes
+    - name: Create swap file early
+      block:
+        - name: Check if swap exists
+          command: swapon --show
+          register: swap_check
+          changed_when: false
+          failed_when: false
+
+        - name: Create 1GB swap file for builds
+          shell: |
+            dd if=/dev/zero of={{ swap_file_path }} bs=1M count=1024
+            chmod 600 {{ swap_file_path }}
+            mkswap {{ swap_file_path }}
+            swapon {{ swap_file_path }}
+            echo "{{ swap_file_path }} none swap sw 0 0" >> /etc/fstab
+          when: swap_check.stdout == ""
 
     - name: Create application user
       user:
@@ -41,15 +56,6 @@
         home: "{{ app_dir }}"
         groups: docker
         append: yes
-        create_home: no
-
-    - name: Create data directory
-      file:
-        path: "{{ data_dir }}"
-        state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0755'
 
     - name: Create application directory
       file:
@@ -59,34 +65,16 @@
         group: "{{ app_group }}"
         mode: '0755'
 
-    - name: Create PostgreSQL data directory
+    - name: Create data directories
       file:
-        path: "{{ db_data_dir }}"
+        path: "{{ item }}"
         state: directory
-        owner: "999"  # PostgreSQL container user
-        group: "999"
-        mode: '0750'
-
-    - name: Create log directories
-      file:
-        path: "{{ item.path }}"
-        state: directory
-        owner: "{{ item.owner }}"
-        group: "{{ item.group }}"
-        mode: "{{ item.mode }}"
-      loop:
-        - { path: "{{ log_dir }}", owner: "{{ app_user }}", group: "{{ app_group }}", mode: "0755" }
-        - { path: "{{ log_dir }}/nginx", owner: "www-data", group: "www-data", mode: "0755" }
-        - { path: "{{ log_dir }}/backend", owner: "{{ app_user }}", group: "{{ app_group }}", mode: "0755" }
-        - { path: "{{ log_dir }}/frontend", owner: "{{ app_user }}", group: "{{ app_group }}", mode: "0755" }
-
-    - name: Create SSL certificate directory
-      file:
-        path: "{{ ssl_cert_dir }}"
-        state: directory
-        owner: root
-        group: root
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
         mode: '0755'
+      loop:
+        - "{{ data_dir }}"
+        - "{{ ssl_cert_dir }}"
 
     # SSL Certificate Setup
     - name: Copy SSL certificates
@@ -95,365 +83,65 @@
         dest: "{{ item.dest }}"
         owner: root
         group: root
-        mode: '0644'
+        mode: '{{ item.mode }}'
       loop:
-        - { src: "{{ ssl_cert_source_file }}", dest: "{{ ssl_cert_file }}" }
-        - { src: "{{ ssl_ca_source_file }}", dest: "{{ ssl_ca_file }}" }
-      notify: restart nginx
-
-    - name: Copy SSL private key
-      copy:
-        src: "{{ ssl_key_source_file }}"
-        dest: "{{ ssl_key_file }}"
-        owner: root
-        group: root
-        mode: '0600'
-      notify: restart nginx
-
-    - name: Verify SSL certificate files exist
-      stat:
-        path: "{{ item }}"
-      register: ssl_file_check
-      loop:
-        - "{{ ssl_cert_file }}"
-        - "{{ ssl_ca_file }}"
-        - "{{ ssl_key_file }}"
-      failed_when: not ssl_file_check.stat.exists
-
-    # Git Configuration
-    - name: Configure git user
-      git_config:
-        name: user.name
-        value: "Ansible Deploy"
-        scope: global
-
-    - name: Configure git email
-      git_config:
-        name: user.email
-        value: "deploy@example.com"
-        scope: global
-
-    - name: Configure git to use HTTPS instead of SSH
-      git_config:
-        name: "url.https://github.com/.insteadOf"
-        value: "git@github.com:"
-        scope: global
+        - { src: "{{ ssl_cert_source_file }}", dest: "{{ ssl_cert_file }}", mode: '0644' }
+        - { src: "{{ ssl_ca_source_file }}", dest: "{{ ssl_ca_file }}", mode: '0644' }
+        - { src: "{{ ssl_key_source_file }}", dest: "{{ ssl_key_file }}", mode: '0600' }
 
     # Application Code
-    - name: Test GitHub connectivity
-      uri:
-        url: "https://api.github.com/repos/ytx/t_share"
-        method: GET
-        status_code: 200
-      register: github_test
-
-    - name: Remove existing application directory if exists
+    - name: Remove existing application directory if it exists
       file:
         path: "{{ app_dir }}"
         state: absent
-      when: ansible_check_mode == false
 
-    - name: Create application directory
-      file:
-        path: "{{ app_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
-    - name: Clone application repository
-      git:
-        repo: "{{ git_repo_url }}"
-        dest: "{{ app_dir }}"
-        version: "{{ git_branch }}"
-        force: yes
-        clone: yes
-        update: yes
-        accept_hostkey: yes
-        depth: 1
-      register: git_result
-      retries: 3
-      delay: 5
-      until: git_result is succeeded
-      notify: rebuild application
-
-    - name: Set application directory ownership
-      file:
-        path: "{{ app_dir }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        recurse: yes
-        mode: '0755'
-
-    - name: Fix backend Dockerfile port
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^EXPOSE 5000'
-        line: 'EXPOSE 3101'
-        backup: yes
-      notify: rebuild application
-
-    - name: Install development dependencies globally in Dockerfile
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^# Install development dependencies globally for production container'
-        line: '# Install development dependencies globally for production container'
-        backup: yes
-
-    - name: Ensure nodemon and ts-node are installed globally
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^RUN npm install -g nodemon ts-node'
-        line: 'RUN npm install -g nodemon ts-node'
-        backup: yes
-
-    - name: Comment out TypeScript build step to avoid build errors
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^# RUN npm run build'
-        line: '# RUN npm run build'
-        backup: yes
-
-    - name: Comment out original build step if exists
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^RUN npm run build'
-        line: '# RUN npm run build'
-        backup: yes
-
-    - name: Set CMD to use development mode
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^CMD \["npm", "run", "dev"\]'
-        line: 'CMD ["npm", "run", "dev"]'
-        backup: yes
-
-    - name: Ensure backend binds to all interfaces
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^ENV HOST='
-        line: 'ENV HOST=0.0.0.0'
-        insertafter: '^WORKDIR /app'
-        backup: yes
-
-    - name: Set Prisma environment variables for Alpine
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^ENV PRISMA_CLI_BINARY_TARGETS='
-        line: 'ENV PRISMA_CLI_BINARY_TARGETS="linux-musl"'
-        insertafter: '^ENV HOST='
-        backup: yes
-
-    - name: Set OpenSSL legacy provider environment
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^ENV OPENSSL_CONF='
-        line: 'ENV OPENSSL_CONF=/dev/null'
-        insertafter: '^ENV PRISMA_CLI_BINARY_TARGETS='
-        backup: yes
-      notify: rebuild application
-
-    - name: Add SSL libraries installation to backend Dockerfile
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^RUN apk add --no-cache openssl.*'
-        line: 'RUN apk add --no-cache openssl openssl-dev libc6-compat'
-        insertafter: '^WORKDIR /app'
-        backup: yes
-
-    - name: Fix all npm ci commands in Dockerfiles (comprehensive)
-      replace:
-        path: "{{ item }}"
-        regexp: 'RUN npm ci(?!\s*--legacy-peer-deps)'
-        replace: 'RUN npm ci --legacy-peer-deps'
-        backup: yes
-      loop:
-        - "{{ app_dir }}/backend/Dockerfile"
-        - "{{ app_dir }}/frontend/Dockerfile"
-
-    - name: Create .npmrc files for legacy peer deps
-      template:
-        src: "../templates/.npmrc.j2"
-        dest: "{{ item }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0644'
-      loop:
-        - "{{ app_dir }}/backend/.npmrc"
-        - "{{ app_dir }}/frontend/.npmrc"
-
-    - name: Add date-fns installation to frontend Dockerfile
-      replace:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: 'RUN npm ci --legacy-peer-deps$'
-        replace: 'RUN npm ci --legacy-peer-deps && npm install date-fns'
-        backup: yes
-
-    - name: Comment out frontend build step to avoid TypeScript errors
-      lineinfile:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: '^RUN npm run build'
-        line: '# RUN npm run build'
-        backup: yes
-
-    - name: Comment out serve installation for frontend
-      lineinfile:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: '^RUN npm install -g serve'
-        line: '# RUN npm install -g serve'
-        backup: yes
-
-    - name: Comment out serve command for frontend
-      lineinfile:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: '^CMD \["serve", "-s", "dist", "-l", "3000"\]'
-        line: '# CMD ["serve", "-s", "dist", "-l", "3000"]'
-        backup: yes
-
-    - name: Set frontend CMD to use development mode with host binding
-      lineinfile:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: '^CMD \["npm", "run", "dev"\]'
-        line: 'CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]'
-        insertafter: '^# CMD \["serve", "-s", "dist", "-l", "3000"\]'
-        backup: yes
-
-    - name: Replace Vite config file to fix server configuration
-      template:
-        src: "../templates/vite.config.ts.j2"
-        dest: "{{ app_dir }}/frontend/vite.config.ts"
-        backup: yes
-
-    - name: Ensure frontend EXPOSE port is correct for dev mode
-      lineinfile:
-        path: "{{ app_dir }}/frontend/Dockerfile"
-        regexp: '^EXPOSE 3000'
-        line: 'EXPOSE 3000'
-        backup: yes
-
-    - name: Ensure backend EXPOSE port is correct
-      lineinfile:
-        path: "{{ app_dir }}/backend/Dockerfile"
-        regexp: '^EXPOSE 3101'
-        line: 'EXPOSE 3101'
-        backup: yes
-      notify: rebuild application
-
-    - name: Create .dockerignore files to reduce build context
-      template:
-        src: "../templates/.dockerignore.j2"
-        dest: "{{ item }}"
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0644'
-      loop:
-        - "{{ app_dir }}/backend/.dockerignore"
-        - "{{ app_dir }}/frontend/.dockerignore"
-
-    - name: Clean up Docker to free disk space
+    - name: Clone application repository directly
       shell: |
-        docker system prune -af --volumes
-        docker builder prune -af
-      become: yes
-      ignore_errors: yes
+        git clone {{ git_repo_url }} {{ app_dir }}
+        cd {{ app_dir }}
+        git checkout {{ git_branch }}
+        chown -R {{ app_user }}:{{ app_group }} {{ app_dir }}
 
-    # Docker Compose Configuration
-    - name: Generate Docker Compose file
+    # Production Environment Files
+    - name: Generate production docker-compose file
       template:
-        src: "../templates/docker-compose.yml.j2"
-        dest: "{{ docker_compose_file }}"
+        src: "../templates/docker-compose.prod.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.prod.yml"
         owner: "{{ app_user }}"
         group: "{{ app_group }}"
         mode: '0644'
-      notify: restart application
 
-    - name: Generate environment file
-      template:
-        src: "../templates/.env.j2"
-        dest: "{{ app_dir }}/.env"
-        owner: "{{ app_user }}"
-        group: "{{ app_group }}"
-        mode: '0600'
-      notify: restart application
 
     # Nginx Configuration
-    - name: Ensure nginx log directories exist before configuration
-      file:
-        path: "{{ log_dir }}/nginx"
-        state: directory
-        owner: www-data
-        group: www-data
-        mode: '0755'
-
-    - name: Create nginx log files
-      file:
-        path: "{{ item }}"
-        state: touch
-        owner: www-data
-        group: www-data
-        mode: '0644'
-      loop:
-        - "{{ log_dir }}/nginx/access.log"
-        - "{{ log_dir }}/nginx/error.log"
-
-    - name: Ensure nginx log files ownership is correct
-      file:
-        path: "{{ item }}"
-        owner: www-data
-        group: www-data
-        mode: '0644'
-      loop:
-        - "{{ log_dir }}/nginx/access.log"
-        - "{{ log_dir }}/nginx/error.log"
-
-    - name: Generate Nginx configuration for Docker
+    - name: Generate Nginx configuration
       template:
-        src: "../templates/nginx-docker.conf.j2"
+        src: "../templates/nginx.conf.j2"
         dest: "/etc/nginx/sites-available/{{ app_name }}"
         owner: root
         group: root
         mode: '0644'
 
-    - name: Stop and disable system nginx service (using Docker nginx instead)
+    - name: Enable Nginx site
+      file:
+        src: "/etc/nginx/sites-available/{{ app_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ app_name }}"
+        state: link
+
+    - name: Remove default Nginx site
+      file:
+        path: "/etc/nginx/sites-enabled/default"
+        state: absent
+
+    - name: Test Nginx configuration
+      command: nginx -t
+      changed_when: false
+
+    - name: Start and enable Nginx
       systemd:
         name: nginx
-        state: stopped
-        enabled: no
-      ignore_errors: yes
+        state: started
+        enabled: yes
 
-    # Nginx site configuration will be mounted directly in Docker container
-
-    # System Optimization
-    - name: Create swap file if not exists
-      block:
-        - name: Check if swap file exists
-          stat:
-            path: "{{ swap_file_path }}"
-          register: swap_file_check
-
-        - name: Create swap file
-          command: "dd if=/dev/zero of={{ swap_file_path }} bs=1M count=1024"
-          when: not swap_file_check.stat.exists
-
-        - name: Set swap file permissions
-          file:
-            path: "{{ swap_file_path }}"
-            mode: '0600'
-          when: not swap_file_check.stat.exists
-
-        - name: Make swap file
-          command: "mkswap {{ swap_file_path }}"
-          when: not swap_file_check.stat.exists
-
-        - name: Add swap to fstab
-          lineinfile:
-            path: /etc/fstab
-            line: "{{ swap_file_path }} none swap sw 0 0"
-          when: not swap_file_check.stat.exists
-
-        - name: Enable swap
-          command: "swapon {{ swap_file_path }}"
-          when: not swap_file_check.stat.exists
 
     # Systemd Service
     - name: Generate systemd service file
@@ -465,100 +153,76 @@
         mode: '0644'
       notify:
         - reload systemd
-        - restart application service
-
-    # Log Rotation
-    - name: Configure log rotation
-      template:
-        src: "../templates/logrotate.j2"
-        dest: "/etc/logrotate.d/{{ app_name }}"
-        owner: root
-        group: root
-        mode: '0644'
+        - restart application
 
     # Firewall Configuration
-    - name: Configure UFW
+    - name: Configure UFW firewall
       block:
-        - name: Allow SSH
+        - name: Allow OpenSSH
           ufw:
             rule: allow
-            port: '22'
-            proto: tcp
+            name: OpenSSH
 
         - name: Allow HTTP
           ufw:
             rule: allow
             port: '80'
-            proto: tcp
 
         - name: Allow HTTPS
           ufw:
             rule: allow
             port: '443'
-            proto: tcp
 
         - name: Enable UFW
           ufw:
             state: enabled
             policy: deny
 
+    # Application Deployment
+    - name: Clean up existing Docker resources
+      shell: |
+        cd {{ app_dir }}
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v || true
+        docker volume rm t-share_postgres_data || true
+        docker system prune -f || true
+
+    - name: Build and start application
+      shell: |
+        cd {{ app_dir }}
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --build -d
+      environment:
+        DOCKER_BUILDKIT: 1
+        NODE_OPTIONS: "--max-old-space-size=1536"
+
   handlers:
-    - name: restart nginx
-      systemd:
-        name: nginx
-        state: restarted
-
-    - name: rebuild application
-      shell: |
-        cd {{ app_dir }}
-        docker system prune -af --volumes || true
-        docker builder prune -af || true
-        chown -R {{ app_user }}:{{ app_group }} .
-        sudo -u {{ app_user }} docker-compose build --no-cache
-
-    - name: restart application
-      shell: |
-        cd {{ app_dir }}
-        chown -R {{ app_user }}:{{ app_group }} .
-        sudo -u {{ app_user }} docker-compose down
-        sudo -u {{ app_user }} docker-compose up -d
-
     - name: reload systemd
       systemd:
         daemon_reload: yes
 
-    - name: restart application service
+    - name: restart application
       systemd:
         name: "{{ app_name }}"
         state: restarted
         enabled: yes
 
   post_tasks:
-    - name: Wait for application to start
-      wait_for:
-        host: localhost
-        port: "{{ backend_port }}"
-        timeout: 300
-        msg: "Application failed to start within 5 minutes"
+    - name: Wait for application to be ready
+      uri:
+        url: "http://localhost:{{ backend_port }}/api/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 30
+      delay: 10
 
-    - name: Display deployment information
+    - name: Display deployment status
       debug:
         msg: |
-          T-SHARE deployment completed successfully!
+          🎉 T-SHARE deployment completed successfully!
 
-          Application URL: {{ app_url }}
-          Environment: {{ environment }}
-          Git Branch: {{ git_branch }}
+          🌐 Application URL: {{ app_url }}
+          📊 Environment: {{ environment }}
+          🔧 Backend Health: {{ health_check.json.status if health_check.json is defined else 'OK' }}
 
-          Services:
-          - Frontend: http://localhost:{{ frontend_port }}
-          - Backend: http://localhost:{{ backend_port }}
-          - Database: localhost:{{ postgres_external_port }}
-
-          Logs location: {{ log_dir }}
-          Data location: {{ data_dir }}
-
-          Next steps:
-          1. Configure DNS to point {{ domain_name }} to this server
-          2. Set up Google OAuth credentials in the admin panel
-          3. Monitor logs: journalctl -u {{ app_name }} -f
+          📱 Access your application at: {{ app_url }}

@@ -9,29 +9,15 @@ git_branch: main
 domain_name: t-share9.trusted-host.online
 app_url: "https://{{ domain_name }}"
 
-# Application ports (internal Docker network)
-backend_port: 3101
-frontend_port: 3000
-postgres_port: 5432
+# Application ports (external access)
+backend_port: 4201
+frontend_port: 3201
+postgres_port: 5433
 
 # Database settings
 db_password: "{{ vault_staging_db_password }}"
-postgres_external_port: 5433
 
 # Application secrets (to be loaded from vault)
 jwt_secret: "{{ vault_staging_jwt_secret }}"
 google_client_id: "{{ vault_staging_google_client_id }}"
 google_client_secret: "{{ vault_staging_google_client_secret }}"
-
-# Node.js environment
-node_env: staging
-
-# Debug and logging
-debug_enabled: true
-log_level: debug
-
-# Backup settings
-backup_enabled: false
-
-# Container restart policy
-restart_policy: unless-stopped

@@ -12,7 +12,11 @@ RUN npm ci --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application for 2GB servers with generous memory allocation
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+# デバッグ用：実際のメモリ制限を確認
+RUN echo "NODE_OPTIONS: $NODE_OPTIONS"
+RUN node -e "console.log('Max heap size:', require('v8').getHeapStatistics().heap_size_limit / 1024 / 1024, 'MB')"
 RUN npm run build
 
 # Production stage with nginx

@@ -14,7 +14,7 @@ git_repo_url: https://github.com/ytx/t_share.git
 # git_repo_url: "https://{{ github_token }}@github.com/ytx/t_share.git"
 
 # Docker settings
-docker_compose_file: "{{ app_dir }}/docker-compose.yml"
+docker_compose_file: "{{ app_dir }}/docker-compose.prod.yml"
 
 # SSL/TLS settings
 ssl_cert_dir: /etc/ssl/certs/t-share
@@ -34,20 +34,20 @@ db_user: t_share_user
 db_name: t_share_db
 db_data_dir: "{{ data_dir }}/postgresql"
 
-# Memory optimization settings (1GB total memory)
-# PostgreSQL memory settings
+# Memory optimization settings (2GB total memory)
+# PostgreSQL memory settings (conservative for more Node.js memory)
 postgres_shared_buffers: "128MB"
 postgres_work_mem: "4MB"
 postgres_maintenance_work_mem: "64MB"
 postgres_effective_cache_size: "512MB"
 
-# Node.js memory settings
-node_max_memory: "256m"
+# Node.js memory settings (increased for build processes)
+node_max_memory: "1024m"
 
 # Nginx settings
-nginx_worker_processes: 1
-nginx_worker_connections: 512
-nginx_client_max_body_size: "10m"
+nginx_worker_processes: 2
+nginx_worker_connections: 1024
+nginx_client_max_body_size: "20m"
 
 # System settings
 swap_file_size: "1G"

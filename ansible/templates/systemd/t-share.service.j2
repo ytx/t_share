@@ -14,19 +14,19 @@ WorkingDirectory={{ app_dir }}
 
 # Environment
 Environment=COMPOSE_PROJECT_NAME={{ app_name }}
-Environment=COMPOSE_FILE={{ docker_compose_file }}
+Environment=DOCKER_BUILDKIT=1
 
 # Start command
-ExecStart=/usr/bin/docker-compose up -d
+ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yml up --build -d
 
 # Stop command
-ExecStop=/usr/bin/docker-compose down
+ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yml down
 
 # Reload command
-ExecReload=/usr/bin/docker-compose restart
+ExecReload=/usr/bin/docker-compose -f docker-compose.prod.yml restart
 
 # Health check
-ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -f http://localhost:{{ backend_port }}/health >/dev/null 2>&1 && exit 0; sleep 10; done; exit 1'
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -f http://localhost:{{ backend_port }}/api/health >/dev/null 2>&1 && exit 0; sleep 10; done; exit 1'
 
 # Restart settings
 Restart=on-failure
