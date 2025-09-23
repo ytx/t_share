@@ -13,7 +13,7 @@ const getRecentActivitySchema = z.object({
 });
 
 // Middleware to check admin permissions
-export const requireAdmin = (req: Request, res: Response, next: any) => {
+export const requireAdmin = (req: Request, res: Response, next: () => void) => {
   const user = req.user;
   if (!user?.isAdmin) {
     return res.status(403).json({ error: 'Admin access required' });
@@ -161,7 +161,7 @@ export const createUser = async (req: Request, res: Response) => {
       message: 'User created successfully',
       user,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Create user failed:', error);
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'Email already exists' });
@@ -190,7 +190,7 @@ export const updateUser = async (req: Request, res: Response) => {
       message: 'User updated successfully',
       user,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Update user failed:', error);
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'Email already exists' });
@@ -211,7 +211,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     await adminService.deleteUser(userId);
     res.json({ message: 'User deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Delete user failed:', error);
     if (error.message === 'User not found') {
       return res.status(404).json({ error: 'User not found' });
@@ -235,7 +235,7 @@ export const approveUser = async (req: Request, res: Response) => {
       message: 'User approved successfully',
       user: approvedUser,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Approve user failed:', error);
     if (error.message === 'User not found') {
       return res.status(404).json({ error: 'User not found' });
@@ -253,7 +253,7 @@ export const getPendingUsers = async (_req: Request, res: Response) => {
     res.json({
       data: pendingUsers,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Get pending users failed:', error);
     res.status(500).json({ error: 'Failed to get pending users' });
   }
@@ -263,7 +263,7 @@ export const getUserApprovalStats = async (_req: Request, res: Response) => {
   try {
     const stats = await adminService.getUserApprovalStats();
     res.json(stats);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Get user approval stats failed:', error);
     res.status(500).json({ error: 'Failed to get approval stats' });
   }
@@ -277,7 +277,7 @@ export const approveAllExistingUsers = async (req: Request, res: Response) => {
       message: `Successfully approved ${result.approvedCount} existing users`,
       approvedCount: result.approvedCount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Approve all existing users failed:', error);
     res.status(500).json({ error: 'Failed to approve existing users' });
   }

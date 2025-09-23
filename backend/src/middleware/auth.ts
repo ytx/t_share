@@ -3,6 +3,12 @@ import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
 import prisma from '../config/database';
 
+interface JwtPayload {
+  userId: number;
+  iat?: number;
+  exp?: number;
+}
+
 export const authenticateToken = async (
   req: Request,
   res: Response,
@@ -24,7 +30,7 @@ export const authenticateToken = async (
       throw new Error('JWT_SECRET is not configured');
     }
 
-    const decoded = jwt.verify(token, jwtSecret) as any;
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
 
     // Get user from database to ensure user still exists
     const user = await prisma.user.findUnique({
@@ -54,7 +60,7 @@ export const authenticateToken = async (
       });
     }
 
-    req.user = user as any;
+    req.user = user;
     next();
   } catch (error) {
     logger.error('Token verification failed:', error);
@@ -77,7 +83,7 @@ export const requireAdmin = (
     });
   }
 
-  if (!(req.user as any).isAdmin) {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Admin privileges required',
@@ -106,7 +112,7 @@ export const optionalAuth = async (
       return next();
     }
 
-    const decoded = jwt.verify(token, jwtSecret) as any;
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -122,7 +128,7 @@ export const optionalAuth = async (
 
     // Only set user if they exist and are approved (or admin)
     if (user && (user.approvalStatus === 'approved' || user.isAdmin)) {
-      req.user = user as any;
+      req.user = user;
     }
   } catch (error) {
     // Invalid token, but continue without authentication

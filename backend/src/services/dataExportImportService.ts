@@ -1,22 +1,27 @@
 import logger from '../utils/logger';
 import prisma from '../config/database';
+import {
+  User, Scene, Tag, Project, Template, TemplateVersion,
+  TemplateTag, TemplateUsage, UserVariable, ProjectVariable,
+  Document, UserPreference, PrismaClient
+} from '@prisma/client';
 
 export interface ExportData {
   exportedAt: string;
   version: string;
   data: {
-    users: any[];
-    scenes: any[];
-    tags: any[];
-    projects: any[];
-    templates: any[];
-    templateVersions: any[];
-    templateTags: any[];
-    templateUsage: any[];
-    userVariables: any[];
-    projectVariables: any[];
-    documents: any[];
-    userPreferences: any[];
+    users: User[];
+    scenes: Scene[];
+    tags: Tag[];
+    projects: Project[];
+    templates: Template[];
+    templateVersions: TemplateVersion[];
+    templateTags: TemplateTag[];
+    templateUsage: TemplateUsage[];
+    userVariables: UserVariable[];
+    projectVariables: ProjectVariable[];
+    documents: Document[];
+    userPreferences: UserPreference[];
   };
 }
 
@@ -229,7 +234,7 @@ export class DataExportImportService {
   /**
    * 既存データの削除
    */
-  private async clearAllData(prisma: any): Promise<void> {
+  private async clearAllData(prisma: PrismaClient): Promise<void> {
     logger.info('Clearing existing data...');
 
     // 依存関係の逆順で削除
@@ -252,7 +257,7 @@ export class DataExportImportService {
   /**
    * 依存関係の順序でデータをインポート
    */
-  private async importInOrder(prisma: any, data: ExportData['data'], preserveIds: boolean): Promise<void> {
+  private async importInOrder(prisma: PrismaClient, data: ExportData['data'], preserveIds: boolean): Promise<void> {
     const stats = {
       users: 0,
       scenes: 0,
@@ -406,7 +411,14 @@ export class DataExportImportService {
   /**
    * エクスポートデータの統計情報を取得
    */
-  async getExportStats(): Promise<any> {
+  async getExportStats(): Promise<{
+    users: number;
+    scenes: number;
+    tags: number;
+    projects: number;
+    templates: number;
+    documents: number;
+  }> {
     try {
       const [
         userCount,
@@ -441,7 +453,7 @@ export class DataExportImportService {
   /**
    * データインポート後にシーケンスをリセット
    */
-  private async resetSequences(prisma: any): Promise<void> {
+  private async resetSequences(prisma: PrismaClient): Promise<void> {
     try {
       logger.info('Resetting database sequences...');
 

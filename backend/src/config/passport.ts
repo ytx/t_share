@@ -25,7 +25,7 @@ if (googleClientId && googleClientSecret) {
 
       // The actual user creation/linking is handled in the controller
       // Here we just pass the profile data
-      return done(null, profile as any);
+      return done(null, profile);
     } catch (error) {
       logger.error('Google strategy error:', error);
       return done(error, false);
@@ -57,7 +57,7 @@ if (jwtSecret) {
       });
 
       if (user) {
-        return done(null, user as any);
+        return done(null, user);
       } else {
         return done(null, false);
       }
@@ -71,11 +71,11 @@ if (jwtSecret) {
 }
 
 // Passport serialization (not used with JWT, but required for Google OAuth)
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: unknown, done) => {
   done(null, user);
 });
 
-passport.deserializeUser((user: any, done) => {
+passport.deserializeUser((user: unknown, done) => {
   done(null, user);
 });
 

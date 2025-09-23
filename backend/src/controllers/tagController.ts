@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import tagService from '../services/tagService';
 import { tagValidation } from '../utils/validation';
-import logger from '../utils/logger';
+import { handleControllerError } from '../utils/errorHandler';
 
 class TagController {
   async createTag(req: Request, res: Response) {
@@ -22,26 +22,14 @@ class TagController {
         });
       }
 
-      const tag = await tagService.createTag((req.user as any).id, value);
+      const tag = await tagService.createTag(req.user!.id, value);
 
       res.status(201).json({
         message: 'Tag created successfully',
         tag,
       });
-    } catch (error: any) {
-      logger.error('Create tag controller error:', error);
-
-      if (error.message.includes('already exists')) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to create tag',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Create tag controller', 'Failed to create tag');
     }
   }
 
@@ -71,40 +59,14 @@ class TagController {
         });
       }
 
-      const tag = await tagService.updateTag(tagId, (req.user as any).id, value);
+      const tag = await tagService.updateTag(tagId, req.user!.id, value);
 
       res.status(200).json({
         message: 'Tag updated successfully',
         tag,
       });
-    } catch (error: any) {
-      logger.error('Update tag controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('already exists')) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to update tag',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Update tag controller', 'Failed to update tag');
     }
   }
 
@@ -125,39 +87,13 @@ class TagController {
         });
       }
 
-      await tagService.deleteTag(tagId, (req.user as any).id);
+      await tagService.deleteTag(tagId, req.user!.id);
 
       res.status(200).json({
         message: 'Tag deleted successfully',
       });
-    } catch (error: any) {
-      logger.error('Delete tag controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('being used')) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to delete tag',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Delete tag controller', 'Failed to delete tag');
     }
   }
 
@@ -176,20 +112,8 @@ class TagController {
       res.status(200).json({
         tag,
       });
-    } catch (error: any) {
-      logger.error('Get tag controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get tag',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Get tag controller', 'Failed to get tag');
     }
   }
 
@@ -200,12 +124,8 @@ class TagController {
       res.status(200).json({
         tags,
       });
-    } catch (error: any) {
-      logger.error('Get all tags controller error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get tags',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Get all tags controller', 'Failed to get tags');
     }
   }
 
@@ -217,12 +137,8 @@ class TagController {
       res.status(200).json({
         tags,
       });
-    } catch (error: any) {
-      logger.error('Get popular tags controller error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get popular tags',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Get popular tags controller', 'Failed to get popular tags');
     }
   }
 }

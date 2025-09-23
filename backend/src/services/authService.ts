@@ -34,7 +34,7 @@ export interface GoogleUserData {
 }
 
 class AuthService {
-  private normalizeUser(user: any): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean; approvalStatus: string } {
+  private normalizeUser(user: { id: number; email: string; username?: string | null; displayName?: string | null; isAdmin: boolean; approvalStatus: string }): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean; approvalStatus: string } {
     return {
       id: user.id,
       email: user.email,
@@ -53,7 +53,7 @@ class AuthService {
       throw new Error('JWT_SECRET is not configured');
     }
 
-    return (jwt as any).sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
+    return jwt.sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
   }
 
   async register(data: RegisterData): Promise<AuthResult> {

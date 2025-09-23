@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import templateService from '../services/templateService';
 import { templateValidation } from '../utils/validation';
 import logger from '../utils/logger';
+import { handleControllerError } from '../utils/errorHandler';
 
 class TemplateController {
   async createTemplate(req: Request, res: Response) {
@@ -29,18 +30,14 @@ class TemplateController {
         });
       }
 
-      const template = await templateService.createTemplate((req.user as any).id, value);
+      const template = await templateService.createTemplate(req.user!.id, value);
 
       res.status(201).json({
         message: 'Template created successfully',
         template,
       });
-    } catch (error: any) {
-      logger.error('Create template controller error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to create template',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Create template controller', 'Failed to create template');
     }
   }
 
@@ -70,33 +67,14 @@ class TemplateController {
         });
       }
 
-      const template = await templateService.updateTemplate(templateId, (req.user as any).id, value);
+      const template = await templateService.updateTemplate(templateId, req.user!.id, value);
 
       res.status(200).json({
         message: 'Template updated successfully',
         template,
       });
-    } catch (error: any) {
-      logger.error('Update template controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to update template',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Update template controller', 'Failed to update template');
     }
   }
 
@@ -117,32 +95,13 @@ class TemplateController {
         });
       }
 
-      await templateService.deleteTemplate(templateId, (req.user as any).id);
+      await templateService.deleteTemplate(templateId, req.user!.id);
 
       res.status(200).json({
         message: 'Template deleted successfully',
       });
-    } catch (error: any) {
-      logger.error('Delete template controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to delete template',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Delete template controller', 'Failed to delete template');
     }
   }
 
@@ -161,27 +120,8 @@ class TemplateController {
       res.status(200).json({
         template,
       });
-    } catch (error: any) {
-      logger.error('Get template controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get template',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Get template controller', 'Failed to get template');
     }
   }
 
@@ -220,12 +160,8 @@ class TemplateController {
       });
 
       res.status(200).json(result);
-    } catch (error: any) {
-      logger.error('Search templates controller error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to search templates',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Search templates controller', 'Failed to search templates');
     }
   }
 
@@ -246,17 +182,13 @@ class TemplateController {
         });
       }
 
-      await templateService.useTemplate(templateId, (req.user as any).id);
+      await templateService.useTemplate(templateId, req.user!.id);
 
       res.status(200).json({
         message: 'Template usage recorded successfully',
       });
-    } catch (error: any) {
-      logger.error('Use template controller error:', error);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to record template usage',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Use template controller', 'Failed to record template usage');
     }
   }
 
@@ -277,32 +209,13 @@ class TemplateController {
         });
       }
 
-      const versions = await templateService.getTemplateVersions(templateId, (req.user as any).id);
+      const versions = await templateService.getTemplateVersions(templateId, req.user!.id);
 
       res.status(200).json({
         versions,
       });
-    } catch (error: any) {
-      logger.error('Get template versions controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get template versions',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Get template versions controller', 'Failed to get template versions');
     }
   }
 
@@ -326,7 +239,7 @@ class TemplateController {
       }
 
       // Get the version to restore
-      const version = await templateService.getTemplateVersions(templateId, (req.user as any).id);
+      const version = await templateService.getTemplateVersions(templateId, req.user!.id);
       const targetVersion = version.find(v => v.versionNumber === versionNumber);
 
       if (!targetVersion) {
@@ -337,7 +250,7 @@ class TemplateController {
       }
 
       // Update template with version data
-      const template = await templateService.updateTemplate(templateId, (req.user as any).id, {
+      const template = await templateService.updateTemplate(templateId, req.user!.id, {
         title: targetVersion.title,
         content: targetVersion.content,
         description: targetVersion.description || undefined,
@@ -349,27 +262,8 @@ class TemplateController {
         message: `Template restored to version ${versionNumber}`,
         template,
       });
-    } catch (error: any) {
-      logger.error('Restore template version controller error:', error);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          error: 'Not Found',
-          message: error.message,
-        });
-      }
-
-      if (error.message.includes('Not authorized')) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to restore template version',
-      });
+    } catch (error: unknown) {
+      return handleControllerError(error, res, 'Restore template version controller', 'Failed to restore template version');
     }
   }
 }

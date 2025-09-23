@@ -22,7 +22,7 @@ class AuthController {
         user: result.user,
         token: result.token,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Register controller error:', error);
 
       if (error.message.includes('already exists') || error.message.includes('already taken')) {
@@ -57,7 +57,7 @@ class AuthController {
         user: result.user,
         token: result.token,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Login controller error:', error);
 
       if (error.message.includes('Invalid email or password')) {
@@ -104,7 +104,7 @@ class AuthController {
         // Handle other statuses (shouldn't normally happen)
         return res.redirect(`${frontendUrl}/auth/error?reason=unknown_status`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google callback controller error:', error);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
       return res.redirect(`${frontendUrl}/auth/error`);
@@ -120,7 +120,7 @@ class AuthController {
         });
       }
 
-      const user = await authService.getUserById((req.user as any).id);
+      const user = await authService.getUserById(req.user!.id);
 
       if (!user) {
         return res.status(404).json({
@@ -132,7 +132,7 @@ class AuthController {
       return res.status(200).json({
         user,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Me controller error:', error);
       return res.status(500).json({
         error: 'Internal Server Error',
@@ -159,13 +159,13 @@ class AuthController {
         });
       }
 
-      const user = await authService.updateUser((req.user as any).id, value);
+      const user = await authService.updateUser(req.user!.id, value);
 
       return res.status(200).json({
         message: 'Profile updated successfully',
         user,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Update profile controller error:', error);
 
       if (error.message.includes('already taken')) {
@@ -189,7 +189,7 @@ class AuthController {
       return res.status(200).json({
         message: 'Logout successful',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Logout controller error:', error);
       return res.status(500).json({
         error: 'Internal Server Error',
@@ -216,13 +216,13 @@ class AuthController {
       }
 
       const jwt = require('jsonwebtoken');
-      const newToken = jwt.sign({ userId: (req.user as any).id }, jwtSecret, { expiresIn: jwtExpiresIn });
+      const newToken = jwt.sign({ userId: req.user!.id }, jwtSecret, { expiresIn: jwtExpiresIn });
 
       return res.status(200).json({
         message: 'Token refreshed successfully',
         token: newToken,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Refresh token controller error:', error);
       return res.status(500).json({
         error: 'Internal Server Error',
