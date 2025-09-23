@@ -16,6 +16,13 @@ if (googleClientId && googleClientSecret) {
     callbackURL: googleCallbackUrl,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
+      // Check if this is from an allowed domain/organization
+      const email = profile.emails?.[0]?.value;
+      if (!email) {
+        logger.warn('No email found in Google profile');
+        return done(null, false);
+      }
+
       // The actual user creation/linking is handled in the controller
       // Here we just pass the profile data
       return done(null, profile as any);

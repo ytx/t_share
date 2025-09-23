@@ -16,9 +16,34 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false }),
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, (err, user, _info) => {
+      if (err) {
+        // Authentication error occurred
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
+        return res.redirect(`${frontendUrl}/auth/error?reason=org_internal`);
+      }
+
+      if (!user) {
+        // Authentication failed (e.g., user denied access, org restriction)
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
+        return res.redirect(`${frontendUrl}/auth/error?reason=org_internal`);
+      }
+
+      // Success - attach user to request and continue
+      req.user = user;
+      next();
+    })(req, res, next);
+  },
   authController.googleCallback
 );
+
+// Error handling endpoint
+router.get('/error', (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';
+  const reason = req.query.reason || 'auth_failed';
+  res.redirect(`${frontendUrl}/auth/error?reason=${reason}`);
+});
 
 // Protected routes
 router.get('/me', authenticateToken, authController.me);

@@ -8,16 +8,18 @@ import {
   Button,
   Alert,
 } from '@mui/material';
-import { Error, Home, Refresh } from '@mui/icons-material';
+import { Error, Home, Refresh, Info } from '@mui/icons-material';
 
 const AuthError: React.FC = () => {
   const [searchParams] = useSearchParams();
   const reason = searchParams.get('reason');
 
+  const isOrgInternal = reason === 'org_internal';
+
   const getErrorMessage = (errorReason: string | null) => {
     switch (errorReason) {
       case 'org_internal':
-        return 'このアプリケーションは組織内のユーザーのみご利用いただけます。組織のGoogleアカウントでログインするか、管理者にお問い合わせください。';
+        return 'こちらのサービスは組織内のユーザー専用となっております。組織のGoogleアカウントをお持ちの方は、そちらでログインをお試しください。アクセスが必要な場合は、管理者までお問い合わせください。';
       case 'unknown_status':
         return 'アカウントの状態が不明です。管理者にお問い合わせください。';
       case 'auth_failed':
@@ -51,12 +53,16 @@ const AuthError: React.FC = () => {
             width: '100%',
           }}
         >
-          <Error sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+          {isOrgInternal ? (
+            <Info sx={{ fontSize: 64, color: 'info.main', mb: 2 }} />
+          ) : (
+            <Error sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+          )}
           <Typography component="h1" variant="h4" gutterBottom>
-            認証エラー
+            {isOrgInternal ? 'アクセス制限について' : '認証エラー'}
           </Typography>
 
-          <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+          <Alert severity={isOrgInternal ? "info" : "error"} sx={{ width: '100%', mb: 3 }}>
             <Typography variant="body1">
               {getErrorMessage(reason)}
             </Typography>
@@ -64,7 +70,10 @@ const AuthError: React.FC = () => {
 
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography variant="body2" color="text.secondary">
-              問題が解決しない場合は、管理者にお問い合わせください。
+              {isOrgInternal
+                ? 'ご利用いただき、ありがとうございます。'
+                : '問題が解決しない場合は、管理者にお問い合わせください。'
+              }
             </Typography>
           </Box>
 
