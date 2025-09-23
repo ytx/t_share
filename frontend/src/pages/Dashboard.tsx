@@ -8,7 +8,7 @@ import TemplateSearch from '../components/Templates/TemplateSearch';
 import DocumentEditor from '../components/Editor/DocumentEditor';
 import SimpleMarkdownEditor from '../components/Editor/SimpleMarkdownEditor';
 import TemplateCreateModal from '../components/Templates/TemplateCreateModal';
-import { Template } from '../types';
+import { Template, Document } from '../types';
 import { useUseTemplateMutation } from '../store/api/templateApi';
 import { useGetAllProjectsQuery } from '../store/api/projectApi';
 import { useSearchDocumentsQuery, useGetProjectDocumentsQuery } from '../store/api/documentApi';
@@ -34,11 +34,11 @@ const Dashboard: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(storedData.adminMode || false);
   const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
-  const [documentToOpen, setDocumentToOpen] = useState<any>(null);
+  const [documentToOpen, setDocumentToOpen] = useState<Document | null>(null);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: projectsResponse } = useGetAllProjectsQuery({});
-  const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 } as any);
+  const { data: documentsResponse } = useSearchDocumentsQuery({ limit: 100 });
   const { data: projectDocumentsResponse } = useGetProjectDocumentsQuery(
     selectedProjectId!,
     { skip: !selectedProjectId }
@@ -51,7 +51,6 @@ const Dashboard: React.FC = () => {
   const handleUseTemplate = useCallback(async (templateId: number) => {
     try {
       await useTemplate(templateId).unwrap();
-      console.log('Template usage recorded');
     } catch (error) {
       console.error('Failed to record template usage:', error);
     }
@@ -61,13 +60,12 @@ const Dashboard: React.FC = () => {
     setSelectedTemplate(null);
   }, []);
 
-  const handleSaveDocument = (data: {
+  const handleSaveDocument = (_data: {
     title?: string;
     content: string;
     contentMarkdown: string;
     projectId?: number;
   }) => {
-    console.log('Save document:', data);
   };
 
   // Header handlers
@@ -100,9 +98,8 @@ const Dashboard: React.FC = () => {
     setDocumentViewerOpen(true);
   };
 
-  const handleOpenDocument = (document: any) => {
+  const handleOpenDocument = (document: Document) => {
     // This function handles opening a document in the editor
-    console.log('Opening document:', document);
     setDocumentToOpen(document);
     setDocumentViewerOpen(false);
 
@@ -339,7 +336,6 @@ const Dashboard: React.FC = () => {
         onClose={() => setCreateModalOpen(false)}
         onSuccess={() => {
           // Refresh template list would be handled by RTK Query cache invalidation
-          console.log('定型文が正常に作成されました');
         }}
       />
 

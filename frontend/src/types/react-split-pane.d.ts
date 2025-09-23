@@ -1,5 +1,5 @@
 declare module 'react-split-pane' {
-  import { Component, ReactNode } from 'react';
+  import React, { Component, ReactNode } from 'react';
 
   interface SplitPaneProps {
     children: ReactNode;

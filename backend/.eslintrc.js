@@ -4,6 +4,8 @@ module.exports = {
     node: true,
     es2020: true,
   },
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
   ],
@@ -11,9 +13,11 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
+    project: './tsconfig.json',
   },
   rules: {
-    'no-unused-vars': [
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': [
       'error',
       {
         argsIgnorePattern: '^_',
@@ -24,5 +28,8 @@ module.exports = {
     'no-console': 'off', // Allow console in Node.js
     'prefer-const': 'error',
     'no-var': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
   },
 }
