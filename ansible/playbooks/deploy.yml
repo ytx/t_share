@@ -180,16 +180,23 @@
             policy: deny
 
     # Application Deployment
-    - name: Clean up existing Docker resources completely
+    - name: Clean up existing Docker resources (preserving database for staging)
       shell: |
         cd {{ app_dir }}
-        # Stop and remove all containers
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v || true
+        # Stop containers without removing volumes
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down || true
         # Remove specific T-SHARE images to force rebuild
         docker rmi t_share-frontend:latest t_share-backend:latest || true
         docker rmi t-share-frontend:latest t-share-backend:latest || true
-        # Remove volumes (but preserve postgres data for regular deploy)
+        # Remove only non-database volumes
         docker volume rm t-share_node_modules || true
+        # For staging: preserve postgres data volume
+        {% if environment == 'staging' %}
+        echo "Staging deployment: preserving database volume"
+        {% else %}
+        # For production: also preserve postgres data volume (can be overridden with init)
+        echo "Production deployment: preserving database volume"
+        {% endif %}
         # Clean build cache
         docker builder prune -f || true
         docker system prune -f || true
@@ -222,30 +229,38 @@
         sudo docker exec t-share-backend npm install ts-node || true
       ignore_errors: yes
 
-    - name: Seed database with initial data (if needed)
+    - name: Seed database with initial data (for new deployments only)
       shell: |
         cd {{ app_dir }}
-        if sudo docker exec --user root t-share-backend npx prisma db seed 2>/dev/null; then
-          echo "Database seeded successfully"
+        # Check if database already has users (indicating existing data)
+        USER_COUNT=$(sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ')
+
+        if [ "$USER_COUNT" -gt "0" ]; then
+          echo "Database already contains $USER_COUNT users - skipping seed to preserve existing data"
         else
-          echo "Seed script failed, creating admin user manually..."
-          # Generate password hash using bcrypt
-          ADMIN_HASH=$(sudo docker exec --user root t-share-backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('admin123', 10).then(hash => console.log(hash));" 2>/dev/null)
-          sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -c "
-          INSERT INTO users (username, email, password_hash, display_name, is_admin, approval_status, applied_at, created_at, updated_at)
-          VALUES (
-            'admin@template-share.com',
-            'admin@template-share.com',
-            '$ADMIN_HASH',
-            'Administrator',
-            true,
-            'approved',
-            NOW(),
-            NOW(),
-            NOW()
-          ) ON CONFLICT (email) DO NOTHING;
-          " > /dev/null 2>&1
-          echo "Admin user created (username: admin@template-share.com, password: admin123)"
+          echo "Empty database detected - seeding with initial data"
+          if sudo docker exec --user root t-share-backend npx prisma db seed 2>/dev/null; then
+            echo "Database seeded successfully using seed script"
+          else
+            echo "Seed script failed, creating admin user manually..."
+            # Generate password hash using bcrypt
+            ADMIN_HASH=$(sudo docker exec --user root t-share-backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('admin123', 10).then(hash => console.log(hash));" 2>/dev/null)
+            sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -c "
+            INSERT INTO users (username, email, password_hash, display_name, is_admin, approval_status, applied_at, created_at, updated_at)
+            VALUES (
+              'admin@template-share.com',
+              'admin@template-share.com',
+              '$ADMIN_HASH',
+              'Administrator',
+              true,
+              'approved',
+              NOW(),
+              NOW(),
+              NOW()
+            ) ON CONFLICT (email) DO NOTHING;
+            " > /dev/null 2>&1
+            echo "Admin user created (username: admin@template-share.com, password: admin123)"
+          fi
         fi
 
   handlers:

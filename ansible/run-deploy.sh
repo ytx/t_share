@@ -106,12 +106,15 @@ if [[ $ANSIBLE_EXIT_CODE -eq 0 ]]; then
         echo "   1. Access your application"
         echo "   2. Check logs if needed: ansible-playbook -i $INVENTORY_FILE --limit $ENVIRONMENT playbooks/logs.yml"
         echo "   3. To initialize with fresh data: $0 $ENVIRONMENT init"
+        echo
+        echo -e "${YELLOW}ℹ️  Note: 'deploy' preserves existing database data and only runs migrations${NC}"
     elif [[ "$ACTION" == "init" ]]; then
         echo -e "${BLUE}🔑 Default credentials:${NC}"
         echo "   Username: admin@template-share.com"
         echo "   Password: admin123"
         echo
         echo -e "${BLUE}📱 Access your application and change the default password!${NC}"
+        echo -e "${RED}⚠️  Warning: 'init' completely resets the database and all data${NC}"
     fi
 else
     echo
