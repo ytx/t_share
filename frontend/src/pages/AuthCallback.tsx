@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { loginSuccess } from '../store/slices/authSlice';
 import { AppDispatch } from '../store';
 
@@ -20,7 +20,7 @@ const AuthCallback: React.FC = () => {
 
       // Decode JWT token to get user info
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        JSON.parse(atob(token.split('.')[1]));
 
         // Fetch user details using the token
         const fetchUserDetails = async () => {

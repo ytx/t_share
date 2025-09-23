@@ -90,16 +90,17 @@
         - { src: "{{ ssl_key_source_file }}", dest: "{{ ssl_key_file }}", mode: '0600' }
 
     # Application Code
-    - name: Remove existing application directory if it exists
-      file:
-        path: "{{ app_dir }}"
-        state: absent
-
-    - name: Clone application repository directly
+    - name: Remove existing application directory completely
       shell: |
-        git clone {{ git_repo_url }} {{ app_dir }}
+        rm -rf {{ app_dir }}
+        mkdir -p {{ app_dir }}
+
+    - name: Clone application repository with latest code
+      shell: |
+        git clone --depth 1 --branch {{ git_branch }} {{ git_repo_url }} {{ app_dir }}
         cd {{ app_dir }}
-        git checkout {{ git_branch }}
+        echo "Cloned commit: $(git rev-parse HEAD)"
+        echo "Cloned at: $(date)"
         chown -R {{ app_user }}:{{ app_group }} {{ app_dir }}
 
     # Production Environment Files
@@ -179,18 +180,26 @@
             policy: deny
 
     # Application Deployment
-    - name: Clean up existing Docker resources
+    - name: Clean up existing Docker resources completely
       shell: |
         cd {{ app_dir }}
+        # Stop and remove all containers
         sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v || true
-        docker volume rm t-share_postgres_data || true
+        # Remove specific T-SHARE images to force rebuild
+        docker rmi t-share-frontend t-share-backend || true
+        # Remove volumes (but preserve postgres data for regular deploy)
+        docker volume rm t-share_node_modules || true
+        # Clean build cache
+        docker builder prune -f || true
         docker system prune -f || true
 
-    - name: Build and start application
+    - name: Build and start application with fresh containers
       shell: |
         cd {{ app_dir }}
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml build --no-cache
+        echo "Building application at $(date)"
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml build --no-cache --pull
         sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --force-recreate -d
+        echo "Application started at $(date)"
       environment:
         DOCKER_BUILDKIT: 1
         NODE_OPTIONS: "--max-old-space-size={{ node_max_memory }}"
@@ -203,7 +212,7 @@
     - name: Run database migrations
       shell: |
         cd {{ app_dir }}
-        sudo docker exec t-share-backend npx prisma migrate deploy
+        sudo docker exec --user root t-share-backend npx prisma migrate deploy
 
     - name: Install seed dependencies
       shell: |

@@ -105,12 +105,12 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Static files (frontend assets)
+    # Static files (frontend assets) - No cache for development
     location /assets/ {
         proxy_pass http://frontend;
-        proxy_cache_valid 200 1d;
-        expires 1d;
-        add_header Cache-Control "public, immutable";
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
     }
 
     # Frontend application
@@ -124,6 +124,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+
+        # Disable caching for development
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
 
         # SPA fallback
         try_files $uri $uri/ @fallback;

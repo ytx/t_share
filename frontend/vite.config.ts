@@ -23,5 +23,20 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor libraries chunk
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // UI libraries chunk
+          ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          // State management chunk
+          store: ['@reduxjs/toolkit', 'react-redux'],
+          // Utility libraries chunk
+          utils: ['ace-builds', 'react-ace', 'react-split-pane']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
   },
 })
