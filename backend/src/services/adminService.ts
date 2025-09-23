@@ -368,6 +368,8 @@ class AdminService {
           username: data.username,
           isAdmin: data.isAdmin || false,
           passwordHash,
+          approvalStatus: 'approved', // 管理者が作成するユーザーは承認済み
+          approvedAt: new Date(),
         },
         include: {
           _count: {
@@ -540,6 +542,28 @@ class AdminService {
       };
     } catch (error) {
       logger.error('Get user approval stats failed:', error);
+      throw error;
+    }
+  }
+
+  async approveAllExistingUsers(adminId: number) {
+    try {
+      // 既存のpendingユーザーを全て承認済みに更新
+      const result = await prisma.user.updateMany({
+        where: {
+          approvalStatus: 'pending'
+        },
+        data: {
+          approvalStatus: 'approved',
+          approvedAt: new Date(),
+          approvedBy: adminId,
+        }
+      });
+
+      logger.info(`Approved ${result.count} existing users by admin ${adminId}`);
+      return { approvedCount: result.count };
+    } catch (error) {
+      logger.error('Approve all existing users failed:', error);
       throw error;
     }
   }

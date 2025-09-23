@@ -14,6 +14,7 @@ import {
   approveUser,
   getPendingUsers,
   getUserApprovalStats,
+  approveAllExistingUsers,
 } from '../controllers/adminController';
 import {
   exportAllData,
@@ -48,6 +49,7 @@ router.delete('/users/:id', deleteUser);
 router.get('/users/pending', getPendingUsers);
 router.get('/users/approval-stats', getUserApprovalStats);
 router.post('/users/:id/approve', approveUser);
+router.post('/users/approve-all-existing', approveAllExistingUsers);
 
 // Activity monitoring
 router.get('/activity', getRecentActivity);

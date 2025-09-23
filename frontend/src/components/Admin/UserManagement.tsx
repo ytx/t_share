@@ -27,12 +27,15 @@ import {
   Add,
   Edit,
   Delete,
+  CheckCircle,
 } from '@mui/icons-material';
 import {
   useGetUserListQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useApproveUserMutation,
+  useApproveAllExistingUsersMutation,
   AdminUser
 } from '../../store/api/adminApi';
 
@@ -67,6 +70,8 @@ const UserManagement: React.FC = memo(() => {
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [approveUser, { isLoading: isApproving }] = useApproveUserMutation();
+  const [approveAllExistingUsers, { isLoading: isApprovingAll }] = useApproveAllExistingUsersMutation();
 
   const handleChangePage = useCallback((_: unknown, newPage: number) => {
     setPage(newPage);
@@ -164,6 +169,23 @@ const UserManagement: React.FC = memo(() => {
     }
   }, [userToDelete, deleteUser]);
 
+  const handleApproveUser = useCallback(async (userId: number) => {
+    try {
+      await approveUser(userId).unwrap();
+    } catch (error) {
+      console.error('ユーザーの承認に失敗しました:', error);
+    }
+  }, [approveUser]);
+
+  const handleApproveAllExistingUsers = useCallback(async () => {
+    try {
+      const result = await approveAllExistingUsers().unwrap();
+      console.log(`${result.approvedCount}人のユーザーを承認しました`);
+    } catch (error) {
+      console.error('既存ユーザーの一括承認に失敗しました:', error);
+    }
+  }, [approveAllExistingUsers]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -192,13 +214,24 @@ const UserManagement: React.FC = memo(() => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6">ユーザー管理</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenCreateDialog}
-        >
-          新規作成
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<CheckCircle />}
+            onClick={handleApproveAllExistingUsers}
+            disabled={isApprovingAll}
+            color="success"
+          >
+            {isApprovingAll ? '承認中...' : '既存ユーザー一括承認'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenCreateDialog}
+          >
+            新規作成
+          </Button>
+        </Box>
       </Box>
 
       <Paper>
@@ -210,6 +243,7 @@ const UserManagement: React.FC = memo(() => {
                 <TableCell>メールアドレス</TableCell>
                 <TableCell>表示名</TableCell>
                 <TableCell>権限</TableCell>
+                <TableCell>承認状態</TableCell>
                 <TableCell>テンプレート</TableCell>
                 <TableCell>プロジェクト</TableCell>
                 <TableCell>文書</TableCell>
@@ -230,6 +264,21 @@ const UserManagement: React.FC = memo(() => {
                       size="small"
                     />
                   </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={
+                        user.approvalStatus === 'pending' ? '承認待ち' :
+                        user.approvalStatus === 'approved' ? '承認済み' :
+                        user.approvalStatus === 'rejected' ? '拒否' : '承認済み'
+                      }
+                      color={
+                        user.approvalStatus === 'pending' ? 'warning' :
+                        user.approvalStatus === 'approved' ? 'success' :
+                        user.approvalStatus === 'rejected' ? 'error' : 'success'
+                      }
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>{user._count.createdTemplates}</TableCell>
                   <TableCell>{user._count.createdProjects}</TableCell>
                   <TableCell>{user._count.documents}</TableCell>
@@ -237,6 +286,17 @@ const UserManagement: React.FC = memo(() => {
                     {formatDate(user.createdAt)}
                   </TableCell>
                   <TableCell align="right">
+                    {user.approvalStatus === 'pending' && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleApproveUser(user.id)}
+                        color="success"
+                        disabled={isApproving}
+                        title="ユーザーを承認"
+                      >
+                        <CheckCircle />
+                      </IconButton>
+                    )}
                     <IconButton
                       size="small"
                       onClick={() => handleOpenEditDialog(user)}
@@ -255,7 +315,7 @@ const UserManagement: React.FC = memo(() => {
               ))}
               {data?.data.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Typography variant="body2" color="text.secondary">
                       ユーザーがありません
                     </Typography>

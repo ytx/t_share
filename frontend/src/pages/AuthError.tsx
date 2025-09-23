@@ -16,6 +16,8 @@ const AuthError: React.FC = () => {
 
   const getErrorMessage = (errorReason: string | null) => {
     switch (errorReason) {
+      case 'org_internal':
+        return 'このアプリケーションは組織内のユーザーのみご利用いただけます。組織のGoogleアカウントでログインするか、管理者にお問い合わせください。';
       case 'unknown_status':
         return 'アカウントの状態が不明です。管理者にお問い合わせください。';
       case 'auth_failed':

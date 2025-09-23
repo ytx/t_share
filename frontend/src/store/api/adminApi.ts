@@ -79,6 +79,10 @@ export interface AdminUser {
   displayName?: string;
   username?: string;
   isAdmin: boolean;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  appliedAt?: string;
+  approvedAt?: string;
+  approvedBy?: number;
   createdAt: string;
   _count: {
     createdTemplates: number;
@@ -111,6 +115,21 @@ export interface ActivityResponse {
   data: ActivityItem[];
 }
 
+export interface PendingUser {
+  id: number;
+  email: string;
+  displayName?: string;
+  googleId?: string;
+  appliedAt: string;
+  createdAt: string;
+}
+
+export interface UserApprovalStats {
+  pendingCount: number;
+  approvedCount: number;
+  recentApplications: number;
+}
+
 export const adminApi = createApi({
   reducerPath: 'adminApi',
   baseQuery: fetchBaseQuery({
@@ -123,7 +142,7 @@ export const adminApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['SystemStats', 'UserList', 'Activity', 'User'],
+  tagTypes: ['SystemStats', 'UserList', 'Activity', 'User', 'PendingUsers', 'ApprovalStats'],
   endpoints: (builder) => ({
     getSystemStats: builder.query<SystemStats, void>({
       query: () => '/stats',
@@ -201,6 +220,38 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ['UserList', 'User'],
     }),
+
+    // User approval management
+    getPendingUsers: builder.query<PendingUser[], void>({
+      query: () => '/users/pending',
+      providesTags: ['PendingUsers'],
+      keepUnusedDataFor: 60,
+    }),
+
+    getUserApprovalStats: builder.query<UserApprovalStats, void>({
+      query: () => '/users/approval-stats',
+      providesTags: ['ApprovalStats'],
+      keepUnusedDataFor: 300,
+    }),
+
+    approveUser: builder.mutation<AdminUser, number>({
+      query: (id) => ({
+        url: `/users/${id}/approve`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['UserList', 'User', 'PendingUsers', 'ApprovalStats'],
+    }),
+
+    approveAllExistingUsers: builder.mutation<
+      { message: string; approvedCount: number },
+      void
+    >({
+      query: () => ({
+        url: '/users/approve-all-existing',
+        method: 'POST',
+      }),
+      invalidatesTags: ['UserList', 'User', 'PendingUsers', 'ApprovalStats'],
+    }),
   }),
 });
 
@@ -214,4 +265,8 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useGetPendingUsersQuery,
+  useGetUserApprovalStatsQuery,
+  useApproveUserMutation,
+  useApproveAllExistingUsersMutation,
 } = adminApi;

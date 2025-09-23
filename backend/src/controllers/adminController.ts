@@ -268,3 +268,17 @@ export const getUserApprovalStats = async (_req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to get approval stats' });
   }
 };
+
+export const approveAllExistingUsers = async (req: Request, res: Response) => {
+  try {
+    const adminId = (req.user as any).id;
+    const result = await adminService.approveAllExistingUsers(adminId);
+    res.json({
+      message: `Successfully approved ${result.approvedCount} existing users`,
+      approvedCount: result.approvedCount,
+    });
+  } catch (error: any) {
+    logger.error('Approve all existing users failed:', error);
+    res.status(500).json({ error: 'Failed to approve existing users' });
+  }
+};
