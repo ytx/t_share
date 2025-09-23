@@ -35,6 +35,7 @@ services:
       JWT_SECRET: {{ jwt_secret }}
       GOOGLE_CLIENT_ID: {{ google_client_id | default('') }}
       GOOGLE_CLIENT_SECRET: {{ google_client_secret | default('') }}
+      GOOGLE_CALLBACK_URL: {{ app_url }}/api/auth/google/callback
       PORT: 3101
       CORS_ORIGIN: "*"
       ENABLE_CRON_JOBS: "true"

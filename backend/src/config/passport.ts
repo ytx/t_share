@@ -7,7 +7,7 @@ import prisma from '../config/database';
 // Google OAuth Strategy
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3101/api/auth/google/callback';
 
 if (googleClientId && googleClientSecret) {
   passport.use(new GoogleStrategy({
