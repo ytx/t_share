@@ -24,7 +24,9 @@ ansible/
 │   ├── production_secrets.yml.example
 │   └── README.md
 ├── playbooks/
-│   └── deploy.yml            # メインPlaybook
+│   ├── deploy.yml            # メインPlaybook
+│   ├── init.yml              # データベース初期化 (--init相当)
+│   └── logs.yml              # ログ表示・監視
 ├── templates/
 │   ├── docker-compose.yml.j2 # Docker Compose設定
 │   ├── .env.j2               # 環境変数設定
@@ -32,6 +34,7 @@ ansible/
 │   ├── logrotate.j2          # ログローテーション
 │   └── systemd/
 │       └── t-share.service.j2 # Systemdサービス
+├── run-deploy.sh             # 安全なデプロイメントスクリプト
 └── README.md                 # このファイル
 ```
 
@@ -76,30 +79,40 @@ ansible all -i inventory.yml -m ping
 
 ## デプロイメント
 
-### ステージング環境
+### 推奨方法（安全なスクリプトを使用）
 
 ```bash
-# 通常実行
+# ステージング環境にデプロイ
+./run-deploy.sh staging deploy
+
+# 本番環境にデプロイ
+./run-deploy.sh production deploy
+
+# ステージング環境をフレッシュデータで初期化（⚠️データ削除）
+./run-deploy.sh staging init
+
+# 本番環境をフレッシュデータで初期化（⚠️データ削除）
+./run-deploy.sh production init
+```
+
+### 直接実行（上級者向け）
+
+```bash
+# ステージング環境
 ansible-playbook -i inventory.yml playbooks/deploy.yml --limit staging
 
-# Vault使用時
-ansible-playbook -i inventory.yml playbooks/deploy.yml --limit staging --ask-vault-pass
-```
-
-### 本番環境
-
-```bash
-# 通常実行
+# 本番環境
 ansible-playbook -i inventory.yml playbooks/deploy.yml --limit production
 
-# Vault使用時
-ansible-playbook -i inventory.yml playbooks/deploy.yml --limit production --ask-vault-pass
+# データベース初期化（⚠️全データ削除）
+ansible-playbook -i inventory.yml playbooks/init.yml --limit staging
 ```
 
-### 両環境同時
+### ログ確認
 
 ```bash
-ansible-playbook -i inventory.yml playbooks/deploy.yml --ask-vault-pass
+# ログとシステム状態確認
+ansible-playbook -i inventory.yml playbooks/logs.yml --limit staging
 ```
 
 ## 環境情報
@@ -118,9 +131,17 @@ ansible-playbook -i inventory.yml playbooks/deploy.yml --ask-vault-pass
 
 ### リソース最適化
 - **PostgreSQL**: shared_buffers=128MB, work_mem=4MB
-- **Node.js**: max_memory=256m
-- **Nginx**: worker_processes=1
+- **Node.js**: max_memory=1024m (ビルド最適化)
+- **Nginx**: worker_processes=2
 - **スワップ**: 1GB (自動作成)
+
+### 最新の修正内容（2025-09-23）
+- **CORS設定**: ワイルドカード対応（"*"）でネットワークアクセス改善
+- **Cron Jobs**: 本番環境で有効化
+- **Prisma Engine**: バイナリモード採用で安定性向上
+- **シーケンス修正**: データインポート時のID重複問題解決
+- **バリデーション**: 空文字列許可でタグ・シーン作成エラー解決
+- **--force-recreate**: 常に最新コンテナでデプロイ
 
 ## 運用コマンド
 

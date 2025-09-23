@@ -1,0 +1,156 @@
+---
+- name: Initialize T-SHARE Application with Fresh Database
+  hosts: all
+  become: yes
+  vars_files:
+    - "../secrets/{{ group_names[0] }}_secrets.yml"
+
+  pre_tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Check if application directory exists
+      stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if application is not deployed
+      fail:
+        msg: "Application directory {{ app_dir }} not found. Please run deploy.yml first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Stop application services
+      shell: |
+        cd {{ app_dir }}
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v
+      ignore_errors: yes
+
+    - name: Remove existing Docker resources completely
+      shell: |
+        # Stop and remove all containers
+        docker stop t-share-backend t-share-frontend t-share-postgres || true
+        docker rm t-share-backend t-share-frontend t-share-postgres || true
+
+        # Remove volumes
+        docker volume rm t-share_postgres_data || true
+
+        # Remove images to force rebuild
+        docker rmi t-share-backend:latest t-share-frontend:latest || true
+
+        # Clean up system
+        docker system prune -f || true
+      ignore_errors: yes
+
+    - name: Build and start application with force recreate
+      shell: |
+        cd {{ app_dir }}
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --build --force-recreate -d
+      environment:
+        DOCKER_BUILDKIT: 1
+        NODE_OPTIONS: "--max-old-space-size={{ node_max_memory }}"
+
+    - name: Wait for database to be ready
+      shell: |
+        cd {{ app_dir }}
+        timeout 120 bash -c 'until sudo docker exec t-share-postgres pg_isready -U {{ db_user }}; do sleep 2; done'
+
+    - name: Wait for backend to be ready
+      shell: |
+        cd {{ app_dir }}
+        timeout 180 bash -c 'until curl -f http://localhost:{{ backend_port }}/api/health > /dev/null 2>&1; do sleep 2; done'
+
+    - name: Run database migrations
+      shell: |
+        cd {{ app_dir }}
+        sudo docker exec --user root t-share-backend npx prisma migrate deploy
+
+    - name: Install seed dependencies
+      shell: |
+        cd {{ app_dir }}
+        sudo docker exec --user root t-share-backend npm install -g ts-node || \
+        sudo docker exec t-share-backend npm install ts-node || true
+      ignore_errors: yes
+
+    - name: Seed database with initial data
+      shell: |
+        cd {{ app_dir }}
+        if sudo docker exec --user root t-share-backend npx prisma db seed 2>/dev/null; then
+          echo "Database seeded successfully"
+        else
+          echo "Seed script failed, creating admin user manually..."
+          # Generate password hash using bcrypt
+          ADMIN_HASH=$(sudo docker exec --user root t-share-backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('admin123', 10).then(hash => console.log(hash));" 2>/dev/null)
+          sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -c "
+          INSERT INTO users (username, email, password_hash, display_name, is_admin, approval_status, applied_at, created_at, updated_at)
+          VALUES (
+            'admin@template-share.com',
+            'admin@template-share.com',
+            '$ADMIN_HASH',
+            'Administrator',
+            true,
+            'approved',
+            NOW(),
+            NOW(),
+            NOW()
+          ) ON CONFLICT (email) DO NOTHING;
+          " > /dev/null 2>&1
+          echo "Admin user created (username: admin@template-share.com, password: admin123)"
+        fi
+
+    - name: Verify database initialization
+      shell: |
+        cd {{ app_dir }}
+        USER_COUNT=$(sudo docker exec --user root t-share-backend node -e "
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        prisma.user.count().then(count => {
+            console.log(count);
+            process.exit(0);
+        }).catch(() => {
+            console.log(0);
+            process.exit(1);
+        });
+        " 2>/dev/null)
+
+        if [ "$USER_COUNT" -gt 0 ]; then
+          echo "Database initialized with $USER_COUNT users"
+        else
+          echo "Database initialization may have failed"
+          exit 1
+        fi
+
+    - name: Wait for frontend to be ready
+      shell: |
+        cd {{ app_dir }}
+        timeout 90 bash -c 'until curl -f http://localhost:{{ frontend_port }}/health > /dev/null 2>&1; do sleep 2; done'
+
+  post_tasks:
+    - name: Final health check
+      uri:
+        url: "http://localhost:{{ backend_port }}/api/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 10
+      delay: 5
+
+    - name: Display initialization status
+      debug:
+        msg: |
+          🎉 T-SHARE initialization completed successfully!
+
+          🌐 Application URL: {{ app_url }}
+          📊 Environment: {{ environment }}
+          🔧 Backend Health: {{ health_check.json.status if health_check.json is defined else 'OK' }}
+
+          🔑 Default Login:
+             Username: admin@template-share.com
+             Password: admin123
+
+          📱 Access your application at: {{ app_url }}
+          📋 To view logs: docker-compose -f docker-compose.prod.yml logs -f
+          🛑 To stop: docker-compose -f docker-compose.prod.yml down

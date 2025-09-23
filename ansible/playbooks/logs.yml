@@ -1,0 +1,83 @@
+---
+- name: View T-SHARE Application Logs
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if application directory exists
+      stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if application is not deployed
+      fail:
+        msg: "Application directory {{ app_dir }} not found. Please run deploy.yml first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Display current container status
+      shell: |
+        cd {{ app_dir }}
+        echo "=== Container Status ==="
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml ps
+      register: container_status
+
+    - name: Show container status
+      debug:
+        msg: "{{ container_status.stdout_lines }}"
+
+    - name: Display recent application logs
+      shell: |
+        cd {{ app_dir }}
+        echo "=== Recent Backend Logs ==="
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml logs --tail=50 backend
+        echo
+        echo "=== Recent Frontend Logs ==="
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml logs --tail=50 frontend
+        echo
+        echo "=== Recent Database Logs ==="
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml logs --tail=50 postgres
+      register: app_logs
+
+    - name: Show application logs
+      debug:
+        msg: "{{ app_logs.stdout_lines }}"
+
+    - name: Display system resource usage
+      shell: |
+        echo "=== System Resources ==="
+        echo "Memory usage:"
+        free -h
+        echo
+        echo "Disk usage:"
+        df -h {{ app_dir }}
+        echo
+        echo "Docker system info:"
+        docker system df
+      register: resource_usage
+
+    - name: Show resource usage
+      debug:
+        msg: "{{ resource_usage.stdout_lines }}"
+
+    - name: Display helpful commands
+      debug:
+        msg: |
+          📋 Useful commands for log monitoring:
+
+          🔍 Follow live logs:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml logs -f
+
+          🔧 Backend logs only:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml logs -f backend
+
+          📱 Frontend logs only:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml logs -f frontend
+
+          🗄️ Database logs only:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml logs -f postgres
+
+          📊 Container status:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml ps
+
+          🔄 Restart services:
+          sudo -u {{ app_user }} docker-compose -f {{ app_dir }}/docker-compose.prod.yml restart [service_name]

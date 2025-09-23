@@ -59,36 +59,74 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-09-23)
 
-### データベースエラー修正・データ整合性向上
-1. **500エラー: Document作成エラーの修正**
-   - 問題: POST /api/documents でUnique constraint failed on the fields: (`id`)エラー
-   - 原因: データインポート時にPostgreSQLのauto-incrementシーケンスが最新IDに追従していない
-   - 解決: documentsテーブルの最大ID（73）に対してシーケンスが2から開始していた問題を修正
-   - backend/src/services/dataExportImportService.ts:195-198 でシーケンスリセット機能を追加
+### 文書作成機能の安定性修正
+1. **データベースSequence同期問題の解決**
+   - PostgreSQL auto-increment sequenceが実際のIDとずれる問題を修正
+   - データインポート時にsequence値が更新されない問題の根本解決
+   - `dataExportImportService.ts` に `resetSequences` メソッドを実装
+   - 全12テーブルの auto-increment sequence を自動的に正しい値に設定
+   - インポート処理完了時の自動sequence修正機能
 
-2. **データインポート時の自動シーケンス修正機能**
-   - 全auto-incrementテーブル（12テーブル）のシーケンス自動リセット機能実装
-   - preserveIds: trueでのインポート後、各テーブルの最大IDを取得してシーケンスを適切に設定
-   - 対象テーブル: users, scenes, tags, projects, templates, template_versions, template_tags, template_usage, user_variables, project_variables, documents, user_preferences
-   - 個別エラーハンドリングにより一部テーブル失敗時も他テーブルの処理を継続
-   - backend/src/services/dataExportImportService.ts:441-483 でresetSequences関数実装
+2. **プリズマ データベース修正**
+   - 開発環境でのドキュメント作成500エラーの修正
+   - `npx prisma db execute` によるsequence手動修正方法を確立
+   - "Unique constraint failed on the fields: (`id`)" エラーの恒久的解決
+   - backend/prisma での SQL実行によるsequence値リセット
 
-3. **400エラー: タグ作成バリデーションエラーの修正**
-   - 問題: POST /api/tags で空の説明フィールドを送信時にバリデーションエラー
-   - 原因: Joiバリデーションでdescriptionフィールドが空文字列（''）を許可していない
-   - 解決: tagValidation.createとupdateに.allow('')を追加
-   - backend/src/utils/validation.ts:77, 83 でJoiスキーマ修正（シーン作成エラーと同パターン）
+3. **バリデーション修正**
+   - タグ作成時の400エラー修正
+   - `validation.ts` でタグdescriptionフィールドに `.allow('')` を追加
+   - 空文字列descriptionを許可する仕様に統一
+   - シーンバリデーションとの一貫性確保
 
-4. **データ整合性の向上**
-   - $queryRawUnsafeと$executeRawUnsafeを使用した安全なSQL実行
-   - PostgreSQLシーケンス操作での適切なエラーハンドリング
-   - インポート処理の信頼性向上（シーケンス不整合による新規作成エラーの根絶）
+### Googleログイン機能の実装
+1. **OAuth認証フローの完全実装**
+   - Google OAuth 2.0 による認証システム構築
+   - `/api/auth/google` エンドポイントとの連携
+   - JWT トークン処理とローカルストレージ管理
+   - バックエンド `/auth/me` APIとの統合
 
-**技術的改善点:**
-- auto-incrementシーケンスの自動修正によりデータインポート後の新規作成エラーを防止
-- バリデーションスキーマの一貫性確保（空文字列許可の統一）
-- 詳細なログ出力でデバッグ・監視の向上
-- トランザクション内でのシーケンス操作による安全性確保
+2. **認証関連ページの新規作成**
+   - `AuthCallback.tsx`: Google認証後のコールバック処理
+   - `PendingApproval.tsx`: 管理者承認待ちユーザー向けページ
+   - `AuthError.tsx`: 認証エラー時の統一エラーページ
+   - React Router による適切なルーティング設定
+
+3. **Redux State管理の拡張**
+   - `authSlice.ts` に `loginSuccess` アクションを追加
+   - Google認証成功時の状態管理を統一
+   - localStorage でのトークン・ユーザー情報永続化
+   - 既存の認証フローとの互換性維持
+
+4. **ログイン画面の改善**
+   - デモユーザー情報表示を削除
+   - Googleログインボタンの追加（Material-UI Google アイコン使用）
+   - エラーメッセージ表示の統一（URL パラメータ対応）
+   - レスポンシブ対応のレイアウト調整
+
+5. **環境変数・設定修正**
+   - Vite環境での `process.env` エラー修正
+   - 相対パス `/api/auth/google` を使用したプロキシ対応
+   - フロントエンド・バックエンド間の認証連携最適化
+
+### Ansible デプロイメント自動化の強化
+1. **初期化Playbookの実装**
+   - `ansible/playbooks/init.yml` の新規作成
+   - `start-prod.sh --init` と同等の完全初期化機能
+   - データベース強制再作成・シード実行
+   - 失敗時のフォールバック管理者作成機能
+
+2. **本番環境設定の最適化**
+   - `docker-compose.prod.yml.j2` テンプレートの更新
+   - 最新の安定性修正を反映（CORS設定、Prismaエンジン設定等）
+   - Node.js 16対応とメモリ制限設定
+   - 環境変数テンプレートの改善
+
+3. **デプロイメント安全性の向上**
+   - `run-deploy.sh` スクリプトで確認プロンプト追加
+   - 環境別デプロイメントの検証機能
+   - `--force-recreate` による確実なコンテナ更新
+   - エラーハンドリングと状態確認の強化
 
 ## 以前の変更履歴 (2025-09-22)
 

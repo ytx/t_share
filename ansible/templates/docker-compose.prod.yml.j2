@@ -36,7 +36,10 @@ services:
       GOOGLE_CLIENT_ID: {{ google_client_id | default('') }}
       GOOGLE_CLIENT_SECRET: {{ google_client_secret | default('') }}
       PORT: 3101
-      CORS_ORIGIN: {{ app_url }}
+      CORS_ORIGIN: "*"
+      ENABLE_CRON_JOBS: "true"
+      PRISMA_QUERY_ENGINE_TYPE: "binary"
+      NODE_OPTIONS: "--max-old-space-size={{ node_max_memory | replace('m', '') }}"
     ports:
       - "{{ backend_port }}:3101"
     depends_on:

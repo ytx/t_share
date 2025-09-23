@@ -190,10 +190,10 @@
       shell: |
         cd {{ app_dir }}
         sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml build --no-cache
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up -d
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --force-recreate -d
       environment:
         DOCKER_BUILDKIT: 1
-        NODE_OPTIONS: "--max-old-space-size=1536"
+        NODE_OPTIONS: "--max-old-space-size={{ node_max_memory }}"
 
     - name: Wait for database to be ready
       shell: |
@@ -205,11 +205,38 @@
         cd {{ app_dir }}
         sudo docker exec t-share-backend npx prisma migrate deploy
 
+    - name: Install seed dependencies
+      shell: |
+        cd {{ app_dir }}
+        sudo docker exec --user root t-share-backend npm install -g ts-node || \
+        sudo docker exec t-share-backend npm install ts-node || true
+      ignore_errors: yes
+
     - name: Seed database with initial data (if needed)
       shell: |
         cd {{ app_dir }}
-        sudo docker exec t-share-backend npx prisma db seed || echo "No seed script found, skipping..."
-      ignore_errors: yes
+        if sudo docker exec --user root t-share-backend npx prisma db seed 2>/dev/null; then
+          echo "Database seeded successfully"
+        else
+          echo "Seed script failed, creating admin user manually..."
+          # Generate password hash using bcrypt
+          ADMIN_HASH=$(sudo docker exec --user root t-share-backend node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('admin123', 10).then(hash => console.log(hash));" 2>/dev/null)
+          sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -c "
+          INSERT INTO users (username, email, password_hash, display_name, is_admin, approval_status, applied_at, created_at, updated_at)
+          VALUES (
+            'admin@template-share.com',
+            'admin@template-share.com',
+            '$ADMIN_HASH',
+            'Administrator',
+            true,
+            'approved',
+            NOW(),
+            NOW(),
+            NOW()
+          ) ON CONFLICT (email) DO NOTHING;
+          " > /dev/null 2>&1
+          echo "Admin user created (username: admin@template-share.com, password: admin123)"
+        fi
 
   handlers:
     - name: reload systemd

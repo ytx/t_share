@@ -5,6 +5,9 @@ import MainLayout from './components/Layout/MainLayout'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import AdminDashboard from './components/Admin/AdminDashboard'
+import AuthCallback from './pages/AuthCallback'
+import PendingApproval from './pages/PendingApproval'
+import AuthError from './pages/AuthError'
 
 function App() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
@@ -13,6 +16,9 @@ function App() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/pending-approval" element={<PendingApproval />} />
+        <Route path="/auth/error" element={<AuthError />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )

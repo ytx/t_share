@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Container,
@@ -12,13 +12,14 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-import { Email, Lock, Login as LoginIcon } from '@mui/icons-material';
+import { Email, Lock, Login as LoginIcon, Google } from '@mui/icons-material';
 import { loginUser, clearError } from '../store/slices/authSlice';
 import { RootState, AppDispatch } from '../store';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const [formData, setFormData] = useState({
@@ -85,6 +86,28 @@ const Login: React.FC = () => {
     dispatch(loginUser(formData));
   };
 
+  const handleGoogleLogin = () => {
+    // Use relative path which will be proxied to backend
+    window.location.href = '/api/auth/google';
+  };
+
+  // Handle URL error parameters
+  const urlError = searchParams.get('error');
+  const getUrlErrorMessage = (errorType: string | null) => {
+    switch (errorType) {
+      case 'auth_failed':
+        return '認証に失敗しました。もう一度お試しください。';
+      case 'invalid_token':
+        return '無効なトークンです。再度ログインしてください。';
+      case 'unknown_status':
+        return 'アカウントの状態が不明です。管理者にお問い合わせください。';
+      case 'missing_params':
+        return '認証パラメータが不足しています。';
+      default:
+        return null;
+    }
+  };
+
   return (
     <Container component="main" maxWidth="sm">
       <Box
@@ -113,9 +136,9 @@ const Login: React.FC = () => {
             アカウントにログインしてください
           </Typography>
 
-          {error && (
+          {(error || urlError) && (
             <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
+              {getUrlErrorMessage(urlError) || error}
             </Alert>
           )}
 
@@ -169,26 +192,33 @@ const Login: React.FC = () => {
 
             <Divider sx={{ my: 2 }}>または</Divider>
 
+            <Button
+              fullWidth
+              variant="outlined"
+              sx={{
+                mt: 1,
+                mb: 2,
+                py: 1.5,
+                borderColor: '#4285f4',
+                color: '#4285f4',
+                '&:hover': {
+                  borderColor: '#3367d6',
+                  backgroundColor: 'rgba(66, 133, 244, 0.04)',
+                }
+              }}
+              startIcon={<Google />}
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              Googleでログイン
+            </Button>
+
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
                 アカウントをお持ちでない場合は{' '}
                 <Link to="/register" style={{ color: 'inherit', textDecoration: 'underline' }}>
                   新規登録
                 </Link>
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              デモ用アカウント
-            </Typography>
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                管理者: admin@template-share.com / admin123
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                テストユーザー: test@template-share.com / test123
               </Typography>
             </Box>
           </Box>
