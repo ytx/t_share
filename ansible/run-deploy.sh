@@ -97,7 +97,9 @@ ANSIBLE_EXIT_CODE=$?
 
 if [[ $ANSIBLE_EXIT_CODE -eq 0 ]]; then
     echo
-    echo -e "${GREEN}🎉 ${ACTION^} completed successfully!${NC}"
+    # Capitalize first letter of ACTION for display
+    ACTION_DISPLAY="$(echo ${ACTION:0:1} | tr '[:lower:]' '[:upper:]')${ACTION:1}"
+    echo -e "${GREEN}🎉 ${ACTION_DISPLAY} completed successfully!${NC}"
 
     if [[ "$ACTION" == "deploy" ]]; then
         echo -e "${BLUE}📱 Next steps:${NC}"
