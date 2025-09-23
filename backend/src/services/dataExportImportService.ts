@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import {
   User, Scene, Tag, Project, Template, TemplateVersion,
   TemplateTag, TemplateUsage, UserVariable, ProjectVariable,
-  Document, UserPreference, PrismaClient
+  Document, UserPreference
 } from '@prisma/client';
 
 export interface ExportData {
@@ -248,7 +248,7 @@ export class DataExportImportService {
   /**
    * 既存データの削除（カテゴリ別対応）
    */
-  private async clearAllData(prisma: PrismaClient): Promise<void> {
+  private async clearAllData(prisma: any): Promise<void> {
     logger.info('Clearing existing data...');
 
     // 依存関係の逆順で削除
@@ -271,7 +271,7 @@ export class DataExportImportService {
   /**
    * カテゴリ別データの削除
    */
-  private async clearCategoryData(prisma: PrismaClient, categories: ImportCategories): Promise<void> {
+  private async clearCategoryData(prisma: any, categories: ImportCategories): Promise<void> {
     logger.info('Clearing category data...', categories);
 
     // シーン・定型文関連データ
@@ -310,7 +310,7 @@ export class DataExportImportService {
   /**
    * 依存関係の順序でデータをインポート
    */
-  private async importInOrder(prisma: PrismaClient, data: ExportData['data'], preserveIds: boolean, categories?: ImportCategories): Promise<void> {
+  private async importInOrder(prisma: any, data: ExportData['data'], preserveIds: boolean, categories?: ImportCategories): Promise<void> {
     const stats = {
       users: 0,
       scenes: 0,
@@ -506,7 +506,7 @@ export class DataExportImportService {
   /**
    * データインポート後にシーケンスをリセット
    */
-  private async resetSequences(prisma: PrismaClient): Promise<void> {
+  private async resetSequences(prisma: any): Promise<void> {
     try {
       logger.info('Resetting database sequences...');
 
@@ -530,7 +530,7 @@ export class DataExportImportService {
         try {
           // 各テーブルの最大IDを取得（文字列テンプレートで安全に実行）
           const query = `SELECT COALESCE(MAX(id), 0) as max_id FROM ${table}`;
-          const result = await prisma.$queryRawUnsafe(query);
+          const result = await prisma.$queryRawUnsafe(query) as any[];
           const maxId = Number(result[0]?.max_id) || 0;
 
           if (maxId > 0) {

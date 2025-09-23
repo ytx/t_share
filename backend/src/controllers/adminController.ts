@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import adminService from '../services/adminService';
 import logger from '../utils/logger';
+import { handleControllerError } from '../utils/errorHandler';
 
 const getUserListSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -162,11 +163,7 @@ export const createUser = async (req: Request, res: Response) => {
       user,
     });
   } catch (error: unknown) {
-    logger.error('Create user failed:', error);
-    if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-    res.status(500).json({ error: 'Failed to create user' });
+    return handleControllerError(error, res, 'Create user controller', 'Failed to create user');
   }
 };
 
@@ -191,14 +188,7 @@ export const updateUser = async (req: Request, res: Response) => {
       user,
     });
   } catch (error: unknown) {
-    logger.error('Update user failed:', error);
-    if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.status(500).json({ error: 'Failed to update user' });
+    return handleControllerError(error, res, 'Update user controller', 'Failed to update user');
   }
 };
 
@@ -212,11 +202,7 @@ export const deleteUser = async (req: Request, res: Response) => {
     await adminService.deleteUser(userId);
     res.json({ message: 'User deleted successfully' });
   } catch (error: unknown) {
-    logger.error('Delete user failed:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.status(500).json({ error: 'Failed to delete user' });
+    return handleControllerError(error, res, 'Delete user controller', 'Failed to delete user');
   }
 };
 
@@ -236,14 +222,7 @@ export const approveUser = async (req: Request, res: Response) => {
       user: approvedUser,
     });
   } catch (error: unknown) {
-    logger.error('Approve user failed:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (error.message === 'User is already approved') {
-      return res.status(400).json({ error: 'User is already approved' });
-    }
-    res.status(500).json({ error: 'Failed to approve user' });
+    return handleControllerError(error, res, 'Approve user controller', 'Failed to approve user');
   }
 };
 
@@ -254,8 +233,7 @@ export const getPendingUsers = async (_req: Request, res: Response) => {
       data: pendingUsers,
     });
   } catch (error: unknown) {
-    logger.error('Get pending users failed:', error);
-    res.status(500).json({ error: 'Failed to get pending users' });
+    return handleControllerError(error, res, 'Get pending users controller', 'Failed to get pending users');
   }
 };
 
@@ -278,7 +256,6 @@ export const approveAllExistingUsers = async (req: Request, res: Response) => {
       approvedCount: result.approvedCount,
     });
   } catch (error: unknown) {
-    logger.error('Approve all existing users failed:', error);
-    res.status(500).json({ error: 'Failed to approve existing users' });
+    return handleControllerError(error, res, 'Approve all existing users controller', 'Failed to approve existing users');
   }
 };

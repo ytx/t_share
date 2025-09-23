@@ -53,7 +53,7 @@ class AuthService {
       throw new Error('JWT_SECRET is not configured');
     }
 
-    return jwt.sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn });
+    return jwt.sign({ userId }, jwtSecret, { expiresIn: jwtExpiresIn } as jwt.SignOptions);
   }
 
   async register(data: RegisterData): Promise<AuthResult> {

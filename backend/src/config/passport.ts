@@ -76,7 +76,7 @@ passport.serializeUser((user: unknown, done) => {
 });
 
 passport.deserializeUser((user: unknown, done) => {
-  done(null, user);
+  done(null, user as any);
 });
 
 export default passport;

@@ -60,7 +60,7 @@ export const authenticateToken = async (
       });
     }
 
-    req.user = user;
+    req.user = user as any;
     next();
   } catch (error) {
     logger.error('Token verification failed:', error);
@@ -128,7 +128,7 @@ export const optionalAuth = async (
 
     // Only set user if they exist and are approved (or admin)
     if (user && (user.approvalStatus === 'approved' || user.isAdmin)) {
-      req.user = user;
+      req.user = user as any;
     }
   } catch (error) {
     // Invalid token, but continue without authentication

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import authService from '../services/authService';
 import { userValidation } from '../utils/validation';
 import logger from '../utils/logger';
+import { handleControllerError } from '../utils/errorHandler';
 
 class AuthController {
   async register(req: Request, res: Response) {
@@ -23,19 +24,7 @@ class AuthController {
         token: result.token,
       });
     } catch (error: unknown) {
-      logger.error('Register controller error:', error);
-
-      if (error.message.includes('already exists') || error.message.includes('already taken')) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Registration failed',
-      });
+      return handleControllerError(error, res, 'Register controller', 'Registration failed');
     }
   }
 
@@ -58,19 +47,7 @@ class AuthController {
         token: result.token,
       });
     } catch (error: unknown) {
-      logger.error('Login controller error:', error);
-
-      if (error.message.includes('Invalid email or password')) {
-        return res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid email or password',
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Login failed',
-      });
+      return handleControllerError(error, res, 'Login controller', 'Login failed');
     }
   }
 
@@ -133,11 +110,7 @@ class AuthController {
         user,
       });
     } catch (error: unknown) {
-      logger.error('Me controller error:', error);
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to get user information',
-      });
+      return handleControllerError(error, res, 'Me controller', 'Failed to get user information');
     }
   }
 
@@ -166,19 +139,7 @@ class AuthController {
         user,
       });
     } catch (error: unknown) {
-      logger.error('Update profile controller error:', error);
-
-      if (error.message.includes('already taken')) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: error.message,
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Failed to update profile',
-      });
+      return handleControllerError(error, res, 'Update profile controller', 'Failed to update profile');
     }
   }
 
@@ -190,11 +151,7 @@ class AuthController {
         message: 'Logout successful',
       });
     } catch (error: unknown) {
-      logger.error('Logout controller error:', error);
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Logout failed',
-      });
+      return handleControllerError(error, res, 'Logout controller', 'Logout failed');
     }
   }
 
@@ -223,11 +180,7 @@ class AuthController {
         token: newToken,
       });
     } catch (error: unknown) {
-      logger.error('Refresh token controller error:', error);
-      return res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'Token refresh failed',
-      });
+      return handleControllerError(error, res, 'Refresh token controller', 'Token refresh failed');
     }
   }
 }
