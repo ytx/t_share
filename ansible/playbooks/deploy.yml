@@ -186,7 +186,8 @@
         # Stop and remove all containers
         sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v || true
         # Remove specific T-SHARE images to force rebuild
-        docker rmi t-share-frontend t-share-backend || true
+        docker rmi t_share-frontend:latest t_share-backend:latest || true
+        docker rmi t-share-frontend:latest t-share-backend:latest || true
         # Remove volumes (but preserve postgres data for regular deploy)
         docker volume rm t-share_node_modules || true
         # Clean build cache

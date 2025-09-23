@@ -12,21 +12,44 @@
         cache_valid_time: 3600
 
   tasks:
-    - name: Check if application directory exists
-      stat:
-        path: "{{ app_dir }}"
-      register: app_dir_stat
-
-    - name: Fail if application is not deployed
-      fail:
-        msg: "Application directory {{ app_dir }} not found. Please run deploy.yml first."
-      when: not app_dir_stat.stat.exists
-
-    - name: Stop application services
+    - name: Stop application services if running
       shell: |
-        cd {{ app_dir }}
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v
+        if [ -d "{{ app_dir }}" ]; then
+          cd {{ app_dir }}
+          sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml down -v
+        fi
       ignore_errors: yes
+
+    # Update application code
+    - name: Remove existing application directory completely
+      shell: |
+        rm -rf {{ app_dir }}
+        mkdir -p {{ app_dir }}
+
+    - name: Clone application repository with latest code
+      shell: |
+        git clone --depth 1 --branch {{ git_branch }} {{ git_repo_url }} {{ app_dir }}
+        cd {{ app_dir }}
+        echo "Cloned commit: $(git rev-parse HEAD)"
+        echo "Cloned at: $(date)"
+        chown -R {{ app_user }}:{{ app_group }} {{ app_dir }}
+
+    # Production Environment Files
+    - name: Generate production docker-compose file
+      template:
+        src: "../templates/docker-compose.prod.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.prod.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+
+    - name: Generate production environment file
+      template:
+        src: "../templates/.env.prod.j2"
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
 
     - name: Remove existing Docker resources completely
       shell: |
@@ -44,10 +67,13 @@
         docker system prune -f || true
       ignore_errors: yes
 
-    - name: Build and start application with force recreate
+    - name: Build and start application with fresh images
       shell: |
         cd {{ app_dir }}
-        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --build --force-recreate -d
+        echo "Building application at $(date)"
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml build --no-cache --pull
+        sudo -u {{ app_user }} docker-compose -f docker-compose.prod.yml up --force-recreate -d
+        echo "Application started at $(date)"
       environment:
         DOCKER_BUILDKIT: 1
         NODE_OPTIONS: "--max-old-space-size={{ node_max_memory }}"
