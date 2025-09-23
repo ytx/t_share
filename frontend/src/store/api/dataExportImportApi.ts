@@ -119,7 +119,7 @@ export const {
 export const downloadExportFile = async () => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/api/admin/data/export`, {
+    const response = await fetch(`${API_BASE_URL}/admin/data/export`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
