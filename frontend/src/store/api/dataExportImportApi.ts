@@ -20,9 +20,17 @@ export interface ExportData {
   };
 }
 
+export interface ImportCategories {
+  users: boolean;
+  scenesAndTemplates: boolean;
+  projectsAndDocuments: boolean;
+  systemSettings: boolean;
+}
+
 export interface ImportOptions {
   clearExistingData?: boolean;
   preserveIds?: boolean;
+  categories?: ImportCategories;
 }
 
 export interface ImportRequest {

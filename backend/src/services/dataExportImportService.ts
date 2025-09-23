@@ -28,6 +28,14 @@ export interface ExportData {
 export interface ImportOptions {
   clearExistingData?: boolean;
   preserveIds?: boolean;
+  categories?: ImportCategories;
+}
+
+export interface ImportCategories {
+  users: boolean;
+  scenesAndTemplates: boolean;
+  projectsAndDocuments: boolean;
+  systemSettings: boolean;
 }
 
 export class DataExportImportService {
@@ -168,10 +176,10 @@ export class DataExportImportService {
    * エクスポートされたデータをインポート
    */
   async importAllData(exportData: ExportData, options: ImportOptions = {}): Promise<void> {
-    const { clearExistingData = false, preserveIds = true } = options;
+    const { clearExistingData = false, preserveIds = true, categories } = options;
 
     try {
-      logger.info('Starting data import...', { clearExistingData, preserveIds });
+      logger.info('Starting data import...', { clearExistingData, preserveIds, categories });
 
       // バリデーション
       this.validateImportData(exportData);
@@ -179,7 +187,13 @@ export class DataExportImportService {
       // トランザクション内で実行
       await prisma.$transaction(async (prisma) => {
         if (clearExistingData) {
-          await this.clearAllData(prisma);
+          if (categories) {
+            // カテゴリ別削除
+            await this.clearCategoryData(prisma, categories);
+          } else {
+            // 全データ削除
+            await this.clearAllData(prisma);
+          }
         }
 
         // IDを保持する場合は、外部キー制約を一時的に無効化
@@ -189,7 +203,7 @@ export class DataExportImportService {
 
         try {
           // データを依存関係の順序でインポート
-          await this.importInOrder(prisma, exportData.data, preserveIds);
+          await this.importInOrder(prisma, exportData.data, preserveIds, categories);
         } finally {
           // 外部キー制約を再有効化
           if (preserveIds) {
@@ -232,7 +246,7 @@ export class DataExportImportService {
   }
 
   /**
-   * 既存データの削除
+   * 既存データの削除（カテゴリ別対応）
    */
   private async clearAllData(prisma: PrismaClient): Promise<void> {
     logger.info('Clearing existing data...');
@@ -255,9 +269,48 @@ export class DataExportImportService {
   }
 
   /**
+   * カテゴリ別データの削除
+   */
+  private async clearCategoryData(prisma: PrismaClient, categories: ImportCategories): Promise<void> {
+    logger.info('Clearing category data...', categories);
+
+    // シーン・定型文関連データ
+    if (categories.scenesAndTemplates) {
+      await prisma.templateUsage.deleteMany();
+      await prisma.templateTag.deleteMany();
+      await prisma.templateVersion.deleteMany();
+      await prisma.template.deleteMany();
+      await prisma.tag.deleteMany();
+      await prisma.scene.deleteMany();
+      logger.info('Cleared scenes and templates data');
+    }
+
+    // プロジェクト・文書関連データ
+    if (categories.projectsAndDocuments) {
+      await prisma.projectVariable.deleteMany();
+      await prisma.document.deleteMany();
+      await prisma.project.deleteMany();
+      logger.info('Cleared projects and documents data');
+    }
+
+    // システム設定（ユーザー設定）
+    if (categories.systemSettings) {
+      await prisma.userVariable.deleteMany();
+      await prisma.userPreference.deleteMany();
+      logger.info('Cleared system settings data');
+    }
+
+    // ユーザー（最後に削除）
+    if (categories.users) {
+      await prisma.user.deleteMany();
+      logger.info('Cleared users data');
+    }
+  }
+
+  /**
    * 依存関係の順序でデータをインポート
    */
-  private async importInOrder(prisma: PrismaClient, data: ExportData['data'], preserveIds: boolean): Promise<void> {
+  private async importInOrder(prisma: PrismaClient, data: ExportData['data'], preserveIds: boolean, categories?: ImportCategories): Promise<void> {
     const stats = {
       users: 0,
       scenes: 0,
@@ -274,7 +327,7 @@ export class DataExportImportService {
     };
 
     // 1. Users (他のすべてのテーブルが参照)
-    if (data.users.length > 0) {
+    if (data.users.length > 0 && (!categories || categories.users)) {
       for (const user of data.users) {
         const userData = preserveIds
           ? user
@@ -285,7 +338,7 @@ export class DataExportImportService {
     }
 
     // 2. Scenes (Templates が参照)
-    if (data.scenes.length > 0) {
+    if (data.scenes.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const scene of data.scenes) {
         const sceneData = preserveIds
           ? scene
@@ -296,7 +349,7 @@ export class DataExportImportService {
     }
 
     // 3. Tags (TemplateTags が参照)
-    if (data.tags.length > 0) {
+    if (data.tags.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const tag of data.tags) {
         const tagData = preserveIds
           ? tag
@@ -307,7 +360,7 @@ export class DataExportImportService {
     }
 
     // 4. Projects (Documents, ProjectVariables が参照)
-    if (data.projects.length > 0) {
+    if (data.projects.length > 0 && (!categories || categories.projectsAndDocuments)) {
       for (const project of data.projects) {
         const projectData = preserveIds
           ? project
@@ -318,7 +371,7 @@ export class DataExportImportService {
     }
 
     // 5. Templates (TemplateVersions, TemplateTags, TemplateUsage が参照)
-    if (data.templates.length > 0) {
+    if (data.templates.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const template of data.templates) {
         const templateData = preserveIds
           ? template
@@ -329,7 +382,7 @@ export class DataExportImportService {
     }
 
     // 6. Template Versions
-    if (data.templateVersions.length > 0) {
+    if (data.templateVersions.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const version of data.templateVersions) {
         const versionData = preserveIds
           ? version
@@ -340,7 +393,7 @@ export class DataExportImportService {
     }
 
     // 7. Template Tags (中間テーブル)
-    if (data.templateTags.length > 0) {
+    if (data.templateTags.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const templateTag of data.templateTags) {
         const templateTagData = preserveIds
           ? templateTag
@@ -351,7 +404,7 @@ export class DataExportImportService {
     }
 
     // 8. Template Usage
-    if (data.templateUsage.length > 0) {
+    if (data.templateUsage.length > 0 && (!categories || categories.scenesAndTemplates)) {
       for (const usage of data.templateUsage) {
         const usageData = preserveIds
           ? usage
@@ -362,7 +415,7 @@ export class DataExportImportService {
     }
 
     // 9. User Variables
-    if (data.userVariables.length > 0) {
+    if (data.userVariables.length > 0 && (!categories || categories.systemSettings)) {
       for (const userVar of data.userVariables) {
         const userVarData = preserveIds
           ? userVar
@@ -373,7 +426,7 @@ export class DataExportImportService {
     }
 
     // 10. Project Variables
-    if (data.projectVariables.length > 0) {
+    if (data.projectVariables.length > 0 && (!categories || categories.projectsAndDocuments)) {
       for (const projectVar of data.projectVariables) {
         const projectVarData = preserveIds
           ? projectVar
@@ -384,7 +437,7 @@ export class DataExportImportService {
     }
 
     // 11. Documents
-    if (data.documents.length > 0) {
+    if (data.documents.length > 0 && (!categories || categories.projectsAndDocuments)) {
       for (const document of data.documents) {
         const documentData = preserveIds
           ? document
@@ -395,7 +448,7 @@ export class DataExportImportService {
     }
 
     // 12. User Preferences
-    if (data.userPreferences.length > 0) {
+    if (data.userPreferences.length > 0 && (!categories || categories.systemSettings)) {
       for (const preference of data.userPreferences) {
         const preferenceData = preserveIds
           ? preference

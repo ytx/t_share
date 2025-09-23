@@ -6,9 +6,17 @@ import logger from '../utils/logger';
 const dataExportImportService = new DataExportImportService();
 
 // インポートオプションのバリデーションスキーマ
+const importCategoriesSchema = z.object({
+  users: z.boolean(),
+  scenesAndTemplates: z.boolean(),
+  projectsAndDocuments: z.boolean(),
+  systemSettings: z.boolean(),
+});
+
 const importOptionsSchema = z.object({
   clearExistingData: z.boolean().optional().default(false),
   preserveIds: z.boolean().optional().default(true),
+  categories: importCategoriesSchema.optional(),
 });
 
 /**

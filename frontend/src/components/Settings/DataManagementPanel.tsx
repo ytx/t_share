@@ -33,6 +33,7 @@ import {
   readImportFile,
   type ExportData,
   type ImportOptions,
+  type ImportCategories,
   type ValidationResult,
 } from '../../store/api/dataExportImportApi';
 
@@ -47,6 +48,12 @@ const DataManagementPanel: React.FC = () => {
   const [importOptions, setImportOptions] = useState<ImportOptions>({
     clearExistingData: false,
     preserveIds: true,
+    categories: {
+      users: true,
+      scenesAndTemplates: true,
+      projectsAndDocuments: true,
+      systemSettings: true,
+    },
   });
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 
@@ -296,6 +303,98 @@ const DataManagementPanel: React.FC = () => {
               </Box>
             </Box>
           )}
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* インポートカテゴリ選択 */}
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            インポートカテゴリ
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={importOptions.categories?.users || false}
+                  onChange={(e) =>
+                    setImportOptions(prev => ({
+                      ...prev,
+                      categories: {
+                        ...prev.categories,
+                        users: e.target.checked,
+                      } as ImportCategories
+                    }))
+                  }
+                />
+              }
+              label="ユーザー"
+            />
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 0.5 }}>
+              ユーザーアカウント情報
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={importOptions.categories?.scenesAndTemplates || false}
+                  onChange={(e) =>
+                    setImportOptions(prev => ({
+                      ...prev,
+                      categories: {
+                        ...prev.categories,
+                        scenesAndTemplates: e.target.checked,
+                      } as ImportCategories
+                    }))
+                  }
+                />
+              }
+              label="シーン・定型文"
+            />
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 0.5 }}>
+              シーン、タグ、定型文、定型文バージョン、使用履歴
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={importOptions.categories?.projectsAndDocuments || false}
+                  onChange={(e) =>
+                    setImportOptions(prev => ({
+                      ...prev,
+                      categories: {
+                        ...prev.categories,
+                        projectsAndDocuments: e.target.checked,
+                      } as ImportCategories
+                    }))
+                  }
+                />
+              }
+              label="プロジェクト・文書"
+            />
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 0.5 }}>
+              プロジェクト、プロジェクト変数、文書
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={importOptions.categories?.systemSettings || false}
+                  onChange={(e) =>
+                    setImportOptions(prev => ({
+                      ...prev,
+                      categories: {
+                        ...prev.categories,
+                        systemSettings: e.target.checked,
+                      } as ImportCategories
+                    }))
+                  }
+                />
+              }
+              label="システム設定"
+            />
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ ml: 4, mb: 1 }}>
+              ユーザー変数、ユーザー設定
+            </Typography>
+          </Box>
 
           <Divider sx={{ my: 2 }} />
 
