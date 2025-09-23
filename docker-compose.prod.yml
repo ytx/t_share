@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -33,20 +31,33 @@ services:
     container_name: t-share-backend-prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/templateshare
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/templateshare?connection_limit=5&pool_timeout=60
       JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       PORT: 3101
-      CORS_ORIGIN: http://localhost:3200
+      CORS_ORIGIN: "*"
+      # Memory optimization for Node.js
+      NODE_OPTIONS: "--max-old-space-size=512"
+      # Enable cron jobs for user cleanup
+      ENABLE_CRON_JOBS: "true"
+      # Use binary query engine to avoid memory corruption
+      PRISMA_QUERY_ENGINE_TYPE: "binary"
     ports:
       - "4200:3101"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    # Memory limits to prevent segfaults
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3101/api/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3101/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -61,6 +72,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        REACT_APP_API_URL: http://localhost:4200/api
     container_name: t-share-frontend-prod
     environment:
       NODE_ENV: production

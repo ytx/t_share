@@ -177,7 +177,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   const editorOptions = {
     enableBasicAutocompletion: true,
     enableLiveAutocompletion: true,
-    enableSnippets: true,
+    enableSnippets: process.env.NODE_ENV === 'development',
     showLineNumbers,
     tabSize: 2,
     wrap: wordWrap,

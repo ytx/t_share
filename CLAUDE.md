@@ -57,7 +57,40 @@ docker-compose up -d
 - ブランチ戦略: Git Flow
 - テスト: Jest + React Testing Library
 
-## 最新の変更履歴 (2025-09-22)
+## 最新の変更履歴 (2025-09-23)
+
+### データベースエラー修正・データ整合性向上
+1. **500エラー: Document作成エラーの修正**
+   - 問題: POST /api/documents でUnique constraint failed on the fields: (`id`)エラー
+   - 原因: データインポート時にPostgreSQLのauto-incrementシーケンスが最新IDに追従していない
+   - 解決: documentsテーブルの最大ID（73）に対してシーケンスが2から開始していた問題を修正
+   - backend/src/services/dataExportImportService.ts:195-198 でシーケンスリセット機能を追加
+
+2. **データインポート時の自動シーケンス修正機能**
+   - 全auto-incrementテーブル（12テーブル）のシーケンス自動リセット機能実装
+   - preserveIds: trueでのインポート後、各テーブルの最大IDを取得してシーケンスを適切に設定
+   - 対象テーブル: users, scenes, tags, projects, templates, template_versions, template_tags, template_usage, user_variables, project_variables, documents, user_preferences
+   - 個別エラーハンドリングにより一部テーブル失敗時も他テーブルの処理を継続
+   - backend/src/services/dataExportImportService.ts:441-483 でresetSequences関数実装
+
+3. **400エラー: タグ作成バリデーションエラーの修正**
+   - 問題: POST /api/tags で空の説明フィールドを送信時にバリデーションエラー
+   - 原因: Joiバリデーションでdescriptionフィールドが空文字列（''）を許可していない
+   - 解決: tagValidation.createとupdateに.allow('')を追加
+   - backend/src/utils/validation.ts:77, 83 でJoiスキーマ修正（シーン作成エラーと同パターン）
+
+4. **データ整合性の向上**
+   - $queryRawUnsafeと$executeRawUnsafeを使用した安全なSQL実行
+   - PostgreSQLシーケンス操作での適切なエラーハンドリング
+   - インポート処理の信頼性向上（シーケンス不整合による新規作成エラーの根絶）
+
+**技術的改善点:**
+- auto-incrementシーケンスの自動修正によりデータインポート後の新規作成エラーを防止
+- バリデーションスキーマの一貫性確保（空文字列許可の統一）
+- 詳細なログ出力でデバッグ・監視の向上
+- トランザクション内でのシーケンス操作による安全性確保
+
+## 以前の変更履歴 (2025-09-22)
 
 ### TypeScript厳密設定の復元と完全修正
 1. **緊急修正項目の完全解決**

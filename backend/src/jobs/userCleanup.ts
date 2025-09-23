@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import prisma from '../database/connection';
+import prisma from '../config/database';
 import logger from '../utils/logger';
 
 /**

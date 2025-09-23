@@ -74,13 +74,13 @@ export const sceneValidation = {
 export const tagValidation = {
   create: Joi.object({
     name: Joi.string().min(1).max(50).required(),
-    description: Joi.string().max(1000),
+    description: Joi.string().max(1000).allow(''),
     color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
   }),
 
   update: Joi.object({
     name: Joi.string().min(1).max(50),
-    description: Joi.string().max(1000),
+    description: Joi.string().max(1000).allow(''),
     color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
   }),
 };

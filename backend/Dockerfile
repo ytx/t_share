@@ -1,10 +1,10 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Build stage - Use Node.js 16 LTS with updated base
+FROM node:16.20-bullseye-slim AS builder
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma compatibility
-RUN apk add --no-cache openssl
+# Install OpenSSL and build tools for Prisma compatibility
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -21,13 +21,13 @@ RUN npm run db:generate
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine AS production
+# Production stage - Use Node.js 16 LTS with updated base
+FROM node:16.20-bullseye-slim AS production
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma compatibility
-RUN apk add --no-cache openssl
+# Install OpenSSL and runtime dependencies for Prisma compatibility
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -35,14 +35,17 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
+# Install ts-node for seeding (if needed)
+RUN npm install -g ts-node
+
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodeuser -u 1001
+# Create non-root user (Debian syntax)
+RUN groupadd -g 1001 nodejs
+RUN useradd -r -u 1001 -g nodejs nodeuser
 
 # Create logs directory
 RUN mkdir -p /app/logs && chown -R nodeuser:nodejs /app
@@ -59,7 +62,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 CMD ["node", "dist/index.js"]
 
 # Development stage
-FROM node:18-alpine AS development
+FROM node:16.20-alpine AS development
 
 WORKDIR /app
 

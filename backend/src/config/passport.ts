@@ -1,10 +1,8 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
 
 // Google OAuth Strategy
 const googleClientId = process.env.GOOGLE_CLIENT_ID;

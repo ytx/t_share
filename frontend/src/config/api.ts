@@ -7,13 +7,8 @@ export const getApiBaseUrl = (): string => {
   if (viteApiUrl) return viteApiUrl;
   if (reactApiUrl) return reactApiUrl;
 
-  // フォールバック: 本番環境では現在のホストを使用
-  if (window.location.hostname !== 'localhost') {
-    return `${window.location.protocol}//${window.location.hostname}/api`;
-  }
-
-  // 開発環境のフォールバック
-  return 'http://localhost:3101/api';
+  // フォールバック: nginxプロキシ経由で相対パスを使用
+  return '/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

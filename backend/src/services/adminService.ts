@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
+import bcrypt from 'bcryptjs';
 
 export interface SystemStats {
   overview: {
@@ -359,8 +358,8 @@ class AdminService {
     password: string;
   }) {
     try {
-      const bcrypt = require('bcrypt');
-      const passwordHash = await bcrypt.hash(data.password, 10);
+      // Hash password using bcryptjs
+      const passwordHash = await bcrypt.hash(data.password, 12);
 
       const user = await prisma.user.create({
         data: {

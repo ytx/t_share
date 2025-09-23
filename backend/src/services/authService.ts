@@ -1,9 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
 
 export interface AuthResult {
   user: {
@@ -81,7 +79,7 @@ class AuthService {
       }
 
       // Hash password
-      const passwordHash = await bcrypt.hash(data.password, 10);
+      const passwordHash = await bcrypt.hash(data.password, 12);
 
       // Create user
       const user = await prisma.user.create({

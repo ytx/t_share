@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
 
 export interface ExportData {
   exportedAt: string;
@@ -192,6 +190,11 @@ export class DataExportImportService {
           if (preserveIds) {
             await prisma.$executeRaw`SET session_replication_role = DEFAULT;`;
           }
+        }
+
+        // インポート後にシーケンスをリセット
+        if (preserveIds) {
+          await this.resetSequences(prisma);
         }
       });
 
@@ -432,6 +435,59 @@ export class DataExportImportService {
     } catch (error) {
       logger.error('Failed to get export stats:', error);
       throw new Error('統計情報の取得に失敗しました');
+    }
+  }
+
+  /**
+   * データインポート後にシーケンスをリセット
+   */
+  private async resetSequences(prisma: any): Promise<void> {
+    try {
+      logger.info('Resetting database sequences...');
+
+      // auto-incrementのIDを持つテーブルとそのシーケンス名
+      const tableSequences = [
+        { table: 'users', sequence: 'users_id_seq' },
+        { table: 'scenes', sequence: 'scenes_id_seq' },
+        { table: 'tags', sequence: 'tags_id_seq' },
+        { table: 'projects', sequence: 'projects_id_seq' },
+        { table: 'templates', sequence: 'templates_id_seq' },
+        { table: 'template_versions', sequence: 'template_versions_id_seq' },
+        { table: 'template_tags', sequence: 'template_tags_id_seq' },
+        { table: 'template_usage', sequence: 'template_usage_id_seq' },
+        { table: 'user_variables', sequence: 'user_variables_id_seq' },
+        { table: 'project_variables', sequence: 'project_variables_id_seq' },
+        { table: 'documents', sequence: 'documents_id_seq' },
+        { table: 'user_preferences', sequence: 'user_preferences_id_seq' },
+      ];
+
+      for (const { table, sequence } of tableSequences) {
+        try {
+          // 各テーブルの最大IDを取得（文字列テンプレートで安全に実行）
+          const query = `SELECT COALESCE(MAX(id), 0) as max_id FROM ${table}`;
+          const result = await prisma.$queryRawUnsafe(query);
+          const maxId = Number(result[0]?.max_id) || 0;
+
+          if (maxId > 0) {
+            // シーケンスを最大ID + 1に設定
+            const nextId = maxId + 1;
+            const setvalQuery = `SELECT setval('${sequence}', ${nextId})`;
+            await prisma.$executeRawUnsafe(setvalQuery);
+            logger.info(`Reset sequence ${sequence} to ${nextId} (table ${table}, max_id: ${maxId})`);
+          } else {
+            logger.info(`Skipping sequence ${sequence} for empty table ${table}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to reset sequence ${sequence} for table ${table}:`, error);
+          // 個別のテーブルの失敗は継続
+        }
+      }
+
+      logger.info('Database sequences reset completed');
+    } catch (error) {
+      logger.error('Failed to reset sequences:', error);
+      // シーケンスリセットは失敗しても全体のインポートは継続する
+      logger.warn('Continuing with import despite sequence reset failure');
     }
   }
 }
