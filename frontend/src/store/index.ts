@@ -10,6 +10,7 @@ import { projectVariableApi } from './api/projectVariableApi'
 import { userPreferenceApi } from './api/userPreferenceApi'
 import { adminApi } from './api/adminApi'
 import { dataExportImportApi } from './api/dataExportImportApi'
+import { portManagementApi } from './api/portManagementApi'
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     [userPreferenceApi.reducerPath]: userPreferenceApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
     [dataExportImportApi.reducerPath]: dataExportImportApi.reducer,
+    [portManagementApi.reducerPath]: portManagementApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -40,7 +42,8 @@ export const store = configureStore({
     .concat(projectVariableApi.middleware)
     .concat(userPreferenceApi.middleware)
     .concat(adminApi.middleware)
-    .concat(dataExportImportApi.middleware),
+    .concat(dataExportImportApi.middleware)
+    .concat(portManagementApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

@@ -9,6 +9,7 @@ export interface AuthResult {
     email: string;
     username?: string;
     displayName?: string;
+    avatarUrl?: string;
     isAdmin: boolean;
     approvalStatus: string;
   };
@@ -31,15 +32,17 @@ export interface GoogleUserData {
   googleId: string;
   email: string;
   displayName?: string;
+  avatarUrl?: string;
 }
 
 class AuthService {
-  private normalizeUser(user: { id: number; email: string; username?: string | null; displayName?: string | null; isAdmin: boolean; approvalStatus: string }): { id: number; email: string; username?: string; displayName?: string; isAdmin: boolean; approvalStatus: string } {
+  private normalizeUser(user: { id: number; email: string; username?: string | null; displayName?: string | null; avatarUrl?: string | null; isAdmin: boolean; approvalStatus: string }): { id: number; email: string; username?: string; displayName?: string; avatarUrl?: string; isAdmin: boolean; approvalStatus: string } {
     return {
       id: user.id,
       email: user.email,
       username: user.username ?? undefined,
       displayName: user.displayName ?? undefined,
+      avatarUrl: user.avatarUrl ?? undefined,
       isAdmin: user.isAdmin,
       approvalStatus: user.approvalStatus,
     };
@@ -176,6 +179,7 @@ class AuthService {
           email: true,
           username: true,
           displayName: true,
+          avatarUrl: true,
           isAdmin: true,
           approvalStatus: true,
         },
@@ -191,12 +195,16 @@ class AuthService {
           // Link Google account to existing user
           user = await prisma.user.update({
             where: { id: existingUser.id },
-            data: { googleId: data.googleId },
+            data: {
+              googleId: data.googleId,
+              avatarUrl: data.avatarUrl,
+            },
             select: {
               id: true,
               email: true,
               username: true,
               displayName: true,
+              avatarUrl: true,
               isAdmin: true,
               approvalStatus: true,
             },
@@ -208,6 +216,7 @@ class AuthService {
               email: data.email,
               googleId: data.googleId,
               displayName: data.displayName || data.email.split('@')[0],
+              avatarUrl: data.avatarUrl,
               isAdmin: false,
             },
             select: {
@@ -215,6 +224,7 @@ class AuthService {
               email: true,
               username: true,
               displayName: true,
+              avatarUrl: true,
               isAdmin: true,
               approvalStatus: true,
             },
@@ -256,6 +266,7 @@ class AuthService {
           email: true,
           username: true,
           displayName: true,
+          avatarUrl: true,
           isAdmin: true,
           approvalStatus: true,
           createdAt: true,

@@ -21,6 +21,8 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -38,6 +40,8 @@ import {
   ProjectUpdateData,
 } from '../../store/api/projectApi';
 import { Project } from '../../types';
+import { PROJECT_COLORS } from '../../constants/projectColors';
+import PortSettings from './PortSettings';
 
 const ProjectManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,6 +51,7 @@ const ProjectManagement: React.FC = () => {
     name: '',
     description: '',
     isPublic: true,
+    color: '#1976d2',
   });
 
   const { data: projectsResponse, isLoading, error } = useGetUserProjectsQuery();
@@ -84,6 +89,7 @@ const ProjectManagement: React.FC = () => {
         name: projectForm.name,
         description: projectForm.description,
         isPublic: projectForm.isPublic,
+        color: projectForm.color,
       };
       await updateProject({ id: projectToEdit.id, data: updateData }).unwrap();
       setShowEditModal(false);
@@ -116,6 +122,7 @@ const ProjectManagement: React.FC = () => {
       name: project.name,
       description: project.description || '',
       isPublic: project.isPublic,
+      color: project.color || '#1976d2',
     });
     setShowEditModal(true);
   };
@@ -125,6 +132,7 @@ const ProjectManagement: React.FC = () => {
       name: '',
       description: '',
       isPublic: true,
+      color: '#1976d2',
     });
   };
 
@@ -257,6 +265,32 @@ const ProjectManagement: React.FC = () => {
             value={projectForm.description}
             onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
           />
+
+          {/* Color Selection */}
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>プロジェクトカラー</Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {PROJECT_COLORS.map(color => (
+                <Tooltip key={color.value} title={color.name}>
+                  <Box
+                    onClick={() => setProjectForm({ ...projectForm, color: color.value })}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: color.value,
+                      border: projectForm.color === color.value ? '3px solid black' : '1px solid #ccc',
+                      cursor: 'pointer',
+                      borderRadius: 1,
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </Box>
+          </Box>
+
           <FormControlLabel
             control={
               <Switch
@@ -303,6 +337,40 @@ const ProjectManagement: React.FC = () => {
             value={projectForm.description}
             onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
           />
+
+          {/* Color Selection */}
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>プロジェクトカラー</Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {PROJECT_COLORS.map(color => (
+                <Tooltip key={color.value} title={color.name}>
+                  <Box
+                    onClick={() => setProjectForm({ ...projectForm, color: color.value })}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: color.value,
+                      border: projectForm.color === color.value ? '3px solid black' : '1px solid #ccc',
+                      cursor: 'pointer',
+                      borderRadius: 1,
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Port Settings (only for existing projects) */}
+          {projectToEdit && (
+            <>
+              <Divider sx={{ my: 3 }} />
+              <PortSettings projectId={projectToEdit.id} />
+            </>
+          )}
+
           <FormControlLabel
             control={
               <Switch

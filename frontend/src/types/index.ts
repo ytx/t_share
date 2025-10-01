@@ -4,6 +4,7 @@ export interface User {
   email: string;
   username?: string;
   displayName?: string;
+  avatarUrl?: string;
   isAdmin: boolean;
   createdAt: string;
 }
@@ -187,6 +188,7 @@ export interface Project {
   name: string;
   description?: string;
   isPublic: boolean;
+  color?: string;
   createdBy: number;
   createdAt: string;
   updatedAt: string;

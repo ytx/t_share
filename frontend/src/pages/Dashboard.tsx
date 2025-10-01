@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip, Tabs, Tab } from '@mui/material';
-import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, Refresh } from '@mui/icons-material';
+import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, Refresh, FiberManualRecord } from '@mui/icons-material';
 import ThemeToggleButton from '../components/Common/ThemeToggleButton';
 import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
@@ -40,6 +40,8 @@ const Dashboard: React.FC = () => {
   const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
   const [documentToOpen, setDocumentToOpen] = useState<Document | null>(null);
   const [lowerEditorTab, setLowerEditorTab] = useState(storedData.lowerEditorTab ?? 0); // 0: プロジェクト, 1: メモ
+  const [projectEditorHasChanges, setProjectEditorHasChanges] = useState(false);
+  const [memoEditorHasChanges, setMemoEditorHasChanges] = useState(false);
   const projectEditorRef = useRef<ProjectEditorRef>(null);
   const memoEditorRef = useRef<SimpleMarkdownEditorRef>(null);
   const documentEditorRef = useRef<any>(null);
@@ -144,10 +146,14 @@ const Dashboard: React.FC = () => {
     ? (projectDocumentsResponse?.data || [])
     : documents;
 
+  // 選択されたプロジェクトのカラーを取得
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const headerColor = selectedProject?.color || '#1976d2';
+
   return (
     <Box id="dashboard-container" sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Header */}
-      <AppBar position="fixed" elevation={1}>
+      <AppBar position="fixed" elevation={1} sx={{ bgcolor: headerColor }}>
         <Toolbar>
           <IconButton
             size="large"
@@ -188,8 +194,10 @@ const Dashboard: React.FC = () => {
                 onClick={handleMenu}
                 color="inherit"
               >
-                {user?.displayName ? (
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                {user?.avatarUrl ? (
+                  <Avatar src={user.avatarUrl} sx={{ width: 32, height: 32 }} />
+                ) : user?.displayName ? (
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: '#E67E22' }}>
                     {user.displayName.charAt(0).toUpperCase()}
                   </Avatar>
                 ) : (
@@ -351,20 +359,31 @@ const Dashboard: React.FC = () => {
               {/* Lower Panel - Tabbed Editors */}
               <Box sx={{ height: '100%', bgcolor: 'background.default', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {/* Tab Navigation */}
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
                   <Tabs value={lowerEditorTab} onChange={async (_e, newValue) => {
                     // Save before switching tabs
                     if (lowerEditorTab === 0 && projectEditorRef.current) {
                       await projectEditorRef.current.flush();
+                      setProjectEditorHasChanges(false);
                     } else if (lowerEditorTab === 1 && memoEditorRef.current) {
                       await memoEditorRef.current.flush();
+                      setMemoEditorHasChanges(false);
                     }
                     setLowerEditorTab(newValue);
                     saveLowerEditorTab(newValue);
-                  }}>
+                  }} sx={{ flex: 1 }}>
                     <Tab label="プロジェクト内共有" disabled={!selectedProjectId} />
                     <Tab label="メモ（自分用）" />
                   </Tabs>
+
+                  {/* Unsaved indicator */}
+                  <Box sx={{ mr: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {((lowerEditorTab === 0 && projectEditorHasChanges) || (lowerEditorTab === 1 && memoEditorHasChanges)) && (
+                      <Tooltip title="未保存の変更があります（3秒後に自動保存）">
+                        <FiberManualRecord sx={{ fontSize: 16, color: 'warning.main' }} />
+                      </Tooltip>
+                    )}
+                  </Box>
                 </Box>
 
                 {/* Tab Content */}
@@ -377,6 +396,7 @@ const Dashboard: React.FC = () => {
                       ref={projectEditorRef}
                       selectedProjectId={selectedProjectId}
                       onMoveToUpperEditor={handleMoveToUpperEditor}
+                      onUnsavedChanges={setProjectEditorHasChanges}
                     />
                   </Box>
                   <Box sx={{
@@ -387,6 +407,7 @@ const Dashboard: React.FC = () => {
                       ref={memoEditorRef}
                       selectedProjectId={selectedProjectId}
                       onMoveToUpperEditor={handleMoveToUpperEditor}
+                      onUnsavedChanges={setMemoEditorHasChanges}
                     />
                   </Box>
                 </Box>

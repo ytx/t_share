@@ -51,6 +51,7 @@ if (jwtSecret) {
           email: true,
           username: true,
           displayName: true,
+          avatarUrl: true,
           isAdmin: true,
           approvalStatus: true,
         },

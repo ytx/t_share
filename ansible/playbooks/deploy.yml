@@ -229,6 +229,21 @@
         sudo docker exec t-share-backend npm install ts-node || true
       ignore_errors: yes
 
+    - name: Add ports to existing projects (migration)
+      shell: |
+        cd {{ app_dir }}
+        # Check if there are any existing projects
+        PROJECT_COUNT=$(sudo docker exec t-share-postgres psql -U {{ db_user }} -d {{ db_name }} -t -c "SELECT COUNT(*) FROM projects;" 2>/dev/null | tr -d ' ')
+
+        if [ "$PROJECT_COUNT" -gt "0" ]; then
+          echo "Found $PROJECT_COUNT existing projects - adding port variables if needed"
+          sudo docker exec --user root t-share-backend npx ts-node src/scripts/addPortsToExistingProjects.ts
+          echo "Port variables migration completed"
+        else
+          echo "No existing projects found - skipping port migration"
+        fi
+      ignore_errors: yes
+
     - name: Seed database with initial data (for new deployments only)
       shell: |
         cd {{ app_dir }}

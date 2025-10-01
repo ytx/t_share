@@ -59,6 +59,52 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-10-01)
 
+### Googleアカウント画像のアバター表示機能
+1. **プロフィール画像の自動取得・表示**
+   - Google OAuth認証時にプロフィール画像URLを取得
+   - Userテーブルに`avatarUrl`フィールドを追加
+   - 既存ユーザーの次回ログイン時に画像URL更新
+   - データベースマイグレーション実装
+
+2. **アバターアイコンの表示優先順位**
+   - 第1優先: Googleアカウント画像（`avatarUrl`）
+   - 第2優先: 表示名の頭文字（`displayName`）
+   - 第3優先: デフォルトアイコン（`AccountCircle`）
+
+3. **UI改善**
+   - アバター背景色を落ち着いたオレンジ色（#E67E22）に変更
+   - 画像なしユーザー・直接追加ユーザーのアバターに適用
+   - 32x32pxの統一サイズで表示
+
+4. **バックエンド実装**
+   - `authController.ts`: Google認証時に`photos[0].value`を取得
+   - `authService.ts`: `GoogleUserData`に`avatarUrl`フィールド追加
+   - `passport.ts`: JWT戦略で`avatarUrl`を含む
+   - 新規ユーザー作成・既存ユーザー更新時にavatarUrl保存
+
+5. **フロントエンド実装**
+   - `Dashboard.tsx`: Avatar表示ロジックの更新
+   - `types/index.ts`: User型に`avatarUrl`フィールド追加
+   - Material-UI AvatarコンポーネントのsrcプロパティでURL指定
+
+### 未保存変更インジケーターの改善
+1. **アラートからアイコン表示への変更**
+   - エディタ下のアラートコンポーネントを削除
+   - タブバー右側に小さなアイコン（FiberManualRecord）を表示
+   - 編集中のエディタ上下動を防止
+
+2. **状態管理の統合**
+   - Dashboard.tsx で`projectEditorHasChanges`と`memoEditorHasChanges`状態管理
+   - ProjectEditor・SimpleMarkdownEditorから`onUnsavedChanges`コールバック
+   - 内容変更時: `onUnsavedChanges(true)`呼び出し
+   - 保存成功時: `onUnsavedChanges(false)`呼び出し
+
+3. **UI/UX改善**
+   - 警告アイコン（オレンジ色の丸）をタブの右側に配置
+   - ツールチップで「未保存の変更があります（3秒後に自動保存）」を表示
+   - 現在のタブに対応するエディタの状態のみ表示
+   - エディタ領域の高さが一定に保たれる
+
 ### 下段エディタのコンテキストメニュー機能
 1. **右クリックメニューの実装**
    - プロジェクト内共有・メモ（自分用）エディタで右クリック対応

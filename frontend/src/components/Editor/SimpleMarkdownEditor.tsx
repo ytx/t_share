@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Box, Alert, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { NoteAdd, ArrowUpward } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateCreateModal from '../Templates/TemplateCreateModal';
@@ -13,13 +13,14 @@ import {
 interface SimpleMarkdownEditorProps {
   selectedProjectId?: number;
   onMoveToUpperEditor?: (text: string) => void;
+  onUnsavedChanges?: (hasChanges: boolean) => void;
 }
 
 export interface SimpleMarkdownEditorRef {
   flush: () => Promise<void>;
 }
 
-const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>(({ onMoveToUpperEditor }, ref) => {
+const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>(({ onMoveToUpperEditor, onUnsavedChanges }, ref) => {
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markdownEditorRef = useRef<any>(null);
@@ -88,11 +89,14 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
         },
       }).unwrap();
       setHasUnsavedChanges(false);
+      if (onUnsavedChanges) {
+        onUnsavedChanges(false);
+      }
       console.log('SimpleMarkdownEditor: Save successful');
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [personalMemo, updateDocument]);
+  }, [personalMemo, updateDocument, onUnsavedChanges]);
 
   // 即座に保存（タイマーをキャンセルして即座に実行）
   const flush = useCallback(async () => {
@@ -126,6 +130,9 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     console.log('SimpleMarkdownEditor: Content changed, new length:', newContent.length);
     setContent(newContent);
     setHasUnsavedChanges(true);
+    if (onUnsavedChanges) {
+      onUnsavedChanges(true);
+    }
 
     // 自動保存タイマーをリセット
     if (saveTimeoutRef.current) {
@@ -137,7 +144,7 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       console.log('SimpleMarkdownEditor: Auto-save timer triggered');
       autoSave();
     }, 3000);
-  }, [autoSave]);
+  }, [autoSave, onUnsavedChanges]);
 
   // クリーンアップ
   useEffect(() => {
@@ -218,15 +225,6 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
-      {/* Status Indicator */}
-      {hasUnsavedChanges && (
-        <Box sx={{ mb: 1 }}>
-          <Alert severity="warning" sx={{ py: 0 }}>
-            未保存の変更があります（3秒後に自動保存）
-          </Alert>
-        </Box>
-      )}
-
       {/* Editor */}
       <Box
         sx={{ flex: 1, minHeight: 0 }}

@@ -5,12 +5,14 @@ export interface ProjectCreateData {
   name: string;
   description?: string;
   isPublic?: boolean;
+  color?: string;
 }
 
 export interface ProjectUpdateData {
   name?: string;
   description?: string;
   isPublic?: boolean;
+  color?: string;
   createdBy?: number;
 }
 

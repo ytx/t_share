@@ -66,6 +66,7 @@ class AuthController {
         googleId: user.id,
         email: user.emails[0].value,
         displayName: user.displayName,
+        avatarUrl: user.photos?.[0]?.value,
       });
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3100';

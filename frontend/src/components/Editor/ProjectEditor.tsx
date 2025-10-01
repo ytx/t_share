@@ -13,6 +13,7 @@ import {
 interface ProjectEditorProps {
   selectedProjectId?: number;
   onMoveToUpperEditor?: (text: string) => void;
+  onUnsavedChanges?: (hasChanges: boolean) => void;
 }
 
 export interface ProjectEditorRef {
@@ -22,6 +23,7 @@ export interface ProjectEditorRef {
 const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
   selectedProjectId,
   onMoveToUpperEditor,
+  onUnsavedChanges,
 }, ref) => {
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -98,11 +100,14 @@ const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
         },
       }).unwrap();
       setHasUnsavedChanges(false);
+      if (onUnsavedChanges) {
+        onUnsavedChanges(false);
+      }
       console.log('ProjectEditor: Save successful');
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [selectedProjectId, sharedDocument, updateDocument]);
+  }, [selectedProjectId, sharedDocument, updateDocument, onUnsavedChanges]);
 
   // 即座に保存（タイマーをキャンセルして即座に実行）
   const flush = useCallback(async () => {
@@ -137,6 +142,9 @@ const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
     console.log('ProjectEditor: Content changed, new length:', newContent.length);
     setContent(newContent);
     setHasUnsavedChanges(true);
+    if (onUnsavedChanges) {
+      onUnsavedChanges(true);
+    }
 
     // 自動保存タイマーをリセット
     if (saveTimeoutRef.current) {
@@ -148,7 +156,7 @@ const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
       console.log('ProjectEditor: Auto-save timer triggered');
       autoSave();
     }, 3000);
-  }, [autoSave]);
+  }, [autoSave, onUnsavedChanges]);
 
   // クリーンアップ
   useEffect(() => {
@@ -237,15 +245,6 @@ const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
-      {/* Status Indicator */}
-      {hasUnsavedChanges && (
-        <Box sx={{ mb: 1 }}>
-          <Alert severity="warning" sx={{ py: 0 }}>
-            未保存の変更があります（3秒後に自動保存）
-          </Alert>
-        </Box>
-      )}
-
       {/* Editor */}
       <Box
         sx={{ flex: 1, minHeight: 0 }}

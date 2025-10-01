@@ -27,6 +27,9 @@ import {
   updateOAuthConfig,
   testOAuthConfig,
 } from '../controllers/oauthConfigController';
+import {
+  getAllPortUsage,
+} from '../controllers/portManagementController';
 
 const router = express.Router();
 
@@ -67,5 +70,8 @@ router.post('/data/validate', validateImportData);
 router.get('/oauth/google/config', getOAuthConfig);
 router.put('/oauth/google/config', updateOAuthConfig);
 router.post('/oauth/google/test', testOAuthConfig);
+
+// Port management
+router.get('/ports/usage', getAllPortUsage);
 
 export default router;

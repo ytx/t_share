@@ -1,16 +1,19 @@
 import logger from '../utils/logger';
 import prisma from '../config/database';
+import portManagementService from './portManagementService';
 
 export interface ProjectCreateData {
   name: string;
   description?: string;
   isPublic?: boolean;
+  color?: string;
 }
 
 export interface ProjectUpdateData {
   name?: string;
   description?: string;
   isPublic?: boolean;
+  color?: string;
   createdBy?: number;
 }
 
@@ -22,6 +25,7 @@ class ProjectService {
           name: data.name,
           description: data.description,
           isPublic: data.isPublic ?? true,
+          color: data.color || '#1976d2',
           createdBy: userId,
         },
         include: {
@@ -34,6 +38,9 @@ class ProjectService {
           },
         },
       });
+
+      // Auto-assign port variables
+      await portManagementService.assignPortsForNewProject(project.id, userId);
 
       logger.info(`Project created: ${project.id} by user ${userId}`);
       return project;

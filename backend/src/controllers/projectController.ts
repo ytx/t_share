@@ -7,12 +7,14 @@ const createProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
   description: z.string().max(1000, 'Description too long').optional(),
   isPublic: z.boolean().default(true),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional(),
 });
 
 const updateProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long').optional(),
   description: z.string().max(1000, 'Description too long').optional(),
   isPublic: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional(),
   createdBy: z.number().int().positive().optional(),
 });
 
