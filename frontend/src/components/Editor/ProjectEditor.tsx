@@ -4,19 +4,21 @@ import MarkdownEditor from './MarkdownEditor';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGetUserPreferencesQuery, EditorSettings } from '../../store/api/userPreferenceApi';
 import {
-  useGetPersonalMemoQuery,
+  useGetSharedProjectDocumentQuery,
   useUpdateDocumentMutation
 } from '../../store/api/documentApi';
 
-interface SimpleMarkdownEditorProps {
+interface ProjectEditorProps {
   selectedProjectId?: number;
 }
 
-export interface SimpleMarkdownEditorRef {
+export interface ProjectEditorRef {
   flush: () => Promise<void>;
 }
 
-const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>((_, ref) => {
+const ProjectEditor = forwardRef<ProjectEditorRef, ProjectEditorProps>(({
+  selectedProjectId,
+}, ref) => {
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markdownEditorRef = useRef<any>(null);
@@ -27,10 +29,13 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   const { mode: themeMode } = useTheme();
 
   // API hooks
-  const { data: memoResponse, isLoading } = useGetPersonalMemoQuery();
+  const { data: documentResponse, isLoading } = useGetSharedProjectDocumentQuery(
+    selectedProjectId!,
+    { skip: !selectedProjectId }
+  );
   const [updateDocument] = useUpdateDocumentMutation();
 
-  const personalMemo = memoResponse?.data;
+  const sharedDocument = documentResponse?.data;
 
   // エディタ設定（ユーザ設定から取得）
   const [editorSettings, setEditorSettings] = useState<EditorSettings>({
@@ -50,36 +55,40 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     }
   }, [userPreferences]);
 
-  // 個人メモ取得時に内容を設定
+  // プロジェクト変更時・共有文書取得時に内容を設定
   useEffect(() => {
-    if (personalMemo) {
-      setContent(personalMemo.content || '');
+    if (sharedDocument) {
+      setContent(sharedDocument.content || '');
+      setHasUnsavedChanges(false);
+    } else if (!selectedProjectId) {
+      setContent('');
       setHasUnsavedChanges(false);
     }
-  }, [personalMemo]);
+  }, [sharedDocument, selectedProjectId]);
 
   // 自動保存処理
   const autoSave = useCallback(async () => {
-    if (!personalMemo) {
+    if (!selectedProjectId || !sharedDocument) {
       return;
     }
 
     try {
-      console.log('SimpleMarkdownEditor: Saving content, length:', content.length);
+      console.log('ProjectEditor: Saving content, length:', content.length, 'last char code:', content.length > 0 ? content.charCodeAt(content.length - 1) : 'N/A');
       await updateDocument({
-        id: personalMemo.id,
+        id: sharedDocument.id,
         data: {
           content,
           contentMarkdown: content,
-          title: 'メモ（自分用）',
+          title: 'プロジェクト内共有',
+          projectId: selectedProjectId,
         },
       }).unwrap();
       setHasUnsavedChanges(false);
-      console.log('SimpleMarkdownEditor: Save successful');
+      console.log('ProjectEditor: Save successful');
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [personalMemo, content, updateDocument]);
+  }, [selectedProjectId, sharedDocument, content, updateDocument]);
 
   // 即座に保存（タイマーをキャンセルして即座に実行）
   const flush = useCallback(async () => {
@@ -89,18 +98,19 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       saveTimeoutRef.current = null;
     }
     // Save immediately if there are unsaved changes
-    if (hasUnsavedChanges && personalMemo) {
+    if (hasUnsavedChanges && selectedProjectId && sharedDocument) {
       await updateDocument({
-        id: personalMemo.id,
+        id: sharedDocument.id,
         data: {
           content,
           contentMarkdown: content,
-          title: 'メモ（自分用）',
+          title: 'プロジェクト内共有',
+          projectId: selectedProjectId,
         },
       }).unwrap();
       setHasUnsavedChanges(false);
     }
-  }, [hasUnsavedChanges, personalMemo, content, updateDocument]);
+  }, [hasUnsavedChanges, selectedProjectId, sharedDocument, content, updateDocument]);
 
   // 外部からアクセス可能な関数を公開
   useImperativeHandle(ref, () => ({
@@ -109,7 +119,7 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
 
   // 内容変更時の処理
   const handleContentChange = useCallback((newContent: string) => {
-    console.log('SimpleMarkdownEditor: Content changed, new length:', newContent.length);
+    console.log('ProjectEditor: Content changed, new length:', newContent.length);
     setContent(newContent);
     setHasUnsavedChanges(true);
 
@@ -120,7 +130,7 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
 
     // 3秒後に自動保存
     saveTimeoutRef.current = setTimeout(() => {
-      console.log('SimpleMarkdownEditor: Auto-save timer triggered');
+      console.log('ProjectEditor: Auto-save timer triggered');
       autoSave();
     }, 3000);
   }, [autoSave]);
@@ -133,6 +143,14 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       }
     };
   }, []);
+
+  if (!selectedProjectId) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <Alert severity="info">プロジェクトを選択してください</Alert>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -166,14 +184,14 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
           fontSize={editorSettings.fontSize}
           keybinding={editorSettings.keybinding}
           showWhitespace={editorSettings.showWhitespace}
-          editorId="simple-markdown-editor"
-          placeholder="自分用のメモを作成してください（自動保存されます）..."
+          editorId="project-editor"
+          placeholder="プロジェクト内で共有される文書を編集してください（自動保存されます）..."
         />
       </Box>
     </Box>
   );
 });
 
-SimpleMarkdownEditor.displayName = 'SimpleMarkdownEditor';
+ProjectEditor.displayName = 'ProjectEditor';
 
-export default SimpleMarkdownEditor;
+export default ProjectEditor;

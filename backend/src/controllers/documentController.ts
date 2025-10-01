@@ -203,3 +203,48 @@ export const getProjectDocuments = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to get project documents' });
   }
 };
+
+export const getOrCreateSharedProjectDocument = async (req: Request, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const document = await documentService.getOrCreateSharedProjectDocument(projectId, userId);
+    res.json({ data: document });
+  } catch (error) {
+    logger.error('Get or create shared project document failed:', error);
+    if (error instanceof Error) {
+      if (error.message === 'Project not found') {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message === 'Not authorized to access this project') {
+        return res.status(403).json({ error: error.message });
+      }
+    }
+    res.status(500).json({ error: 'Failed to get or create shared project document' });
+  }
+};
+
+export const getOrCreatePersonalMemo = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const document = await documentService.getOrCreatePersonalMemo(userId);
+    res.json({ data: document });
+  } catch (error) {
+    logger.error('Get or create personal memo failed:', error);
+    res.status(500).json({ error: 'Failed to get or create personal memo' });
+  }
+};

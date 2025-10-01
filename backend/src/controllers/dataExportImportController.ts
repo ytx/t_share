@@ -28,7 +28,11 @@ export const exportAllData = async (req: Request, res: Response) => {
 
     const exportData = await dataExportImportService.exportAllData();
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    // Generate JST timestamp for filename
+    const now = new Date();
+    const jstOffset = 9 * 60; // JST is UTC+9
+    const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
+    const timestamp = jstTime.toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const filename = `t-share-export-${timestamp}.json`;
 
     res.setHeader('Content-Type', 'application/json');

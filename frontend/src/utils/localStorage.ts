@@ -5,6 +5,7 @@ export interface AppLocalStorageData {
   adminMode?: boolean;
   editorContent?: string;
   projectEditorContent?: Record<number, string>;
+  lowerEditorTab?: number;
   searchFilters?: {
     sceneId?: number;
     sortBy?: string;
@@ -72,4 +73,8 @@ export const saveSearchFilters = (filters: {
   excludedTagFilter?: string[];
 }) => {
   saveToLocalStorage({ searchFilters: filters });
+};
+
+export const saveLowerEditorTab = (tabIndex: number) => {
+  saveToLocalStorage({ lowerEditorTab: tabIndex });
 };

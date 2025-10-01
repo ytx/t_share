@@ -1,22 +1,25 @@
-import React, { useState, useCallback } from 'react';
-import { Box, AppBar, Toolbar, Typography, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip } from '@mui/material';
-import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon } from '@mui/icons-material';
+import React, { useState, useCallback, useRef } from 'react';
+import { Box, AppBar, Toolbar, Typography, MenuItem, IconButton, Button, Menu, Avatar, Divider, Switch, FormControlLabel, Tooltip, Tabs, Tab } from '@mui/material';
+import { Settings, AdminPanelSettings, AccountCircle, Logout, Menu as MenuIcon, Refresh } from '@mui/icons-material';
 import ThemeToggleButton from '../components/Common/ThemeToggleButton';
 import '../styles/splitpane.css';
 import SplitPane from 'react-split-pane';
 import TemplateSearch from '../components/Templates/TemplateSearch';
 import DocumentEditor from '../components/Editor/DocumentEditor';
-import SimpleMarkdownEditor from '../components/Editor/SimpleMarkdownEditor';
+import SimpleMarkdownEditor, { SimpleMarkdownEditorRef } from '../components/Editor/SimpleMarkdownEditor';
+import ProjectEditor, { ProjectEditorRef } from '../components/Editor/ProjectEditor';
 import TemplateCreateModal from '../components/Templates/TemplateCreateModal';
 import { Template, Document } from '../types';
-import { useUseTemplateMutation } from '../store/api/templateApi';
-import { useGetAllProjectsQuery } from '../store/api/projectApi';
-import { useSearchDocumentsQuery, useGetProjectDocumentsQuery } from '../store/api/documentApi';
+import { useUseTemplateMutation, templateApi } from '../store/api/templateApi';
+import { useGetAllProjectsQuery, projectApi } from '../store/api/projectApi';
+import { useSearchDocumentsQuery, useGetProjectDocumentsQuery, documentApi } from '../store/api/documentApi';
+import { sceneApi } from '../store/api/sceneApi';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import SettingsModal from '../components/Settings/SettingsModal';
 import DocumentViewerModal from '../components/Documents/DocumentViewerModal';
-import { getFromLocalStorage, saveProjectSelection, saveAdminMode } from '../utils/localStorage';
+import { getFromLocalStorage, saveProjectSelection, saveAdminMode, saveLowerEditorTab } from '../utils/localStorage';
 
 const Dashboard: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
@@ -30,11 +33,15 @@ const Dashboard: React.FC = () => {
   // Header state
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminMode, setAdminMode] = useState(storedData.adminMode || false);
   const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
   const [documentToOpen, setDocumentToOpen] = useState<Document | null>(null);
+  const [lowerEditorTab, setLowerEditorTab] = useState(storedData.lowerEditorTab ?? 0); // 0: プロジェクト, 1: メモ
+  const projectEditorRef = useRef<ProjectEditorRef>(null);
+  const memoEditorRef = useRef<SimpleMarkdownEditorRef>(null);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: projectsResponse } = useGetAllProjectsQuery({});
@@ -94,6 +101,14 @@ const Dashboard: React.FC = () => {
     saveAdminMode(newAdminMode);
   };
 
+  const handleRefresh = () => {
+    // Invalidate all relevant caches to force refetch from server
+    dispatch(projectApi.util.invalidateTags(['Project']));
+    dispatch(sceneApi.util.invalidateTags(['Scene']));
+    dispatch(templateApi.util.invalidateTags(['Template']));
+    dispatch(documentApi.util.invalidateTags(['Document']));
+  };
+
   const handleOpenDocumentViewer = () => {
     setDocumentViewerOpen(true);
   };
@@ -139,6 +154,12 @@ const Dashboard: React.FC = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Navigation buttons */}
+          <Tooltip title="データを再取得">
+            <IconButton color="inherit" onClick={handleRefresh} sx={{ mr: 1 }}>
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+
           <IconButton color="inherit" onClick={() => setSettingsOpen(true)} sx={{ mr: 1 }}>
             <Settings />
           </IconButton>
@@ -314,11 +335,46 @@ const Dashboard: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Lower Panel - Simple ACE Editor */}
-              <Box sx={{ height: '100%', p: 2, bgcolor: 'background.default', overflow: 'hidden' }}>
-                <SimpleMarkdownEditor
-                  selectedProjectId={selectedProjectId}
-                />
+              {/* Lower Panel - Tabbed Editors */}
+              <Box sx={{ height: '100%', bgcolor: 'background.default', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {/* Tab Navigation */}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Tabs value={lowerEditorTab} onChange={async (_e, newValue) => {
+                    // Save before switching tabs
+                    if (lowerEditorTab === 0 && projectEditorRef.current) {
+                      await projectEditorRef.current.flush();
+                    } else if (lowerEditorTab === 1 && memoEditorRef.current) {
+                      await memoEditorRef.current.flush();
+                    }
+                    setLowerEditorTab(newValue);
+                    saveLowerEditorTab(newValue);
+                  }}>
+                    <Tab label="プロジェクト内共有" disabled={!selectedProjectId} />
+                    <Tab label="メモ（自分用）" />
+                  </Tabs>
+                </Box>
+
+                {/* Tab Content */}
+                <Box sx={{ flex: 1, overflow: 'hidden', p: 2, position: 'relative' }}>
+                  <Box sx={{
+                    height: '100%',
+                    display: lowerEditorTab === 0 ? 'block' : 'none'
+                  }}>
+                    <ProjectEditor
+                      ref={projectEditorRef}
+                      selectedProjectId={selectedProjectId}
+                    />
+                  </Box>
+                  <Box sx={{
+                    height: '100%',
+                    display: lowerEditorTab === 1 ? 'block' : 'none'
+                  }}>
+                    <SimpleMarkdownEditor
+                      ref={memoEditorRef}
+                      selectedProjectId={selectedProjectId}
+                    />
+                  </Box>
+                </Box>
               </Box>
             </SplitPane>
           </SplitPane>

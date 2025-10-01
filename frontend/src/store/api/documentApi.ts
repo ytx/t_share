@@ -65,7 +65,21 @@ export const documentApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (_, __, { id }) => [{ type: 'Document', id }],
+      invalidatesTags: (result, _, { id, data }) => {
+        const tags: Array<{ type: 'Document'; id?: number | string } | 'Document'> = [
+          { type: 'Document', id },
+          'Document', // Invalidate all document queries
+        ];
+        // If updating a shared document, also invalidate the shared project document cache
+        if (data.projectId) {
+          tags.push({ type: 'Document', id: `SHARED_${data.projectId}` });
+        }
+        // If updating personal memo, also invalidate personal memo cache
+        if (result && result.title === 'メモ（自分用）') {
+          tags.push({ type: 'Document', id: 'PERSONAL_MEMO' });
+        }
+        return tags;
+      },
     }),
 
     deleteDocument: builder.mutation<{ success: boolean }, number>({
@@ -105,6 +119,20 @@ export const documentApi = createApi({
             ]
           : [{ type: 'Document', id: `PROJECT_${projectId}` }],
     }),
+
+    getSharedProjectDocument: builder.query<{ data: Document }, number>({
+      query: (projectId) => `/project/${projectId}/shared`,
+      providesTags: (_, __, projectId) => [
+        { type: 'Document', id: `SHARED_${projectId}` },
+      ],
+    }),
+
+    getPersonalMemo: builder.query<{ data: Document }, void>({
+      query: () => '/personal-memo',
+      providesTags: () => [
+        { type: 'Document', id: 'PERSONAL_MEMO' },
+      ],
+    }),
   }),
 });
 
@@ -115,4 +143,6 @@ export const {
   useGetDocumentQuery,
   useSearchDocumentsQuery,
   useGetProjectDocumentsQuery,
+  useGetSharedProjectDocumentQuery,
+  useGetPersonalMemoQuery,
 } = documentApi;

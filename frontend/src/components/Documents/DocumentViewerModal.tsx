@@ -42,11 +42,15 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
   // フィルタリングされた文書リストを更新
   useEffect(() => {
+    // 特殊な文書を除外
+    const specialTitles = ['プロジェクト内共有', 'メモ（自分用）'];
+    const regularDocuments = documents.filter(doc => !specialTitles.includes(doc.title || ''));
+
     if (!searchKeyword.trim()) {
-      setFilteredDocuments(documents);
+      setFilteredDocuments(regularDocuments);
     } else {
       const keyword = searchKeyword.toLowerCase();
-      const filtered = documents.filter(doc =>
+      const filtered = regularDocuments.filter(doc =>
         doc.title?.toLowerCase().includes(keyword) ||
         doc.content.toLowerCase().includes(keyword)
       );
