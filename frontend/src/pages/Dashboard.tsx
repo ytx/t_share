@@ -42,6 +42,7 @@ const Dashboard: React.FC = () => {
   const [lowerEditorTab, setLowerEditorTab] = useState(storedData.lowerEditorTab ?? 0); // 0: プロジェクト, 1: メモ
   const projectEditorRef = useRef<ProjectEditorRef>(null);
   const memoEditorRef = useRef<SimpleMarkdownEditorRef>(null);
+  const documentEditorRef = useRef<any>(null);
 
   const [useTemplate] = useUseTemplateMutation();
   const { data: projectsResponse } = useGetAllProjectsQuery({});
@@ -123,6 +124,17 @@ const Dashboard: React.FC = () => {
       setDocumentToOpen(null);
     }, 100);
   };
+
+  const handleMoveToUpperEditor = useCallback((text: string) => {
+    // Insert text into the upper editor (DocumentEditor)
+    console.log('Dashboard: handleMoveToUpperEditor called with text:', text);
+    if (documentEditorRef.current?.insertText) {
+      documentEditorRef.current.insertText(text);
+      console.log('Dashboard: Text inserted successfully');
+    } else {
+      console.error('Dashboard: documentEditorRef.current.insertText is not available');
+    }
+  }, []);
 
   const projects = projectsResponse?.data || [];
   const documents = documentsResponse?.data || [];
@@ -319,6 +331,7 @@ const Dashboard: React.FC = () => {
               <Box sx={{ height: '100%', p: 2, bgcolor: 'background.paper', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                   <DocumentEditor
+                    ref={documentEditorRef}
                     selectedTemplate={selectedTemplate}
                     onSaveDocument={handleSaveDocument}
                     onUseTemplate={handleUseTemplate}
@@ -363,6 +376,7 @@ const Dashboard: React.FC = () => {
                     <ProjectEditor
                       ref={projectEditorRef}
                       selectedProjectId={selectedProjectId}
+                      onMoveToUpperEditor={handleMoveToUpperEditor}
                     />
                   </Box>
                   <Box sx={{
@@ -372,6 +386,7 @@ const Dashboard: React.FC = () => {
                     <SimpleMarkdownEditor
                       ref={memoEditorRef}
                       selectedProjectId={selectedProjectId}
+                      onMoveToUpperEditor={handleMoveToUpperEditor}
                     />
                   </Box>
                 </Box>

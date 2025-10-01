@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Box, Alert, CircularProgress } from '@mui/material';
+import { Box, Alert, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { NoteAdd, ArrowUpward } from '@mui/icons-material';
 import MarkdownEditor from './MarkdownEditor';
+import TemplateCreateModal from '../Templates/TemplateCreateModal';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGetUserPreferencesQuery, EditorSettings } from '../../store/api/userPreferenceApi';
 import {
@@ -10,17 +12,27 @@ import {
 
 interface SimpleMarkdownEditorProps {
   selectedProjectId?: number;
+  onMoveToUpperEditor?: (text: string) => void;
 }
 
 export interface SimpleMarkdownEditorRef {
   flush: () => Promise<void>;
 }
 
-const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>((_, ref) => {
+const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>(({ onMoveToUpperEditor }, ref) => {
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markdownEditorRef = useRef<any>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const contentRef = useRef(content);
+  const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number } | null>(null);
+  const [selectedText, setSelectedText] = useState('');
+  const [showTemplateCreate, setShowTemplateCreate] = useState(false);
+
+  // Keep contentRef in sync with content
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // User preferences and theme
   const { data: userPreferences } = useGetUserPreferencesQuery();
@@ -64,13 +76,14 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       return;
     }
 
+    const currentContent = contentRef.current;
     try {
-      console.log('SimpleMarkdownEditor: Saving content, length:', content.length);
+      console.log('SimpleMarkdownEditor: Saving content, length:', currentContent.length);
       await updateDocument({
         id: personalMemo.id,
         data: {
-          content,
-          contentMarkdown: content,
+          content: currentContent,
+          contentMarkdown: currentContent,
           title: 'メモ（自分用）',
         },
       }).unwrap();
@@ -79,7 +92,7 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [personalMemo, content, updateDocument]);
+  }, [personalMemo, updateDocument]);
 
   // 即座に保存（タイマーをキャンセルして即座に実行）
   const flush = useCallback(async () => {
@@ -90,17 +103,18 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     }
     // Save immediately if there are unsaved changes
     if (hasUnsavedChanges && personalMemo) {
+      const currentContent = contentRef.current;
       await updateDocument({
         id: personalMemo.id,
         data: {
-          content,
-          contentMarkdown: content,
+          content: currentContent,
+          contentMarkdown: currentContent,
           title: 'メモ（自分用）',
         },
       }).unwrap();
       setHasUnsavedChanges(false);
     }
-  }, [hasUnsavedChanges, personalMemo, content, updateDocument]);
+  }, [hasUnsavedChanges, personalMemo, updateDocument]);
 
   // 外部からアクセス可能な関数を公開
   useImperativeHandle(ref, () => ({
@@ -134,6 +148,66 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     };
   }, []);
 
+  // Context menu handlers
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation(); // Stop event propagation to prevent double menu
+
+    // Get selected text from MarkdownEditor ref
+    let selection = '';
+    if (markdownEditorRef.current?.getSelectedText) {
+      selection = markdownEditorRef.current.getSelectedText();
+      console.log('SimpleMarkdownEditor context menu - selected text:', selection);
+    }
+
+    setSelectedText(selection);
+    setContextMenu({
+      mouseX: event.clientX - 2,
+      mouseY: event.clientY - 4,
+    });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleCreateTemplate = useCallback(() => {
+    if (!selectedText.trim()) {
+      handleCloseContextMenu();
+      return;
+    }
+
+    // Show template create modal
+    setShowTemplateCreate(true);
+    handleCloseContextMenu();
+  }, [selectedText, handleCloseContextMenu]);
+
+  const handleTemplateCreateSuccess = useCallback(() => {
+    setShowTemplateCreate(false);
+    setSelectedText('');
+    // TODO: Show success notification
+  }, []);
+
+  const handleMoveToUpperEditor = useCallback(() => {
+    if (!selectedText.trim() || !onMoveToUpperEditor) {
+      handleCloseContextMenu();
+      return;
+    }
+
+    // Remove selected text from current editor by replacing with empty string
+    if (markdownEditorRef.current) {
+      const currentContent = content;
+      const newContent = currentContent.replace(selectedText, '');
+      setContent(newContent);
+      handleContentChange(newContent);
+    }
+
+    // Move to upper editor
+    onMoveToUpperEditor(selectedText);
+
+    handleCloseContextMenu();
+  }, [selectedText, onMoveToUpperEditor, handleCloseContextMenu, handleContentChange, content]);
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -154,7 +228,10 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       )}
 
       {/* Editor */}
-      <Box sx={{ flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{ flex: 1, minHeight: 0 }}
+        onContextMenuCapture={handleContextMenu}
+      >
         <MarkdownEditor
           ref={markdownEditorRef}
           value={content}
@@ -170,6 +247,42 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
           placeholder="自分用のメモを作成してください（自動保存されます）..."
         />
       </Box>
+
+      {/* Context Menu */}
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleCloseContextMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        <MenuItem onClick={handleCreateTemplate} disabled={!selectedText.trim()}>
+          <ListItemIcon>
+            <NoteAdd fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>定型文を作成</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleMoveToUpperEditor} disabled={!selectedText.trim()}>
+          <ListItemIcon>
+            <ArrowUpward fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>上のエディタへ移動</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Template Create Modal */}
+      <TemplateCreateModal
+        open={showTemplateCreate}
+        onClose={() => {
+          setShowTemplateCreate(false);
+          setSelectedText('');
+        }}
+        onSuccess={handleTemplateCreateSuccess}
+        initialContent={selectedText}
+      />
     </Box>
   );
 });

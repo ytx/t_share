@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Button,
@@ -43,7 +43,11 @@ interface DocumentEditorProps {
   documentToOpen?: any;
 }
 
-const DocumentEditor: React.FC<DocumentEditorProps> = ({
+export interface DocumentEditorRef {
+  insertText: (text: string) => void;
+}
+
+const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>(({
   selectedTemplate,
   onSaveDocument,
   onUseTemplate,
@@ -54,7 +58,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   onProjectChange,
   onOpenDocumentViewer,
   documentToOpen,
-}) => {
+}, ref) => {
   // Initialize editor content from localStorage
   const storedData = getFromLocalStorage();
   const [content, setContent] = useState(storedData.editorContent || '');
@@ -101,6 +105,15 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       setEditorSettings(prev => ({ ...prev, ...userPreferences.editorSettings }));
     }
   }, [userPreferences]);
+
+  // Expose editor reference to parent
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      if (markdownEditorRef.current?.insertText) {
+        markdownEditorRef.current.insertText(text);
+      }
+    }
+  }), []);
 
 
   // エディタ内容変更時にローカルストレージに保存
@@ -509,6 +522,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       />
     </Box>
   );
-};
+});
+
+DocumentEditor.displayName = 'DocumentEditor';
 
 export default DocumentEditor;
