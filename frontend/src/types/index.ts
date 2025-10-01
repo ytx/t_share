@@ -210,6 +210,7 @@ export interface Document {
   title?: string;
   content: string;
   contentMarkdown: string;
+  response?: string; // Claude assistant response (for imported conversations)
   createdBy: number;
   createdAt: string;
   updatedAt: string;

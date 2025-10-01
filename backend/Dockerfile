@@ -47,8 +47,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 RUN groupadd -g 1001 nodejs
 RUN useradd -r -u 1001 -g nodejs nodeuser
 
-# Create logs directory
-RUN mkdir -p /app/logs && chown -R nodeuser:nodejs /app
+# Create logs and uploads directories
+RUN mkdir -p /app/logs /app/uploads && chown -R nodeuser:nodejs /app
 
 USER nodeuser
 

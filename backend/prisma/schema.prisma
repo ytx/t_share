@@ -37,6 +37,7 @@ model User {
   documents          Document[]
   preferences        UserPreference?
   templateVersions   TemplateVersion[]
+  claudeImportHistory ClaudeImportHistory[]
   approver           User?   @relation("UserApproval", fields: [approvedBy], references: [id])
   approvedUsers      User[]  @relation("UserApproval")
 
@@ -87,6 +88,7 @@ model Project {
   creator          User               @relation(fields: [createdBy], references: [id])
   projectVariables ProjectVariable[]
   documents        Document[]
+  claudeImportHistory ClaudeImportHistory[]
 
   @@map("projects")
 }
@@ -204,6 +206,7 @@ model Document {
   title           String?
   content         String
   contentMarkdown String   @map("content_markdown")
+  response        String?  // Claude assistant response (for imported conversations)
   createdBy       Int      @map("created_by")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -234,4 +237,24 @@ model UserPreference {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
+}
+
+model ClaudeImportHistory {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  fileName     String   @map("file_name")
+  fileSize     Int      @map("file_size") // in bytes
+  filePath     String   @map("file_path") // Server storage path: projectId/userId/filename
+  projectId    Int?     @map("project_id")
+  imported     Int      @default(0) // number of new documents
+  updated      Int      @default(0) // number of updated documents
+  skipped      Int      @default(0) // number of skipped documents
+  errors       Int      @default(0) // number of errors
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("claude_import_history")
 }

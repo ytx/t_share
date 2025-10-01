@@ -23,8 +23,9 @@ T-SHAREアプリケーションのデータベース構造定義
 | template_usage | 定型文使用履歴 | 定型文の使用統計 |
 | user_variables | ユーザ変数 | ユーザー固有の変数 |
 | project_variables | プロジェクト変数 | プロジェクト固有の変数 |
-| documents | 文書 | プロジェクト文書・個人メモ |
+| documents | 文書 | プロジェクト文書・個人メモ・Claude会話履歴 |
 | user_preferences | ユーザー設定 | UI・エディタ設定 |
+| claude_import_history | Claude履歴インポート | Claude Code会話履歴インポート管理 |
 
 ---
 
@@ -66,6 +67,7 @@ T-SHAREアプリケーションのデータベース構造定義
 - 1:N → `documents`（作成した文書）
 - 1:1 → `user_preferences`（ユーザー設定）
 - 1:N → `template_versions`（作成したバージョン）
+- 1:N → `claude_import_history`（Claude履歴インポート）
 
 ---
 
@@ -299,21 +301,27 @@ T-SHAREアプリケーションのデータベース構造定義
 
 ## 11. documents（文書）
 
-プロジェクト文書・個人メモ
+プロジェクト文書・個人メモ・Claude会話履歴
 
 | カラム名 | 型 | NULL | デフォルト | 説明 |
 |---------|-----|------|-----------|------|
 | id | INT | NO | AUTO_INCREMENT | 文書ID（主キー） |
 | project_id | INT | YES | NULL | プロジェクトID（外部キー: projects.id） |
 | title | VARCHAR | YES | NULL | タイトル |
-| content | TEXT | NO | - | 内容 |
+| content | TEXT | NO | - | 内容（プロンプト） |
 | content_markdown | TEXT | NO | - | マークダウン内容 |
+| response | TEXT | YES | NULL | Claude返答（インポート会話用） |
 | created_by | INT | NO | - | 作成者ID（外部キー: users.id） |
 | created_at | TIMESTAMP | NO | now() | 作成日時 |
 | updated_at | TIMESTAMP | NO | now() | 更新日時 |
 
 ### インデックス
 - PRIMARY KEY: `id`
+- INDEX: `project_id`
+- INDEX: `created_by`
+- INDEX: `created_at`
+- FULLTEXT: `content`（PostgreSQL GIN）
+- FULLTEXT: `response`（PostgreSQL GIN）
 
 ### リレーション
 - `project_id` → `projects.id`（プロジェクト）
@@ -326,6 +334,11 @@ T-SHAREアプリケーションのデータベース構造定義
 |----------------|------|------------|
 | `[PROJECT_SHARED]_{project_id}` | プロジェクト内共有文書 | プロジェクトメンバー全員 |
 | `[PERSONAL_MEMO]_{user_id}` | 個人メモ | 作成者のみ |
+| `[CLAUDE_CONVERSATION]_{uuid}` | インポートされたClaude会話 | 作成者のみ |
+
+### 検索機能
+- `content`（プロンプト）と`response`（返答）の両方を検索対象に含む
+- DocumentViewerModalでプロンプト・返答を分離表示
 
 ---
 
@@ -363,6 +376,50 @@ UI・エディタ設定
 
 **ダークテーマ（17種類）**:
 - monokai, dracula, twilight, vibrant_ink, cobalt, tomorrow_night, tomorrow_night_blue, tomorrow_night_bright, tomorrow_night_eighties, idle_fingers, kr_theme, merbivore, merbivore_soft, mono_industrial, pastel_on_dark, solarized_dark, terminal
+
+---
+
+## 13. claude_import_history（Claude履歴インポート）
+
+Claude Code会話履歴のインポート管理
+
+| カラム名 | 型 | NULL | デフォルト | 説明 |
+|---------|-----|------|-----------|------|
+| id | INT | NO | AUTO_INCREMENT | ID（主キー） |
+| user_id | INT | NO | - | ユーザーID（外部キー: users.id） |
+| file_name | VARCHAR | NO | - | ファイル名 |
+| file_size | INT | NO | - | ファイルサイズ（バイト） |
+| file_path | VARCHAR | NO | - | サーバー保存パス |
+| project_id | INT | YES | NULL | プロジェクトID（外部キー: projects.id） |
+| imported | INT | NO | 0 | 新規インポート件数 |
+| updated | INT | NO | 0 | 更新件数 |
+| skipped | INT | NO | 0 | スキップ件数 |
+| errors | INT | NO | 0 | エラー件数 |
+| created_at | TIMESTAMP | NO | now() | インポート日時 |
+
+### インデックス
+- PRIMARY KEY: `id`
+- INDEX: `user_id`
+- INDEX: `project_id`
+- INDEX: `created_at`
+
+### リレーション
+- `user_id` → `users.id`（CASCADE削除）
+- `project_id` → `projects.id`（SET NULL削除）
+
+### ファイル保存構造
+- **開発環境**: `/Users/yt/git/t_share/backend/uploads/claude_code/{projectId}/{userId}/{timestamp}_{filename}.jsonl`
+- **本番環境**: `/mnt/data/uploads/claude_code/{projectId}/{userId}/{timestamp}_{filename}.jsonl`
+- **Docker**: バインドマウント形式で永続化
+
+### インポート処理フロー
+1. JSONLファイルアップロード
+2. プロジェクト選択（必須）
+3. サーバー側にファイル保存
+4. JSONL解析（user-assistantペア抽出）
+5. 重複検出（内容正規化 + タイムスタンプ±5分）
+6. 新規作成/更新/スキップ判定
+7. 統計情報を`claude_import_history`に記録
 
 ---
 

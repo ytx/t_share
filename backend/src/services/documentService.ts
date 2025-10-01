@@ -241,11 +241,12 @@ class DocumentService {
           // Project filter
           projectId ? { projectId } : {},
 
-          // Keyword search
+          // Keyword search (includes response field for imported conversations)
           keyword ? {
             OR: [
               { title: { contains: keyword, mode: 'insensitive' } },
               { content: { contains: keyword, mode: 'insensitive' } },
+              { response: { contains: keyword, mode: 'insensitive' } },
             ],
           } : {},
         ],

@@ -56,3 +56,6 @@ swap_file_path: "{{ data_dir }}/swapfile"
 # Log settings
 log_dir: "{{ data_dir }}/logs"
 log_rotation_days: 7
+
+# Upload settings
+uploads_dir: "{{ data_dir }}/uploads"

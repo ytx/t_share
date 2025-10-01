@@ -75,6 +75,7 @@
       loop:
         - "{{ data_dir }}"
         - "{{ ssl_cert_dir }}"
+        - "{{ uploads_dir }}"
 
     # SSL Certificate Setup
     - name: Copy SSL certificates
@@ -190,15 +191,16 @@
         docker rmi t-share-frontend:latest t-share-backend:latest || true
         # Remove only non-database volumes
         docker volume rm t-share_node_modules || true
-        # For staging: preserve postgres data volume
+        # For staging: preserve postgres data volume and uploads (bind mount)
         {% if environment == 'staging' %}
-        echo "Staging deployment: preserving database volume"
+        echo "Staging deployment: preserving database volume and uploads directory ({{ uploads_dir }})"
         {% else %}
-        # For production: also preserve postgres data volume (can be overridden with init)
-        echo "Production deployment: preserving database volume"
+        # For production: also preserve postgres data volume and uploads (bind mount)
+        echo "Production deployment: preserving database volume and uploads directory ({{ uploads_dir }})"
         {% endif %}
         # Clean build cache
         docker builder prune -f || true
+        # System prune
         docker system prune -f || true
 
     - name: Build and start application with fresh containers

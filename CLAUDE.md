@@ -50,6 +50,7 @@ docker-compose up -d
 5. **変数管理** - ユーザ変数・プロジェクト変数
 6. **設定管理** - エディタ設定
 7. **管理機能** - ユーザー・タグ・シーン・プロジェクト・データ管理
+8. **Claude履歴インポート** - Claude Code会話履歴のインポート・管理
 
 ## 開発ガイドライン
 - コードスタイル: Prettier + ESLint
@@ -58,6 +59,38 @@ docker-compose up -d
 - テスト: Jest + React Testing Library
 
 ## 最新の変更履歴 (2025-10-01)
+
+### Claude Code会話履歴インポート機能
+1. **JSONLファイルインポート機能**
+   - Claude Codeの会話履歴（.jsonlファイル）をインポート
+   - プロンプトと返答をペアで文書として保存
+   - プロジェクト別の整理・管理
+
+2. **重複検出とスマート更新**
+   - プロンプト内容の正規化（空白・改行除去）による重複判定
+   - タイムスタンプ近接性（±5分）による既存文書マッチング
+   - 既存文書への返答追加機能
+
+3. **ファイル保存とバインドマウント**
+   - アップロードファイルをサーバー側に永続保存
+   - パス構造: `/mnt/data/uploads/claude_code/{projectId}/{userId}/`
+   - Docker volumeからバインドマウントへ変更
+   - 開発環境: `/Users/yt/git/t_share/backend/uploads/claude_code/`
+   - 本番環境: `/mnt/data/uploads/claude_code/`
+
+4. **インポート履歴管理**
+   - ファイル名、サイズ、インポート日時を記録
+   - プロジェクト別の履歴表示
+   - 新規・更新・スキップ・エラー件数の統計
+
+5. **データベーススキーマ拡張**
+   - `documents.response`: Claude返答フィールド追加
+   - `claude_import_history`: インポート履歴テーブル追加
+   - `claude_import_history.file_path`: サーバー保存パス
+
+6. **検索機能拡張**
+   - プロンプトと返答の両方を検索対象に追加
+   - DocumentViewerModalでプロンプト・返答を分離表示
 
 ### プロジェクトポート管理機能の改善
 1. **編集時の自動ポート変数作成**

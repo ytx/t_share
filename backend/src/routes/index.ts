@@ -9,6 +9,7 @@ import userVariableRoutes from './userVariables';
 import projectVariableRoutes from './projectVariables';
 import userPreferenceRoutes from './userPreferences';
 import adminRoutes from './admin';
+import claudeHistoryRoutes from './claudeHistory';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/user-variables', userVariableRoutes);
 router.use('/project-variables', projectVariableRoutes);
 router.use('/user-preferences', userPreferenceRoutes);
 router.use('/admin', adminRoutes);
+router.use('/claude-history', claudeHistoryRoutes);
 
 // API information
 router.get('/', (_req, res) => {
@@ -41,6 +43,7 @@ router.get('/', (_req, res) => {
       projectVariables: '/api/project-variables',
       userPreferences: '/api/user-preferences',
       admin: '/api/admin',
+      claudeHistory: '/api/claude-history',
     },
   });
 });

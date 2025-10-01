@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -39,6 +39,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // フィルタリングされた文書リストを更新
   useEffect(() => {
@@ -52,7 +53,8 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       const keyword = searchKeyword.toLowerCase();
       const filtered = regularDocuments.filter(doc =>
         doc.title?.toLowerCase().includes(keyword) ||
-        doc.content.toLowerCase().includes(keyword)
+        doc.content.toLowerCase().includes(keyword) ||
+        doc.response?.toLowerCase().includes(keyword)
       );
       setFilteredDocuments(filtered);
     }
@@ -98,24 +100,22 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       case 'ArrowUp':
         e.preventDefault();
         // スクロール処理（プレビューエリア内）
-        const previewElement = document.getElementById('document-preview-content');
-        if (previewElement) {
-          previewElement.scrollBy(0, -50);
+        if (contentRef.current) {
+          contentRef.current.scrollBy(0, -50);
         }
         break;
       case 'ArrowDown':
         e.preventDefault();
         // スクロール処理（プレビューエリア内）
-        const previewElementDown = document.getElementById('document-preview-content');
-        if (previewElementDown) {
-          previewElementDown.scrollBy(0, 50);
+        if (contentRef.current) {
+          contentRef.current.scrollBy(0, 50);
         }
         break;
       case 'Escape':
         onClose();
         break;
     }
-  }, [open, goToPrevious, goToNext, onClose]);
+  }, [open, goToPrevious, goToNext, onClose, contentRef]);
 
   // キーボードイベントリスナーの設定
   useEffect(() => {
@@ -171,8 +171,8 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ flex: 1, overflow: 'hidden', p: 0 }}>
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <DialogContent sx={{ flex: 1, p: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
           {/* 検索ボックス */}
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <TextField
@@ -236,7 +236,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         </Box>
 
         {/* 文書内容表示エリア */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2, minHeight: 0 }}>
           {filteredDocuments.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
               <Typography variant="body1" color="text.secondary">
@@ -246,7 +246,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           ) : currentDocument ? (
             <>
               {/* 文書タイトル */}
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ flexShrink: 0, mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   {currentDocument.title || '無題の文書'}
                 </Typography>
@@ -260,20 +260,40 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
               {/* 文書内容 */}
               <Paper
                 variant="outlined"
-                id="document-preview-content"
+                ref={contentRef}
                 sx={{
                   flex: 1,
                   p: 2,
                   overflow: 'auto',
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
                   color: (theme) => theme.palette.mode === 'dark' ? 'grey.100' : 'inherit',
-                  fontFamily: 'monospace',
                   fontSize: '0.875rem',
                   whiteSpace: 'pre-wrap',
                   minHeight: 0,
+                  maxHeight: '100%',
                 }}
               >
-                {currentDocument.content || '（内容なし）'}
+                {/* プロンプト部分 */}
+                <Box sx={{ mb: currentDocument.response ? 3 : 0 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                    {currentDocument.response ? 'プロンプト:' : ''}
+                  </Typography>
+                  <Box sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                    {currentDocument.content || '（内容なし）'}
+                  </Box>
+                </Box>
+
+                {/* 返答部分（存在する場合のみ） */}
+                {currentDocument.response && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                      返答:
+                    </Typography>
+                    <Box sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                      {currentDocument.response}
+                    </Box>
+                  </Box>
+                )}
               </Paper>
             </>
           ) : null}

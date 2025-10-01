@@ -11,6 +11,7 @@ import { userPreferenceApi } from './api/userPreferenceApi'
 import { adminApi } from './api/adminApi'
 import { dataExportImportApi } from './api/dataExportImportApi'
 import { portManagementApi } from './api/portManagementApi'
+import { claudeHistoryApi } from './api/claudeHistoryApi'
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     [adminApi.reducerPath]: adminApi.reducer,
     [dataExportImportApi.reducerPath]: dataExportImportApi.reducer,
     [portManagementApi.reducerPath]: portManagementApi.reducer,
+    [claudeHistoryApi.reducerPath]: claudeHistoryApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -43,7 +45,8 @@ export const store = configureStore({
     .concat(userPreferenceApi.middleware)
     .concat(adminApi.middleware)
     .concat(dataExportImportApi.middleware)
-    .concat(portManagementApi.middleware),
+    .concat(portManagementApi.middleware)
+    .concat(claudeHistoryApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

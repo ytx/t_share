@@ -21,6 +21,7 @@ import EditorSettingsPanel from './EditorSettingsPanel';
 import ProjectManagement from './ProjectManagement';
 import UserVariableManagement from './UserVariableManagement';
 import ProjectVariableManagement from './ProjectVariableManagement';
+import ClaudeHistoryImport from './ClaudeHistoryImport';
 import { useResetUserPreferencesMutation } from '../../store/api/userPreferenceApi';
 import ConfirmDialog from '../Common/ConfirmDialog';
 
@@ -127,6 +128,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             <Tab label="プロジェクト変数" {...a11yProps(1)} />
             <Tab label="ユーザ変数" {...a11yProps(2)} />
             <Tab label="エディタ" {...a11yProps(3)} />
+            <Tab label="Claude履歴" {...a11yProps(4)} />
           </Tabs>
         </Box>
 
@@ -145,6 +147,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <TabPanel value={tabValue} index={3}>
             <EditorSettingsPanel />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={4}>
+            <ClaudeHistoryImport />
           </TabPanel>
         </DialogContent>
 

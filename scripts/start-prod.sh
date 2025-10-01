@@ -93,13 +93,13 @@ for i in {1..30}; do
     sleep 2
 done
 
+# Run database migrations (always, to keep schema in sync)
+echo "📋 Running database migrations..."
+docker-compose -f docker-compose.prod.yml exec --user root backend npx prisma migrate deploy
+
 # Initialize database if requested
 if [ "$INIT_DB" = true ]; then
-    echo "🗄️  Initializing database..."
-
-    # Run database migrations
-    echo "   📋 Running database migrations..."
-    docker-compose -f docker-compose.prod.yml exec --user root backend npx prisma migrate deploy
+    echo "🗄️  Initializing database with seed data..."
 
     # Try to install ts-node with proper permissions
     echo "   🌱 Installing seed dependencies..."

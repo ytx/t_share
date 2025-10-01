@@ -57,8 +57,11 @@
         docker stop t-share-backend t-share-frontend t-share-postgres || true
         docker rm t-share-backend t-share-frontend t-share-postgres || true
 
-        # Remove volumes
+        # Remove volumes (database will be recreated)
         docker volume rm t-share_postgres_data || true
+
+        # NOTE: Uploaded files are stored in {{ uploads_dir }} (bind mount)
+        # To also remove uploaded files, manually delete: {{ uploads_dir }}
 
         # Remove images to force rebuild
         docker rmi t-share-backend:latest t-share-frontend:latest || true

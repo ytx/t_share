@@ -63,6 +63,7 @@ services:
       retries: 3
     volumes:
       - backend_logs:/app/logs
+      - ./data/uploads:/app/uploads
     networks:
       - t-share-network
 

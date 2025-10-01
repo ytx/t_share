@@ -204,7 +204,7 @@ System automatically creates and manages port number variables when opening proj
 **Implementation:** `ensurePortsExist()` method detects missing port variables and auto-creates them.
 
 ### documents
-Saved documents with project association and special document types
+Saved documents with project association, special document types, and Claude conversation import support
 
 ```sql
 CREATE TABLE documents (
@@ -213,11 +213,15 @@ CREATE TABLE documents (
     title VARCHAR(200),
     content TEXT NOT NULL,
     content_markdown TEXT NOT NULL,
+    response TEXT, -- Claude assistant response (for imported conversations)
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+**New fields since initial design:**
+- `response`: Stores Claude assistant responses for imported Claude Code conversation history
 
 **Special document types** (identified by title pattern):
 
@@ -225,11 +229,14 @@ CREATE TABLE documents (
 |--------------|---------|----------------|
 | `[PROJECT_SHARED]_{project_id}` | Project shared document | All project members |
 | `[PERSONAL_MEMO]_{user_id}` | Personal memo | Creator only |
+| `[CLAUDE_CONVERSATION]_{uuid}` | Imported Claude conversation | Creator only |
 
 **Features:**
 - Auto-save with 3-second debounce
 - Unsaved changes indicator (icon in tab area)
 - Multi-device sync (server-side storage)
+- Claude conversation import with prompt-response pairing
+- Search across both content (prompt) and response fields
 
 ### user_preferences
 User editor and UI preferences with ACE editor theme support
@@ -261,6 +268,37 @@ CREATE TABLE user_preferences (
 - **Light** (8): github, tomorrow, chrome, eclipse, textmate, xcode, katzenmilch, kuroir
 - **Dark** (17): monokai, dracula, twilight, vibrant_ink, cobalt, tomorrow_night, tomorrow_night_blue, tomorrow_night_bright, tomorrow_night_eighties, idle_fingers, kr_theme, merbivore, merbivore_soft, mono_industrial, pastel_on_dark, solarized_dark, terminal
 
+### claude_import_history
+Claude Code conversation history import tracking
+
+```sql
+CREATE TABLE claude_import_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_size INTEGER NOT NULL, -- in bytes
+    file_path VARCHAR(500) NOT NULL, -- server storage path
+    project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+    imported INTEGER DEFAULT 0, -- number of new documents
+    updated INTEGER DEFAULT 0, -- number of updated documents
+    skipped INTEGER DEFAULT 0, -- number of skipped documents
+    errors INTEGER DEFAULT 0, -- number of errors
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Fields:**
+- `file_path`: Server-side storage path in format `claude_code/{projectId}/{userId}/{timestamp}_{filename}.jsonl`
+- `imported`: Count of newly created conversation documents
+- `updated`: Count of existing documents updated with responses
+- `skipped`: Count of documents skipped (already have responses)
+- `errors`: Count of errors during import
+
+**Storage structure:**
+- Development: `/Users/yt/git/t_share/backend/uploads/claude_code/{projectId}/{userId}/`
+- Production: `/mnt/data/uploads/claude_code/{projectId}/{userId}/`
+- Bind mount configuration in docker-compose for data persistence
+
 ## Indexes
 
 ```sql
@@ -289,10 +327,15 @@ CREATE INDEX idx_projects_is_public ON projects(is_public);
 CREATE INDEX idx_user_variables_user_id ON user_variables(user_id);
 CREATE INDEX idx_project_variables_project_id ON project_variables(project_id);
 
+CREATE INDEX idx_claude_import_history_user_id ON claude_import_history(user_id);
+CREATE INDEX idx_claude_import_history_project_id ON claude_import_history(project_id);
+CREATE INDEX idx_claude_import_history_created_at ON claude_import_history(created_at);
+
 -- Full text search indexes (PostgreSQL)
 CREATE INDEX idx_templates_title_search ON templates USING gin(to_tsvector('english', title));
 CREATE INDEX idx_templates_content_search ON templates USING gin(to_tsvector('english', content));
 CREATE INDEX idx_documents_content_search ON documents USING gin(to_tsvector('english', content));
+CREATE INDEX idx_documents_response_search ON documents USING gin(to_tsvector('english', response));
 ```
 
 ## Entity Relationships
@@ -309,9 +352,11 @@ users (1) ----< (N) template_usage
 users (1) ----< (N) template_versions
 users (1) ---- (1) user_preferences
 users (1) ----< (N) users [approver -> approved_users]
+users (1) ----< (N) claude_import_history
 
 projects (1) ----< (N) project_variables
 projects (1) ----< (N) documents
+projects (1) ----< (N) claude_import_history
 
 scenes (1) ----< (N) templates
 
@@ -345,6 +390,21 @@ templates (1) ----< (N) template_usage
 3. **Auto-save** → 3-second debounce, flush on tab switch
 4. **Unsaved indicator** → small icon in tab area (prevents editor jumping)
 5. **Save document** → `documents` table with project association
+
+### Claude Code Conversation Import
+1. **File upload** → select .jsonl files from `~/.claude/projects/` directory
+2. **Project selection** → required, determines storage location and organization
+3. **File storage** → save to server: `{uploads_dir}/claude_code/{projectId}/{userId}/{timestamp}_{filename}.jsonl`
+4. **Parse JSONL** → extract user-assistant message pairs with timestamps
+5. **Duplicate detection**:
+   - Normalize content (remove extra whitespace/newlines)
+   - Match by content + timestamp proximity (±5 minutes)
+6. **Smart updates**:
+   - New conversation → create document with `[CLAUDE_CONVERSATION]_{uuid}` title
+   - Existing without response → update with assistant response
+   - Existing with response → skip
+7. **History tracking** → record in `claude_import_history` with statistics
+8. **Search integration** → index both prompt (content) and response fields
 
 ### Project Variable Auto-Management
 1. **Open project edit modal** → trigger `updateProject()` API immediately
