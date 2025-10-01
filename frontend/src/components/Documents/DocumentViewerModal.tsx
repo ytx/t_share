@@ -37,6 +37,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
 
   // フィルタリングされた文書リストを更新
@@ -53,6 +54,18 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     }
     setCurrentIndex(0);
   }, [documents, searchKeyword]);
+
+  // 検索実行
+  const handleSearch = () => {
+    setSearchKeyword(searchInput);
+  };
+
+  // Enterキーで検索
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const currentDocument = filteredDocuments[currentIndex];
 
@@ -121,30 +134,13 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   // モーダル閉じる時に検索をリセット
   const handleClose = () => {
     setSearchKeyword('');
+    setSearchInput('');
     setCurrentIndex(0);
     onClose();
   };
 
-  if (!open || filteredDocuments.length === 0) {
-    return (
-      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">保存された文書</Typography>
-            <IconButton onClick={handleClose} size="small">
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography color="text.secondary">
-              {documents.length === 0 ? '保存された文書がありません' : '検索条件に一致する文書がありません'}
-            </Typography>
-          </Box>
-        </DialogContent>
-      </Dialog>
-    );
+  if (!open) {
+    return null;
   }
 
   return (
@@ -174,21 +170,30 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
       <DialogContent sx={{ flex: 1, overflow: 'hidden', p: 0 }}>
         <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
           {/* 検索ボックス */}
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="キーワードで検索..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 2 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="キーワードで検索..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleSearch}
+              sx={{ minWidth: '80px' }}
+            >
+              検索
+            </Button>
+          </Box>
 
           {/* ナビゲーション */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -228,7 +233,13 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
         {/* 文書内容表示エリア */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
-          {currentDocument && (
+          {filteredDocuments.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+              <Typography variant="body1" color="text.secondary">
+                {documents.length === 0 ? '保存された文書がありません' : '検索条件に一致する文書がありません'}
+              </Typography>
+            </Box>
+          ) : currentDocument ? (
             <>
               {/* 文書タイトル */}
               <Box sx={{ mb: 2 }}>
@@ -250,7 +261,8 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                   flex: 1,
                   p: 2,
                   overflow: 'auto',
-                  bgcolor: 'grey.50',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                  color: (theme) => theme.palette.mode === 'dark' ? 'grey.100' : 'inherit',
                   fontFamily: 'monospace',
                   fontSize: '0.875rem',
                   whiteSpace: 'pre-wrap',
@@ -260,7 +272,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 {currentDocument.content || '（内容なし）'}
               </Paper>
             </>
-          )}
+          ) : null}
         </Box>
       </DialogContent>
 

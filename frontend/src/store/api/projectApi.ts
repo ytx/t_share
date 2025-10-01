@@ -11,6 +11,7 @@ export interface ProjectUpdateData {
   name?: string;
   description?: string;
   isPublic?: boolean;
+  createdBy?: number;
 }
 
 export interface ProjectResponse {

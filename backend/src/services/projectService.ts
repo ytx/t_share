@@ -11,6 +11,7 @@ export interface ProjectUpdateData {
   name?: string;
   description?: string;
   isPublic?: boolean;
+  createdBy?: number;
 }
 
 class ProjectService {
@@ -56,6 +57,29 @@ class ProjectService {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user?.isAdmin && existingProject.createdBy !== userId) {
         throw new Error('Not authorized to update this project');
+      }
+
+      // If changing ownership (createdBy), validate new owner
+      if (data.createdBy !== undefined) {
+        // Only admins can change project ownership
+        if (!user?.isAdmin) {
+          throw new Error('Only administrators can change project ownership');
+        }
+
+        // Validate new owner exists and is approved
+        const newOwner = await prisma.user.findUnique({
+          where: { id: data.createdBy },
+        });
+
+        if (!newOwner) {
+          throw new Error('New owner user not found');
+        }
+
+        if (newOwner.approvalStatus !== 'approved') {
+          throw new Error('New owner must be an approved user');
+        }
+
+        logger.info(`Project ${id} ownership changing from user ${existingProject.createdBy} to user ${data.createdBy} by admin ${userId}`);
       }
 
       const project = await prisma.project.update({

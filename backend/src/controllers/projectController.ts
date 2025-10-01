@@ -13,6 +13,7 @@ const updateProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long').optional(),
   description: z.string().max(1000, 'Description too long').optional(),
   isPublic: z.boolean().optional(),
+  createdBy: z.number().int().positive().optional(),
 });
 
 export const createProject = async (req: Request, res: Response) => {
@@ -69,6 +70,15 @@ export const updateProject = async (req: Request, res: Response) => {
       }
       if (error.message === 'Not authorized to update this project') {
         return res.status(403).json({ error: error.message });
+      }
+      if (error.message === 'Only administrators can change project ownership') {
+        return res.status(403).json({ error: error.message });
+      }
+      if (error.message === 'New owner user not found') {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message === 'New owner must be an approved user') {
+        return res.status(400).json({ error: error.message });
       }
     }
     res.status(500).json({ error: 'Failed to update project' });

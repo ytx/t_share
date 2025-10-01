@@ -289,8 +289,9 @@ class DocumentService {
         throw new Error('Project not found');
       }
 
+      // Check access: allow if project is public OR user is owner OR user is admin
       const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user?.isAdmin && project.createdBy !== userId) {
+      if (!project.isPublic && !user?.isAdmin && project.createdBy !== userId) {
         throw new Error('Not authorized to access this project');
       }
 

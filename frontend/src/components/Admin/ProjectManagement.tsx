@@ -35,6 +35,7 @@ import {
   Code,
 } from '@mui/icons-material';
 import { useGetAllProjectsQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation } from '../../store/api/projectApi';
+import { useGetUserListQuery } from '../../store/api/adminApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -60,6 +61,7 @@ interface ProjectFormData {
   name: string;
   description: string;
   isPublic: boolean;
+  createdBy?: number;
 }
 
 const ProjectManagement: React.FC = () => {
@@ -76,11 +78,13 @@ const ProjectManagement: React.FC = () => {
   });
 
   const { data: projectsResponse, isLoading, error } = useGetAllProjectsQuery({ adminMode: true });
+  const { data: usersResponse } = useGetUserListQuery({ page: 1, limit: 100 });
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
 
   const projects = projectsResponse?.data || [];
+  const users = usersResponse?.data || [];
 
   const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -97,11 +101,15 @@ const ProjectManagement: React.FC = () => {
   }, []);
 
   const handleOpenEditDialog = useCallback((project: any) => {
+    console.log('Opening edit dialog for project:', project);
     setEditingProject(project);
+    const initialCreatedBy = project.createdBy || project.creator?.id;
+    console.log('Initial createdBy value:', initialCreatedBy);
     setFormData({
       name: project.name || '',
       description: project.description || '',
       isPublic: project.isPublic ?? true,
+      createdBy: initialCreatedBy,
     });
     setOpenDialog(true);
   }, []);
@@ -123,6 +131,7 @@ const ProjectManagement: React.FC = () => {
 
     try {
       if (editingProject) {
+        console.log('Updating project with data:', formData);
         await updateProject({
           id: editingProject.id,
           data: formData,
@@ -337,6 +346,25 @@ const ProjectManagement: React.FC = () => {
                 <MenuItem value="false">非公開</MenuItem>
               </Select>
             </FormControl>
+
+            {editingProject && (
+              <FormControl fullWidth>
+                <InputLabel>所有者</InputLabel>
+                <Select
+                  value={formData.createdBy || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, createdBy: Number(e.target.value) }))}
+                  label="所有者"
+                >
+                  {users
+                    .filter(user => user.approvalStatus === 'approved')
+                    .map((user) => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.displayName || user.username || user.email}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
