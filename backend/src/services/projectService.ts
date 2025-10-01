@@ -103,6 +103,9 @@ class ProjectService {
         },
       });
 
+      // Ensure port variables exist (create if missing)
+      await portManagementService.ensurePortsExist(id, existingProject.createdBy);
+
       logger.info(`Project updated: ${id} by user ${userId}`);
       return project;
     } catch (error) {

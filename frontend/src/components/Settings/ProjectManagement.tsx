@@ -116,7 +116,7 @@ const ProjectManagement: React.FC = () => {
     }
   };
 
-  const openEditModal = (project: Project) => {
+  const openEditModal = async (project: Project) => {
     setProjectToEdit(project);
     setProjectForm({
       name: project.name,
@@ -125,6 +125,21 @@ const ProjectManagement: React.FC = () => {
       color: project.color || '#1976d2',
     });
     setShowEditModal(true);
+
+    // Ensure port variables exist by triggering an update with current data
+    try {
+      await updateProject({
+        id: project.id,
+        data: {
+          name: project.name,
+          description: project.description,
+          isPublic: project.isPublic,
+          color: project.color || '#1976d2',
+        }
+      }).unwrap();
+    } catch (error) {
+      console.error('Failed to ensure port variables:', error);
+    }
   };
 
   const resetForm = () => {

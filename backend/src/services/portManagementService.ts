@@ -126,6 +126,40 @@ class PortManagementService {
   }
 
   /**
+   * ポート変数が存在しない場合は自動作成
+   */
+  async ensurePortsExist(projectId: number, createdBy: number): Promise<void> {
+    const portVariableNames = Object.values(PORT_VARIABLE_NAMES);
+    const existingVariables = await prisma.projectVariable.findMany({
+      where: {
+        projectId,
+        name: { in: portVariableNames },
+      },
+    });
+
+    const existingNames = existingVariables.map(v => v.name);
+    const missingPorts = Object.entries(PORT_RANGES).filter(
+      ([key]) => !existingNames.includes(PORT_VARIABLE_NAMES[key as PortRangeKey])
+    );
+
+    // 不足しているポート変数を作成
+    for (const [key, range] of missingPorts) {
+      const portNumber = await this.findNextAvailablePort(range.start);
+      const variableName = PORT_VARIABLE_NAMES[key as PortRangeKey];
+
+      await prisma.projectVariable.create({
+        data: {
+          projectId,
+          name: variableName,
+          value: portNumber.toString(),
+          description: `${range.prefix}用ポート（自動割り当て）`,
+          createdBy,
+        },
+      });
+    }
+  }
+
+  /**
    * プロジェクトのポート変数を取得
    */
   async getProjectPorts(projectId: number): Promise<Record<string, number>> {
