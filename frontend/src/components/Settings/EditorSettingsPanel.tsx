@@ -25,6 +25,7 @@ const EditorSettingsPanel: React.FC = () => {
   const aceThemes = {
     light: [
       { value: 'github', label: 'GitHub' },
+      { value: 'tomorrow', label: 'Tomorrow' },
       { value: 'chrome', label: 'Chrome' },
       { value: 'eclipse', label: 'Eclipse' },
       { value: 'textmate', label: 'TextMate' },
@@ -34,6 +35,7 @@ const EditorSettingsPanel: React.FC = () => {
     ],
     dark: [
       { value: 'monokai', label: 'Monokai' },
+      { value: 'dracula', label: 'Dracula' },
       { value: 'twilight', label: 'Twilight' },
       { value: 'vibrant_ink', label: 'Vibrant Ink' },
       { value: 'cobalt', label: 'Cobalt' },

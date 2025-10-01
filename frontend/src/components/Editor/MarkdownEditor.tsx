@@ -13,6 +13,7 @@ import 'ace-builds/src-noconflict/keybinding-emacs';
 
 // Import light themes
 import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-tomorrow';
 import 'ace-builds/src-noconflict/theme-chrome';
 import 'ace-builds/src-noconflict/theme-eclipse';
 import 'ace-builds/src-noconflict/theme-textmate';
@@ -22,6 +23,7 @@ import 'ace-builds/src-noconflict/theme-kuroir';
 
 // Import dark themes
 import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/theme-dracula';
 import 'ace-builds/src-noconflict/theme-twilight';
 import 'ace-builds/src-noconflict/theme-vibrant_ink';
 import 'ace-builds/src-noconflict/theme-cobalt';

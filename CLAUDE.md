@@ -59,6 +59,44 @@ docker-compose up -d
 
 ## 最新の変更履歴 (2025-10-01)
 
+### プロジェクトポート管理機能の改善
+1. **編集時の自動ポート変数作成**
+   - プロジェクト編集モーダルを開いた時点でポート変数を自動作成
+   - `ensurePortsExist`メソッドによる不足ポート変数の検出・作成
+   - ステージング環境の既存プロジェクトでも即座に利用可能
+
+2. **ポート管理サービスの拡張**
+   - `portManagementService.ts`に`ensurePortsExist`メソッド追加
+   - 既存のポート変数を保持しつつ、不足分のみ作成
+   - 6種類のポート変数（Frontend/Backend/Database × Dev/Docker）を自動割り当て
+
+3. **TypeScriptエラー修正**
+   - `portManagementController.ts`のエラーハンドリング修正
+   - `handleControllerError`の引数順序を統一
+   - Zodバリデーションエラーのプロパティ名修正（`errors` → `issues`）
+
+### エディタテーマの拡張
+1. **人気テーマの追加**
+   - ダークテーマ: Draculaを追加（17種類に拡張）
+   - ライトテーマ: Tomorrowを追加（8種類に拡張）
+   - ACE Editorの公式テーマから人気の高いものを選定
+
+2. **テーマインポートの整理**
+   - `MarkdownEditor.tsx`で新規テーマをインポート
+   - `EditorSettingsPanel.tsx`の選択リストに追加
+   - すべてのテーマが正常に動作することを確認
+
+### Googleログイン時のプロフィール画像更新
+1. **毎回のログイン時に画像URLを更新**
+   - 既存ユーザーのログイン時に`avatarUrl`を最新の値に更新
+   - Googleアカウントの画像変更が次回ログイン時に自動反映
+   - `authService.ts`の`googleAuth`メソッドを修正
+
+2. **更新タイミング**
+   - 新規ユーザー作成時: プロフィール画像URLを保存
+   - 既存ユーザーのGoogleアカウント連携時: 画像URLを更新
+   - 既存Googleユーザーのログイン時: 画像URLを最新に更新
+
 ### Googleアカウント画像のアバター表示機能
 1. **プロフィール画像の自動取得・表示**
    - Google OAuth認証時にプロフィール画像URLを取得
