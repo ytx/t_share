@@ -185,7 +185,22 @@ class AuthService {
         },
       });
 
-      if (!user) {
+      if (user) {
+        // Update avatar URL on every login to keep it current
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { avatarUrl: data.avatarUrl },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            isAdmin: true,
+            approvalStatus: true,
+          },
+        });
+      } else {
         // Check if user exists with same email
         const existingUser = await prisma.user.findUnique({
           where: { email: data.email },
