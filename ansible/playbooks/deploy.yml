@@ -224,6 +224,22 @@
         cd {{ app_dir }}
         sudo docker exec --user root t-share-backend npx prisma migrate deploy
 
+    - name: Fix uploads directory permissions for Docker container
+      shell: |
+        # Get nodeuser UID from container
+        NODEUSER_UID=$(sudo docker exec t-share-backend id -u nodeuser)
+        NODEUSER_GID=$(sudo docker exec t-share-backend id -g nodeuser)
+
+        # Set correct ownership on host
+        chown -R $NODEUSER_UID:$NODEUSER_GID {{ uploads_dir }}
+        chmod -R 755 {{ uploads_dir }}
+
+        # Create claude_code subdirectory with correct permissions
+        mkdir -p {{ uploads_dir }}/claude_code
+        chown -R $NODEUSER_UID:$NODEUSER_GID {{ uploads_dir }}/claude_code
+
+        echo "Uploads directory permissions set to $NODEUSER_UID:$NODEUSER_GID"
+
     - name: Install seed dependencies
       shell: |
         cd {{ app_dir }}
