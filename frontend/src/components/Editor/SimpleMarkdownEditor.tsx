@@ -29,6 +29,7 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number } | null>(null);
   const [selectedText, setSelectedText] = useState('');
   const [showTemplateCreate, setShowTemplateCreate] = useState(false);
+  const isComposingRef = useRef(false); // IME入力中フラグ
 
   // Keep contentRef in sync with content
   useEffect(() => {
@@ -139,6 +140,12 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       clearTimeout(saveTimeoutRef.current);
     }
 
+    // IME入力中は自動保存をスキップ
+    if (isComposingRef.current) {
+      console.log('SimpleMarkdownEditor: Skipping auto-save during IME composition');
+      return;
+    }
+
     // 3秒後に自動保存
     saveTimeoutRef.current = setTimeout(() => {
       console.log('SimpleMarkdownEditor: Auto-save timer triggered');
@@ -154,6 +161,26 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       }
     };
   }, []);
+
+  // IME event handlers
+  const handleCompositionStart = useCallback(() => {
+    console.log('SimpleMarkdownEditor: IME composition started');
+    isComposingRef.current = true;
+  }, []);
+
+  const handleCompositionEnd = useCallback(() => {
+    console.log('SimpleMarkdownEditor: IME composition ended');
+    isComposingRef.current = false;
+
+    // IME入力確定後に自動保存タイマーを開始
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      console.log('SimpleMarkdownEditor: Auto-save after IME composition');
+      autoSave();
+    }, 3000);
+  }, [autoSave]);
 
   // Context menu handlers
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
@@ -229,6 +256,8 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
       <Box
         sx={{ flex: 1, minHeight: 0 }}
         onContextMenuCapture={handleContextMenu}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
       >
         <MarkdownEditor
           ref={markdownEditorRef}

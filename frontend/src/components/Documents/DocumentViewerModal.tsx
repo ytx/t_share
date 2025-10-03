@@ -20,6 +20,7 @@ import {
   Close,
   Launch,
 } from '@mui/icons-material';
+import ReactMarkdown from 'react-markdown';
 import { Document } from '../../types';
 
 interface DocumentViewerModalProps {
@@ -278,8 +279,18 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
                     {currentDocument.response ? 'プロンプト:' : ''}
                   </Typography>
-                  <Box sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                    {currentDocument.content || '（内容なし）'}
+                  <Box sx={{
+                    '& ul': { pl: 4, listStyleType: 'disc' },
+                    '& ol': { pl: 4, listStyleType: 'decimal' },
+                    '& li': { mb: 0.5 },
+                    '& ul ul': { listStyleType: 'circle' },
+                    '& ul ul ul': { listStyleType: 'square' },
+                    '& hr': { my: 2, border: 'none', borderTop: '1px solid', borderColor: 'divider' },
+                    '& p': { mb: 1 },
+                    '& pre': { p: 1, bgcolor: 'action.hover', borderRadius: 1, overflow: 'auto' },
+                    '& code': { fontFamily: 'monospace', bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 },
+                  }}>
+                    <ReactMarkdown>{currentDocument.content || '（内容なし）'}</ReactMarkdown>
                   </Box>
                 </Box>
 
@@ -289,8 +300,18 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
                       返答:
                     </Typography>
-                    <Box sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                      {currentDocument.response}
+                    <Box sx={{
+                      '& ul': { pl: 4, listStyleType: 'disc' },
+                      '& ol': { pl: 4, listStyleType: 'decimal' },
+                      '& li': { mb: 0.5 },
+                      '& ul ul': { listStyleType: 'circle' },
+                      '& ul ul ul': { listStyleType: 'square' },
+                      '& hr': { my: 2, border: 'none', borderTop: '1px solid', borderColor: 'divider' },
+                      '& p': { mb: 1 },
+                      '& pre': { p: 1, bgcolor: 'action.hover', borderRadius: 1, overflow: 'auto' },
+                      '& code': { fontFamily: 'monospace', bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 },
+                    }}>
+                      <ReactMarkdown>{currentDocument.response}</ReactMarkdown>
                     </Box>
                   </Box>
                 )}
