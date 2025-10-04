@@ -1,6 +1,7 @@
 venv
 junk
 work
+data
 
 # Dependencies
 node_modules/
