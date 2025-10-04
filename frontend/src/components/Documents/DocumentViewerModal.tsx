@@ -78,11 +78,11 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
   // ナビゲーション関数
   const goToPrevious = useCallback(() => {
-    setCurrentIndex(prev => prev > 0 ? prev - 1 : filteredDocuments.length - 1);
-  }, [filteredDocuments.length]);
+    setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+  }, []);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex(prev => prev < filteredDocuments.length - 1 ? prev + 1 : 0);
+    setCurrentIndex(prev => prev < filteredDocuments.length - 1 ? prev + 1 : prev);
   }, [filteredDocuments.length]);
 
   // キーボードイベントハンドラー
@@ -206,7 +206,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
               <Tooltip title="前の文書 (←)">
                 <IconButton
                   onClick={goToPrevious}
-                  disabled={filteredDocuments.length <= 1}
+                  disabled={filteredDocuments.length <= 1 || currentIndex === 0}
                   size="small"
                 >
                   <ArrowBack />
@@ -220,7 +220,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
               <Tooltip title="次の文書 (→)">
                 <IconButton
                   onClick={goToNext}
-                  disabled={filteredDocuments.length <= 1}
+                  disabled={filteredDocuments.length <= 1 || currentIndex === filteredDocuments.length - 1}
                   size="small"
                 >
                   <ArrowForward />

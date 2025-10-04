@@ -8,6 +8,7 @@ import {
   Select,
   MenuItem,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Save,
@@ -87,6 +88,7 @@ const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>(({
   const [showVariableSubstitution, setShowVariableSubstitution] = useState(false);
   const [templateForSubstitution, setTemplateForSubstitution] = useState<Template | null>(null);
   const [showTemplateCreate, setShowTemplateCreate] = useState(false);
+  const [lastSavedDocTitle, setLastSavedDocTitle] = useState<string>('');
 
   // エディタ設定（ユーザ設定から取得）
   const [editorSettings, setEditorSettings] = useState<EditorSettings>({
@@ -223,6 +225,9 @@ const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>(({
         contentMarkdown: content,
         projectId: selectedProjectId,
       }).unwrap();
+
+      // 最後に保存した文書タイトルを更新
+      setLastSavedDocTitle(generatedTitle);
 
       // 2. 先頭の空行を削除してからコピー
       const contentToCopy = content.replace(/^\s*\n+/, '');
@@ -385,17 +390,18 @@ const DocumentEditor = forwardRef<DocumentEditorRef, DocumentEditorProps>(({
               </Select>
             </FormControl>
 
-            <IconButton
-              size="small"
-              onClick={() => {
-                if (onOpenDocumentViewer) {
-                  onOpenDocumentViewer();
-                }
-              }}
-              title="全ての文書"
-            >
-              <History />
-            </IconButton>
+            <Tooltip title={lastSavedDocTitle ? `全ての文書 (直前保存: ${lastSavedDocTitle})` : '全ての文書'}>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  if (onOpenDocumentViewer) {
+                    onOpenDocumentViewer();
+                  }
+                }}
+              >
+                <History />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {/* Right side - Save and Clear buttons */}

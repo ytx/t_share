@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Box, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import { NoteAdd, ArrowUpward } from '@mui/icons-material';
+import { Box, CircularProgress } from '@mui/material';
 import MarkdownEditor from './MarkdownEditor';
 import TemplateCreateModal from '../Templates/TemplateCreateModal';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -26,10 +25,9 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   const markdownEditorRef = useRef<any>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef(content);
-  const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number } | null>(null);
-  const [selectedText, setSelectedText] = useState('');
-  const [showTemplateCreate, setShowTemplateCreate] = useState(false);
   const isComposingRef = useRef(false); // IME入力中フラグ
+  const [showTemplateCreate, setShowTemplateCreate] = useState(false);
+  const [templateInitialContent, setTemplateInitialContent] = useState('');
 
   // Keep contentRef in sync with content
   useEffect(() => {
@@ -188,65 +186,23 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
     }, 3000);
   }, [autoSave]);
 
-  // Context menu handlers
-  const handleContextMenu = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation(); // Stop event propagation to prevent double menu
-
-    // Get selected text from MarkdownEditor ref
-    let selection = '';
-    if (markdownEditorRef.current?.getSelectedText) {
-      selection = markdownEditorRef.current.getSelectedText();
-      console.log('SimpleMarkdownEditor context menu - selected text:', selection);
+  // Handler for moving text to upper editor
+  const handleMoveToUpperEditor = useCallback((text: string) => {
+    if (onMoveToUpperEditor) {
+      onMoveToUpperEditor(text);
     }
+  }, [onMoveToUpperEditor]);
 
-    setSelectedText(selection);
-    setContextMenu({
-      mouseX: event.clientX - 2,
-      mouseY: event.clientY - 4,
-    });
-  }, []);
-
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  const handleCreateTemplate = useCallback(() => {
-    if (!selectedText.trim()) {
-      handleCloseContextMenu();
-      return;
-    }
-
-    // Show template create modal
+  // Handler for creating template from selected text
+  const handleCreateTemplate = useCallback((text: string) => {
+    setTemplateInitialContent(text);
     setShowTemplateCreate(true);
-    handleCloseContextMenu();
-  }, [selectedText, handleCloseContextMenu]);
+  }, []);
 
   const handleTemplateCreateSuccess = useCallback(() => {
     setShowTemplateCreate(false);
-    setSelectedText('');
-    // TODO: Show success notification
+    setTemplateInitialContent('');
   }, []);
-
-  const handleMoveToUpperEditor = useCallback(() => {
-    if (!selectedText.trim() || !onMoveToUpperEditor) {
-      handleCloseContextMenu();
-      return;
-    }
-
-    // Remove selected text from current editor by replacing with empty string
-    if (markdownEditorRef.current) {
-      const currentContent = content;
-      const newContent = currentContent.replace(selectedText, '');
-      setContent(newContent);
-      handleContentChange(newContent);
-    }
-
-    // Move to upper editor
-    onMoveToUpperEditor(selectedText);
-
-    handleCloseContextMenu();
-  }, [selectedText, onMoveToUpperEditor, handleCloseContextMenu, handleContentChange, content]);
 
   if (isLoading) {
     return (
@@ -257,64 +213,37 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
-      {/* Editor */}
-      <Box
-        sx={{ flex: 1, minHeight: 0 }}
-        onContextMenuCapture={handleContextMenu}
-        onCompositionStart={handleCompositionStart}
-        onCompositionEnd={handleCompositionEnd}
-      >
-        <MarkdownEditor
-          ref={markdownEditorRef}
-          value={content}
-          onChange={handleContentChange}
-          height="100%"
-          aceTheme={themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme}
-          showLineNumbers={editorSettings.showLineNumbers}
-          wordWrap={editorSettings.wordWrap}
-          fontSize={editorSettings.fontSize}
-          keybinding={editorSettings.keybinding}
-          showWhitespace={editorSettings.showWhitespace}
-          editorId="simple-markdown-editor"
-          placeholder="自分用のメモを作成してください（自動保存されます）..."
-        />
-      </Box>
-
-      {/* Context Menu */}
-      <Menu
-        open={contextMenu !== null}
-        onClose={handleCloseContextMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-      >
-        <MenuItem onClick={handleCreateTemplate} disabled={!selectedText.trim()}>
-          <ListItemIcon>
-            <NoteAdd fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>定型文を作成</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleMoveToUpperEditor} disabled={!selectedText.trim()}>
-          <ListItemIcon>
-            <ArrowUpward fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>上のエディタへ移動</ListItemText>
-        </MenuItem>
-      </Menu>
+    <Box
+      sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+    >
+      <MarkdownEditor
+        ref={markdownEditorRef}
+        value={content}
+        onChange={handleContentChange}
+        height="100%"
+        aceTheme={themeMode === 'dark' ? editorSettings.darkTheme : editorSettings.lightTheme}
+        showLineNumbers={editorSettings.showLineNumbers}
+        wordWrap={editorSettings.wordWrap}
+        fontSize={editorSettings.fontSize}
+        keybinding={editorSettings.keybinding}
+        showWhitespace={editorSettings.showWhitespace}
+        editorId="simple-markdown-editor"
+        placeholder="自分用のメモを作成してください（自動保存されます）..."
+        onMoveToUpperEditor={handleMoveToUpperEditor}
+        onCreateTemplate={handleCreateTemplate}
+      />
 
       {/* Template Create Modal */}
       <TemplateCreateModal
         open={showTemplateCreate}
         onClose={() => {
           setShowTemplateCreate(false);
-          setSelectedText('');
+          setTemplateInitialContent('');
         }}
         onSuccess={handleTemplateCreateSuccess}
-        initialContent={selectedText}
+        initialContent={templateInitialContent}
       />
     </Box>
   );

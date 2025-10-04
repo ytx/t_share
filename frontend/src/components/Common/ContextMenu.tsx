@@ -11,6 +11,7 @@ import {
   ContentCopy,
   ContentCut,
   ContentPaste,
+  ArrowUpward,
 } from '@mui/icons-material';
 
 interface ContextMenuProps {
@@ -18,6 +19,9 @@ interface ContextMenuProps {
   onClose: () => void;
   onCreateTemplate?: () => void;
   selectedText?: string;
+  onCut?: () => void;
+  onPaste?: () => void;
+  onMoveToUpperEditor?: () => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -25,6 +29,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onClose,
   onCreateTemplate,
   selectedText,
+  onCut,
+  onPaste,
+  onMoveToUpperEditor,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -55,27 +62,28 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     handleClose();
   };
 
-  const handleCut = async () => {
-    if (selectedText) {
-      try {
-        await navigator.clipboard.writeText(selectedText);
-        // テキストの削除は親コンポーネントで処理する必要があります
-      } catch (error) {
-        console.error('切り取りに失敗しました:', error);
-      }
-    }
+  const handleCutClick = () => {
     handleClose();
+    if (onCut) {
+      // 非同期で実行して、メニューが先に閉じるようにする
+      setTimeout(() => onCut(), 0);
+    }
   };
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      // ペーストの処理は親コンポーネントで処理する必要があります
-      console.log('Paste:', text);
-    } catch (error) {
-      console.error('ペーストに失敗しました:', error);
-    }
+  const handlePasteClick = () => {
     handleClose();
+    if (onPaste) {
+      // 非同期で実行して、メニューが先に閉じるようにする
+      setTimeout(() => onPaste(), 0);
+    }
+  };
+
+  const handleMoveToUpperEditorClick = () => {
+    handleClose();
+    if (onMoveToUpperEditor) {
+      // 非同期で実行して、メニューが先に閉じるようにする
+      setTimeout(() => onMoveToUpperEditor(), 0);
+    }
   };
 
   if (!anchorPosition) return null;
@@ -90,42 +98,46 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         dense: true,
       }}
     >
-      {selectedText && (
-        <>
-          <MenuItem onClick={handleCreateTemplate}>
-            <ListItemIcon>
-              <Add fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="定型文を作成" />
-          </MenuItem>
-          <Divider />
-        </>
-      )}
+      <MenuItem onClick={handleCreateTemplate} disabled={!selectedText}>
+        <ListItemIcon>
+          <Add fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary="定型文を作成" />
+      </MenuItem>
+      <Divider />
 
-      {selectedText && (
-        <MenuItem onClick={handleCopy}>
-          <ListItemIcon>
-            <ContentCopy fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="コピー" />
-        </MenuItem>
-      )}
+      <MenuItem onClick={handleCopy} disabled={!selectedText}>
+        <ListItemIcon>
+          <ContentCopy fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary="コピー" />
+      </MenuItem>
 
-      {selectedText && (
-        <MenuItem onClick={handleCut}>
-          <ListItemIcon>
-            <ContentCut fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="切り取り" />
-        </MenuItem>
-      )}
+      <MenuItem onClick={handleCutClick} disabled={!selectedText}>
+        <ListItemIcon>
+          <ContentCut fontSize="small" />
+        </ListItemIcon>
+        <ListItemText primary="切り取り" />
+      </MenuItem>
 
-      <MenuItem onClick={handlePaste}>
+      <MenuItem onClick={handlePasteClick}>
         <ListItemIcon>
           <ContentPaste fontSize="small" />
         </ListItemIcon>
         <ListItemText primary="ペースト" />
       </MenuItem>
+
+      {onMoveToUpperEditor && (
+        <>
+          <Divider />
+          <MenuItem onClick={handleMoveToUpperEditorClick} disabled={!selectedText}>
+            <ListItemIcon>
+              <ArrowUpward fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="上のエディタへ移動" />
+          </MenuItem>
+        </>
+      )}
     </Menu>
   );
 };

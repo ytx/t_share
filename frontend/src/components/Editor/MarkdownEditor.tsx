@@ -54,6 +54,7 @@ interface MarkdownEditorProps {
   readOnly?: boolean;
   onCreateTemplate?: (selectedText: string) => void;
   editorId?: string;
+  onMoveToUpperEditor?: (selectedText: string) => void;
 }
 
 interface MarkdownEditorRef {
@@ -75,6 +76,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   readOnly = false,
   onCreateTemplate,
   editorId,
+  onMoveToUpperEditor,
 }, ref) => {
   const [contextMenu, setContextMenu] = useState<{
     position: { top: number; left: number } | null;
@@ -151,15 +153,14 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
       text: selectedText
     });
 
-    if (selectedText.trim()) {
-      setContextMenu({
-        position: {
-          top: event.clientY,
-          left: event.clientX,
-        },
-        selectedText: selectedText.trim(),
-      });
-    }
+    // 選択テキストの有無に関わらず、コンテキストメニューを表示
+    setContextMenu({
+      position: {
+        top: event.clientY,
+        left: event.clientX,
+      },
+      selectedText: selectedText.trim(),
+    });
   }, [getSelectedText]);
 
   const handleContextMenuClose = useCallback(() => {
@@ -175,6 +176,65 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
     }
     handleContextMenuClose();
   }, [contextMenu.selectedText, onCreateTemplate, handleContextMenuClose]);
+
+  const handleMoveToUpperEditorFromContext = useCallback(() => {
+    if (contextMenu.selectedText && onMoveToUpperEditor) {
+      // Cut the selected text from this editor
+      if (aceEditorRef.current) {
+        const editor = aceEditorRef.current.editor;
+        editor.session.replace(editor.selection.getRange(), '');
+      }
+      // Move to upper editor
+      onMoveToUpperEditor(contextMenu.selectedText);
+    }
+    handleContextMenuClose();
+  }, [contextMenu.selectedText, onMoveToUpperEditor, handleContextMenuClose]);
+
+  const handleCut = useCallback(async () => {
+    console.log('handleCut called', { hasEditor: !!aceEditorRef.current, selectedText: contextMenu.selectedText });
+
+    if (!aceEditorRef.current) {
+      console.error('Editor ref is null');
+      return;
+    }
+
+    const editor = aceEditorRef.current.editor;
+    const selectedText = editor.getSelectedText();
+
+    console.log('Cutting text:', selectedText);
+
+    if (selectedText) {
+      try {
+        await navigator.clipboard.writeText(selectedText);
+        editor.session.replace(editor.selection.getRange(), '');
+        console.log('Cut successful');
+      } catch (error) {
+        console.error('切り取りに失敗しました:', error);
+      }
+    }
+  }, [contextMenu.selectedText]);
+
+  const handlePaste = useCallback(async () => {
+    console.log('handlePaste called', { hasEditor: !!aceEditorRef.current });
+
+    if (!aceEditorRef.current) {
+      console.error('Editor ref is null');
+      return;
+    }
+
+    const editor = aceEditorRef.current.editor;
+
+    try {
+      const text = await navigator.clipboard.readText();
+      console.log('Pasting text:', text);
+      if (text) {
+        editor.session.replace(editor.selection.getRange(), text);
+        console.log('Paste successful');
+      }
+    } catch (error) {
+      console.error('ペーストに失敗しました:', error);
+    }
+  }, []);
 
   const editorOptions = {
     enableBasicAutocompletion: true,
@@ -231,6 +291,9 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
         onClose={handleContextMenuClose}
         onCreateTemplate={handleCreateTemplateFromContext}
         selectedText={contextMenu.selectedText}
+        onCut={handleCut}
+        onPaste={handlePaste}
+        onMoveToUpperEditor={onMoveToUpperEditor ? handleMoveToUpperEditorFromContext : undefined}
       />
     </Paper>
   );

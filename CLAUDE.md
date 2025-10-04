@@ -58,7 +58,52 @@ docker-compose up -d
 - ブランチ戦略: Git Flow
 - テスト: Jest + React Testing Library
 
-## 最新の変更履歴 (2025-10-01)
+## 最新の変更履歴 (2025-10-04)
+
+### コンテキストメニューの統一化
+1. **全エディタで統一されたコンテキストメニュー**
+   - 上段エディタ（DocumentEditor）
+   - プロジェクト内共有エディタ（ProjectEditor）
+   - メモ（自分用）エディタ（SimpleMarkdownEditor）
+   - 全てのエディタで同じコンテキストメニューを使用
+
+2. **コンテキストメニュー機能**
+   - 定型文を作成 - 選択テキストから定型文を作成
+   - コピー - クリップボードにコピー
+   - 切り取り - クリップボードにコピーして削除
+   - ペースト - クリップボードから貼り付け
+   - 上のエディタへ移動 - 下段エディタのみ表示（切り取り＋上段挿入）
+
+3. **UX改善**
+   - 選択テキストがない場合もメニューを表示（ペースト可能）
+   - 使用できない項目は無効化（グレーアウト）
+   - Material-UIとACE Editor APIの統合
+   - IME入力中の自動保存停止（日本語入力安全性）
+
+4. **技術的実装**
+   - `ContextMenu.tsx` - 共通コンテキストメニューコンポーネント
+   - `MarkdownEditor.tsx` - ACE Editorラッパーでコンテキストメニュー実装
+   - カスタムMenu削除によるコード簡素化
+   - `onCreateTemplate`, `onMoveToUpperEditor` プロパティによる拡張性
+
+### プロジェクト単位のメモ・共有文書管理
+1. **メモ（自分用）のプロジェクト単位管理**
+   - ユーザーレベルからプロジェクトレベルに変更
+   - プロジェクトごとに独立したメモを保存
+   - プロジェクト切り替え時の自動切り替え
+   - プロジェクト未選択時はグローバルメモ（projectId: null）
+
+2. **バックエンドAPI拡張**
+   - `GET /api/documents/personal-memo?projectId={id}` - プロジェクト別メモ取得
+   - `documentService.getOrCreatePersonalMemo(userId, projectId?)` - オプショナルprojectId対応
+   - null vs undefined の適切な処理
+
+3. **フロントエンド実装**
+   - `useGetPersonalMemoQuery(projectId)` - RTK Query with refetch
+   - プロジェクト変更時の自動データ再取得
+   - 3秒デバウンスでの自動保存
+
+## 以前の変更履歴 (2025-10-01)
 
 ### Claude Code会話履歴インポート機能
 1. **JSONLファイルインポート機能**
