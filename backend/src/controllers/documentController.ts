@@ -241,7 +241,10 @@ export const getOrCreatePersonalMemo = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const document = await documentService.getOrCreatePersonalMemo(userId);
+    // プロジェクトIDをクエリパラメータから取得（オプショナル）
+    const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
+
+    const document = await documentService.getOrCreatePersonalMemo(userId, projectId);
     res.json({ data: document });
   } catch (error) {
     logger.error('Get or create personal memo failed:', error);

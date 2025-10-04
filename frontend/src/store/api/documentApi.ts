@@ -127,10 +127,13 @@ export const documentApi = createApi({
       ],
     }),
 
-    getPersonalMemo: builder.query<{ data: Document }, void>({
-      query: () => '/personal-memo',
-      providesTags: () => [
-        { type: 'Document', id: 'PERSONAL_MEMO' },
+    getPersonalMemo: builder.query<{ data: Document }, number | undefined>({
+      query: (projectId) => ({
+        url: '/personal-memo',
+        params: projectId ? { projectId } : undefined,
+      }),
+      providesTags: (_, __, projectId) => [
+        { type: 'Document', id: projectId ? `PERSONAL_MEMO_${projectId}` : 'PERSONAL_MEMO' },
       ],
     }),
   }),

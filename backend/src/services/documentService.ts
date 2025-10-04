@@ -420,12 +420,15 @@ class DocumentService {
     }
   }
 
-  async getOrCreatePersonalMemo(userId: number) {
+  async getOrCreatePersonalMemo(userId: number, projectId?: number) {
     try {
-      // Try to find existing personal memo
+      logger.info(`Getting personal memo for user ${userId}, projectId: ${projectId}`);
+
+      // Try to find existing personal memo for this user and project
       let personalMemo = await prisma.document.findFirst({
         where: {
           createdBy: userId,
+          projectId: projectId !== undefined ? projectId : null,
           title: 'メモ（自分用）',
         },
         include: {
@@ -453,6 +456,7 @@ class DocumentService {
             content: '',
             contentMarkdown: '',
             createdBy: userId,
+            projectId: projectId !== undefined ? projectId : null,
           },
           include: {
             creator: {
@@ -471,9 +475,10 @@ class DocumentService {
           },
         });
 
-        logger.info(`Personal memo created for user ${userId}`);
+        logger.info(`Personal memo created for user ${userId}${projectId ? ` in project ${projectId}` : ' (no project)'}`);
       }
 
+      logger.info(`Returning personal memo id: ${personalMemo.id}, projectId: ${personalMemo.projectId}`);
       return personalMemo;
     } catch (error) {
       logger.error('Get or create personal memo failed:', error);

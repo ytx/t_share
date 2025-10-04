@@ -20,7 +20,7 @@ export interface SimpleMarkdownEditorRef {
   flush: () => Promise<void>;
 }
 
-const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>(({ onMoveToUpperEditor, onUnsavedChanges }, ref) => {
+const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownEditorProps>(({ selectedProjectId, onMoveToUpperEditor, onUnsavedChanges }, ref) => {
   const [content, setContent] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const markdownEditorRef = useRef<any>(null);
@@ -40,8 +40,10 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   const { data: userPreferences } = useGetUserPreferencesQuery();
   const { mode: themeMode } = useTheme();
 
-  // API hooks
-  const { data: memoResponse, isLoading } = useGetPersonalMemoQuery();
+  // API hooks - プロジェクトIDを渡してプロジェクトごとのメモを取得
+  const { data: memoResponse, isLoading } = useGetPersonalMemoQuery(selectedProjectId, {
+    refetchOnMountOrArgChange: true,
+  });
   const [updateDocument] = useUpdateDocumentMutation();
 
   const personalMemo = memoResponse?.data;
@@ -67,10 +69,14 @@ const SimpleMarkdownEditor = forwardRef<SimpleMarkdownEditorRef, SimpleMarkdownE
   // 個人メモ取得時に内容を設定
   useEffect(() => {
     if (personalMemo) {
+      console.log('SimpleMarkdownEditor: Loading memo for project', selectedProjectId, 'content length:', personalMemo.content?.length);
       setContent(personalMemo.content || '');
       setHasUnsavedChanges(false);
+      if (onUnsavedChanges) {
+        onUnsavedChanges(false);
+      }
     }
-  }, [personalMemo]);
+  }, [personalMemo, onUnsavedChanges, selectedProjectId]);
 
   // 自動保存処理
   const autoSave = useCallback(async () => {
