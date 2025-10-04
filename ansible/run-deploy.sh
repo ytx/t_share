@@ -3,6 +3,7 @@
 # T-SHARE Deployment Script
 # Usage: ./run-deploy.sh [staging|production] [deploy|init]
 
+cd `dirname $0`
 set -e
 
 # Parse arguments
